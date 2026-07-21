@@ -1,81 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { Toaster, toast } from 'sonner';
+import { useState } from 'react';
+import { Toaster } from 'sonner';
 import { Header } from './components/Header';
-import { ManagementView } from './components/ManagementView';
-import { ScheduleView } from './components/ScheduleView';
-import { CoursesView } from './components/CoursesView';
 import { Modals } from './components/Modals';
-import { apiPost } from './api';
-
-import {
-  Room,
-  BreakTime,
-  SksSettings,
-  Lecturer,
-  ClassCohort,
-  Semester,
-  Course,
-  ScheduleSlot,
-  DraftCourseItem,
-  MainNavTab,
-  ManagementSubTab,
-} from './types';
+import { ManagementPage } from './pages/ManagementPage';
+import { SchedulePage } from './pages/SchedulePage';
+import { CoursesPage } from './pages/CoursesPage';
+import { useRooms } from './hooks/useRooms';
+import { useLecturers } from './hooks/useLecturers';
+import { useBreakTimes } from './hooks/useBreakTimes';
+import { useSksSettings } from './hooks/useSksSettings';
+import { useScheduleData } from './hooks/useScheduleData';
+import { useCourses } from './hooks/useCourses';
+import { useManagementMeta } from './hooks/useManagementMeta';
+import { useDataFetching } from './hooks/useDataFetching';
+import { MainNavTab, ManagementSubTab } from './types';
 
 export default function App() {
-  // Navigation State
   const [activeTab, setActiveTab] = useState<MainNavTab>('Management');
   const [activeSubTab, setActiveSubTab] = useState<ManagementSubTab>('Rooms');
-  const [searchQuery, setSearchQuery] = useState('');
 
-  // Domain State
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [breakTimes, setBreakTimes] = useState<BreakTime[]>([]);
-  const [sksSettings, setSksSettings] = useState<SksSettings>({ durationPerSks: 50, autoConflictDetection: true, allowOverlap: false });
-  const [lecturers, setLecturers] = useState<Lecturer[]>([]);
-  const [classes, setClasses] = useState<ClassCohort[]>([]);
-  const [semesters, setSemesters] = useState<Semester[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [scheduleSlots, setScheduleSlots] = useState<ScheduleSlot[]>([]);
-  const [draftPool, setDraftPool] = useState<DraftCourseItem[]>([]);
+  const { rooms, setRooms, addRoom } = useRooms();
+  const { lecturers, setLecturers, addLecturer } = useLecturers();
+  const { breakTimes, setBreakTimes, addBreakTime } = useBreakTimes();
+  const { sksSettings, setSksSettings } = useSksSettings();
+  const { scheduleSlots, setScheduleSlots, draftPool, setDraftPool } = useScheduleData();
+  const { courses, setCourses } = useCourses();
+  const { classes, setClasses, semesters, setSemesters } = useManagementMeta();
 
-  useEffect(() => {
-    async function fetchData() {
-      const [
-        roomsRes,
-        breakTimesRes,
-        sksSettingsRes,
-        lecturersRes,
-        classesRes,
-        semestersRes,
-        coursesRes,
-        scheduleSlotsRes,
-        draftPoolRes,
-      ] = await Promise.all([
-        fetch('/api/rooms').then(r => r.json()),
-        fetch('/api/break-times').then(r => r.json()),
-        fetch('/api/sks-settings').then(r => r.json()),
-        fetch('/api/lecturers').then(r => r.json()),
-        fetch('/api/class-cohorts').then(r => r.json()),
-        fetch('/api/semesters').then(r => r.json()),
-        fetch('/api/courses').then(r => r.json()),
-        fetch('/api/schedule-slots').then(r => r.json()),
-        fetch('/api/draft-pool').then(r => r.json()),
-      ]);
+  useDataFetching({
+    setRooms,
+    setBreakTimes,
+    setSksSettings,
+    setLecturers,
+    setClasses,
+    setSemesters,
+    setCourses,
+    setScheduleSlots,
+    setDraftPool,
+  });
 
-      setRooms(roomsRes);
-      setBreakTimes(breakTimesRes);
-      if (sksSettingsRes) setSksSettings(sksSettingsRes);
-      setLecturers(lecturersRes);
-      setClasses(classesRes);
-      setSemesters(semestersRes);
-      setCourses(coursesRes);
-      setScheduleSlots(scheduleSlotsRes);
-      setDraftPool(draftPoolRes);
-    }
-    fetchData();
-  }, []);
-
-  // Modals State
   const [showNewRecordModal, setShowNewRecordModal] = useState(false);
   const [initialRecordType, setInitialRecordType] = useState('Room');
   const [showReportModal, setShowReportModal] = useState(false);
@@ -87,53 +50,15 @@ export default function App() {
     setShowNewRecordModal(true);
   };
 
-  const handleAddRoom = async (data: Omit<Room, 'id'>) => {
-    try {
-      const created = await apiPost<Room>('/api/rooms', data);
-      setRooms((prev) => [...prev, created]);
-      toast.success('Room created');
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to create room');
-    }
-  };
-
-  const handleAddLecturer = async (data: Omit<Lecturer, 'id'>) => {
-    try {
-      const created = await apiPost<Lecturer>('/api/lecturers', data);
-      setLecturers((prev) => [...prev, created]);
-      toast.success('Lecturer created');
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to create lecturer');
-    }
-  };
-
-  const handleAddBreak = async (data: Omit<BreakTime, 'id'>) => {
-    try {
-      const created = await apiPost<BreakTime>('/api/break-times', data);
-      setBreakTimes((prev) => [...prev, created]);
-      toast.success('Break time created');
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to create break time');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e] font-sans antialiased">
       <Toaster position="top-right" richColors />
-      {/* Top Navbar */}
-      <Header
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
+      <Header activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className="min-h-[calc(100vh-64px)]">
-        {/* Main Content Workspace */}
         <main className="p-8 max-w-7xl mx-auto">
           {activeTab === 'Management' && (
-            <ManagementView
+            <ManagementPage
               rooms={rooms}
               setRooms={setRooms}
               breakTimes={breakTimes}
@@ -154,7 +79,7 @@ export default function App() {
           )}
 
           {activeTab === 'Schedule' && (
-            <ScheduleView
+            <SchedulePage
               rooms={rooms}
               scheduleSlots={scheduleSlots}
               setScheduleSlots={setScheduleSlots}
@@ -166,19 +91,18 @@ export default function App() {
           )}
 
           {activeTab === 'Courses' && (
-            <CoursesView courses={courses} setCourses={setCourses} />
+            <CoursesPage courses={courses} setCourses={setCourses} />
           )}
         </main>
       </div>
 
-      {/* Unified Modals Overlay */}
       <Modals
         showNewRecordModal={showNewRecordModal}
         setShowNewRecordModal={setShowNewRecordModal}
         initialRecordType={initialRecordType}
-        onAddRoom={handleAddRoom}
-        onAddLecturer={handleAddLecturer}
-        onAddBreak={handleAddBreak}
+        onAddRoom={addRoom}
+        onAddLecturer={addLecturer}
+        onAddBreak={addBreakTime}
         showReportModal={showReportModal}
         setShowReportModal={setShowReportModal}
         showExportModal={showExportModal}
