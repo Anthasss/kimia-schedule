@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { ManagementView } from './components/ManagementView';
 import { ScheduleView } from './components/ScheduleView';
@@ -19,18 +19,6 @@ import {
   ManagementSubTab,
 } from './types';
 
-import {
-  INITIAL_ROOMS,
-  INITIAL_BREAK_TIMES,
-  INITIAL_SKS_SETTINGS,
-  INITIAL_LECTURERS,
-  INITIAL_CLASSES,
-  INITIAL_SEMESTERS,
-  INITIAL_COURSES,
-  INITIAL_SCHEDULE_SLOTS,
-  INITIAL_DRAFT_POOL,
-} from './data/mockData';
-
 export default function App() {
   // Navigation State
   const [activeTab, setActiveTab] = useState<MainNavTab>('Management');
@@ -38,15 +26,52 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Domain State
-  const [rooms, setRooms] = useState<Room[]>(INITIAL_ROOMS);
-  const [breakTimes, setBreakTimes] = useState<BreakTime[]>(INITIAL_BREAK_TIMES);
-  const [sksSettings, setSksSettings] = useState<SksSettings>(INITIAL_SKS_SETTINGS);
-  const [lecturers, setLecturers] = useState<Lecturer[]>(INITIAL_LECTURERS);
-  const [classes, setClasses] = useState<ClassCohort[]>(INITIAL_CLASSES);
-  const [semesters, setSemesters] = useState<Semester[]>(INITIAL_SEMESTERS);
-  const [courses, setCourses] = useState<Course[]>(INITIAL_COURSES);
-  const [scheduleSlots, setScheduleSlots] = useState<ScheduleSlot[]>(INITIAL_SCHEDULE_SLOTS);
-  const [draftPool, setDraftPool] = useState<DraftCourseItem[]>(INITIAL_DRAFT_POOL);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [breakTimes, setBreakTimes] = useState<BreakTime[]>([]);
+  const [sksSettings, setSksSettings] = useState<SksSettings>({ durationPerSks: 50, autoConflictDetection: true, allowOverlap: false });
+  const [lecturers, setLecturers] = useState<Lecturer[]>([]);
+  const [classes, setClasses] = useState<ClassCohort[]>([]);
+  const [semesters, setSemesters] = useState<Semester[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [scheduleSlots, setScheduleSlots] = useState<ScheduleSlot[]>([]);
+  const [draftPool, setDraftPool] = useState<DraftCourseItem[]>([]);
+
+  useEffect(() => {
+    async function fetchData() {
+      const [
+        roomsRes,
+        breakTimesRes,
+        sksSettingsRes,
+        lecturersRes,
+        classesRes,
+        semestersRes,
+        coursesRes,
+        scheduleSlotsRes,
+        draftPoolRes,
+      ] = await Promise.all([
+        fetch('/api/rooms').then(r => r.json()),
+        fetch('/api/break-times').then(r => r.json()),
+        fetch('/api/sks-settings').then(r => r.json()),
+        fetch('/api/lecturers').then(r => r.json()),
+        fetch('/api/class-cohorts').then(r => r.json()),
+        fetch('/api/semesters').then(r => r.json()),
+        fetch('/api/courses').then(r => r.json()),
+        fetch('/api/schedule-slots').then(r => r.json()),
+        fetch('/api/draft-pool').then(r => r.json()),
+      ]);
+
+      setRooms(roomsRes);
+      setBreakTimes(breakTimesRes);
+      if (sksSettingsRes) setSksSettings(sksSettingsRes);
+      setLecturers(lecturersRes);
+      setClasses(classesRes);
+      setSemesters(semestersRes);
+      setCourses(coursesRes);
+      setScheduleSlots(scheduleSlotsRes);
+      setDraftPool(draftPoolRes);
+    }
+    fetchData();
+  }, []);
 
   // Modals State
   const [showNewRecordModal, setShowNewRecordModal] = useState(false);

@@ -5,6 +5,18 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
+import { db } from "./db/index";
+import {
+  rooms,
+  breakTimes,
+  sksSettings,
+  lecturers,
+  classCohorts,
+  semesters,
+  courses,
+  scheduleSlots,
+  draftPool,
+} from "./db/schema";
 
 async function startServer() {
   const app = express();
@@ -29,6 +41,52 @@ async function startServer() {
   // Healthcheck endpoint
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", aiConfigured: !!ai });
+  });
+
+  // Data GET endpoints
+  app.get("/api/rooms", async (_req, res) => {
+    const rows = await db.select().from(rooms);
+    res.json(rows);
+  });
+
+  app.get("/api/break-times", async (_req, res) => {
+    const rows = await db.select().from(breakTimes);
+    res.json(rows);
+  });
+
+  app.get("/api/sks-settings", async (_req, res) => {
+    const rows = await db.select().from(sksSettings).limit(1);
+    res.json(rows[0] || null);
+  });
+
+  app.get("/api/lecturers", async (_req, res) => {
+    const rows = await db.select().from(lecturers);
+    res.json(rows);
+  });
+
+  app.get("/api/class-cohorts", async (_req, res) => {
+    const rows = await db.select().from(classCohorts);
+    res.json(rows);
+  });
+
+  app.get("/api/semesters", async (_req, res) => {
+    const rows = await db.select().from(semesters);
+    res.json(rows);
+  });
+
+  app.get("/api/courses", async (_req, res) => {
+    const rows = await db.select().from(courses);
+    res.json(rows);
+  });
+
+  app.get("/api/schedule-slots", async (_req, res) => {
+    const rows = await db.select().from(scheduleSlots);
+    res.json(rows);
+  });
+
+  app.get("/api/draft-pool", async (_req, res) => {
+    const rows = await db.select().from(draftPool);
+    res.json(rows);
   });
 
   // AI Auto-Scheduler Endpoint
@@ -215,13 +273,15 @@ Provide a structured JSON output.`,
 
   // Vite middleware setup
   if (process.env.NODE_ENV !== "production") {
+    const clientRoot = path.join(__dirname, "../client");
     const vite = await createViteServer({
+      root: clientRoot,
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
+    const distPath = path.join(__dirname, "../client/dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
