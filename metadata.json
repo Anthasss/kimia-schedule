@@ -1,0 +1,6 @@
+{
+  "name": "UniSched Admin",
+  "description": "Institutional academic data management and master schedule builder with automated conflict detection and AI scheduling assistance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
