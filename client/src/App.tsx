@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { Toaster, toast } from 'sonner';
 import { Header } from './components/Header';
 import { ManagementView } from './components/ManagementView';
 import { ScheduleView } from './components/ScheduleView';
 import { CoursesView } from './components/CoursesView';
 import { Modals } from './components/Modals';
+import { apiPost } from './api';
 
 import {
   Room,
@@ -85,20 +87,42 @@ export default function App() {
     setShowNewRecordModal(true);
   };
 
-  const handleAddRoom = (newRoom: Room) => {
-    setRooms((prev) => [...prev, newRoom]);
+  const handleAddRoom = async (data: Omit<Room, 'id'>) => {
+    try {
+      const created = await apiPost<Room>('/api/rooms', data);
+      setRooms((prev) => [...prev, created]);
+      toast.success('Room created');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to create room');
+    }
   };
 
-  const handleAddLecturer = (newLecturer: Lecturer) => {
-    setLecturers((prev) => [...prev, newLecturer]);
+  const handleAddLecturer = async (data: Omit<Lecturer, 'id'>) => {
+    try {
+      const created = await apiPost<Lecturer>('/api/lecturers', data);
+      setLecturers((prev) => [...prev, created]);
+      toast.success('Lecturer created');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to create lecturer');
+    }
   };
 
-  const handleAddBreak = (newBreak: BreakTime) => {
-    setBreakTimes((prev) => [...prev, newBreak]);
+  const handleAddBreak = async (data: Omit<BreakTime, 'id'>) => {
+    try {
+      const created = await apiPost<BreakTime>('/api/break-times', data);
+      setBreakTimes((prev) => [...prev, created]);
+      toast.success('Break time created');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to create break time');
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e] font-sans antialiased">
+      <Toaster position="top-right" richColors />
       {/* Top Navbar */}
       <Header
         activeTab={activeTab}

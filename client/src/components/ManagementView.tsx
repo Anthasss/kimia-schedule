@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
+import { apiPut, apiDelete, apiPost } from '../api';
 import {
   Room,
   BreakTime,
@@ -65,25 +67,52 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
     lect.name.toLowerCase().includes(lecturerSearch.toLowerCase())
   );
 
-  const handleSaveSksSettings = () => {
-    setSaveSettingsSuccess(true);
-    setTimeout(() => setSaveSettingsSuccess(false), 2500);
+  const handleSaveSksSettings = async () => {
+    try {
+      await apiPost('/api/sks-settings', sksSettings);
+      setSaveSettingsSuccess(true);
+      setTimeout(() => setSaveSettingsSuccess(false), 2500);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save settings');
+    }
   };
 
-  const handleDeleteRoom = (id: string) => {
+  const handleDeleteRoom = async (id: string) => {
     if (confirm('Are you sure you want to delete this room?')) {
-      setRooms(rooms.filter((r) => r.id !== id));
+      try {
+        await apiDelete(`/api/rooms/${id}`);
+        setRooms(rooms.filter((r) => r.id !== id));
+        toast.success('Room deleted');
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to delete room');
+      }
     }
   };
 
-  const handleDeleteLecturer = (id: string) => {
+  const handleDeleteLecturer = async (id: string) => {
     if (confirm('Are you sure you want to delete this lecturer record?')) {
-      setLecturers(lecturers.filter((l) => l.id !== id));
+      try {
+        await apiDelete(`/api/lecturers/${id}`);
+        setLecturers(lecturers.filter((l) => l.id !== id));
+        toast.success('Lecturer deleted');
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to delete lecturer');
+      }
     }
   };
 
-  const handleDeleteBreak = (id: string) => {
-    setBreakTimes(breakTimes.filter((b) => b.id !== id));
+  const handleDeleteBreak = async (id: string) => {
+    try {
+      await apiDelete(`/api/break-times/${id}`);
+      setBreakTimes(breakTimes.filter((b) => b.id !== id));
+      toast.success('Break time deleted');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete break time');
+    }
   };
 
   return (
@@ -503,9 +532,16 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  setRooms(rooms.map((r) => (r.id === editingRoom.id ? editingRoom : r)));
-                  setEditingRoom(null);
+                onClick={async () => {
+                  try {
+                    const updated = await apiPut<Room>(`/api/rooms/${editingRoom.id}`, { name: editingRoom.name });
+                    setRooms(rooms.map((r) => (r.id === updated.id ? updated : r)));
+                    setEditingRoom(null);
+                    toast.success('Room updated');
+                  } catch (err) {
+                    console.error(err);
+                    toast.error('Failed to update room');
+                  }
                 }}
                 className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer"
               >
@@ -554,11 +590,21 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  setLecturers(
-                    lecturers.map((l) => (l.id === editingLecturer.id ? editingLecturer : l))
-                  );
-                  setEditingLecturer(null);
+                onClick={async () => {
+                  try {
+                    const updated = await apiPut<Lecturer>(`/api/lecturers/${editingLecturer.id}`, {
+                      name: editingLecturer.name,
+                      assignedCredits: editingLecturer.assignedCredits,
+                    });
+                    setLecturers(
+                      lecturers.map((l) => (l.id === updated.id ? updated : l))
+                    );
+                    setEditingLecturer(null);
+                    toast.success('Lecturer updated');
+                  } catch (err) {
+                    console.error(err);
+                    toast.error('Failed to update lecturer');
+                  }
                 }}
                 className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer"
               >

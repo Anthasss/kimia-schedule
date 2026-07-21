@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
+import { apiPost, apiPut, apiDelete } from '../api';
 import { Course } from '../types';
 
 interface CoursesViewProps {
@@ -32,33 +34,44 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses })
     return matchesSearch && matchesDept;
   });
 
-  const handleAddCourse = () => {
+  const handleAddCourse = async () => {
     if (!newCode || !newTitle) return;
     const prereqList = newPrereqs
       ? newPrereqs.split(',').map((p) => p.trim())
       : [];
 
-    const newCourseObj: Course = {
-      id: `cour-${Date.now()}`,
-      code: newCode,
-      title: newTitle,
-      sks: newSks,
-      department: newDepartment,
-      type: newType,
-      prerequisites: prereqList,
-      assignedLecturerName: newLecturer || 'Unassigned',
-    };
-
-    setCourses([...courses, newCourseObj]);
-    setShowAddModal(false);
-    setNewCode('');
-    setNewTitle('');
-    setNewPrereqs('');
+    try {
+      const created = await apiPost<Course>('/api/courses', {
+        code: newCode,
+        title: newTitle,
+        sks: newSks,
+        department: newDepartment,
+        type: newType,
+        prerequisites: prereqList,
+        assignedLecturerName: newLecturer || 'Unassigned',
+      });
+      setCourses([...courses, created]);
+      setShowAddModal(false);
+      setNewCode('');
+      setNewTitle('');
+      setNewPrereqs('');
+      toast.success('Course created');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to create course');
+    }
   };
 
-  const handleDeleteCourse = (id: string) => {
+  const handleDeleteCourse = async (id: string) => {
     if (confirm('Delete course from catalog?')) {
-      setCourses(courses.filter((c) => c.id !== id));
+      try {
+        await apiDelete(`/api/courses/${id}`);
+        setCourses(courses.filter((c) => c.id !== id));
+        toast.success('Course deleted');
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to delete course');
+      }
     }
   };
 
@@ -310,9 +323,19 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses })
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  setCourses(courses.map((c) => (c.id === editingCourse.id ? editingCourse : c)));
-                  setEditingCourse(null);
+                onClick={async () => {
+                  try {
+                    const updated = await apiPut<Course>(`/api/courses/${editingCourse.id}`, {
+                      title: editingCourse.title,
+                      assignedLecturerName: editingCourse.assignedLecturerName,
+                    });
+                    setCourses(courses.map((c) => (c.id === updated.id ? updated : c)));
+                    setEditingCourse(null);
+                    toast.success('Course updated');
+                  } catch (err) {
+                    console.error(err);
+                    toast.error('Failed to update course');
+                  }
                 }}
                 className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold"
               >

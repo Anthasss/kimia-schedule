@@ -1,19 +1,12 @@
 import React, { useState } from 'react';
-import {
-  Room,
-  Lecturer,
-  ClassCohort,
-  Semester,
-  BreakTime,
-} from '../types';
 
 interface ModalsProps {
   showNewRecordModal: boolean;
   setShowNewRecordModal: (val: boolean) => void;
   initialRecordType?: string;
-  onAddRoom: (room: Room) => void;
-  onAddLecturer: (lecturer: Lecturer) => void;
-  onAddBreak: (breakTime: BreakTime) => void;
+  onAddRoom: (data: { name: string; capacity: number; type: string }) => void;
+  onAddLecturer: (data: { initials: string; name: string; email: string; department: string; assignedCredits: number; status: string }) => void;
+  onAddBreak: (data: { name: string; startTime: string; endTime: string }) => void;
   showReportModal: boolean;
   setShowReportModal: (val: boolean) => void;
   showExportModal: boolean;
@@ -64,10 +57,9 @@ export const Modals: React.FC<ModalsProps> = ({
     if (recordType === 'Room') {
       if (!roomName) return;
       onAddRoom({
-        id: `r-${Date.now()}`,
         name: roomName,
-        capacity: 40,
-        type: 'LECTURE',
+        capacity: roomCapacity,
+        type: roomType,
       });
     } else if (recordType === 'Lecturer') {
       if (!lecturerName) return;
@@ -78,18 +70,16 @@ export const Modals: React.FC<ModalsProps> = ({
         .join('')
         .toUpperCase();
       onAddLecturer({
-        id: `l-${Date.now()}`,
         initials: initials || 'FL',
         name: lecturerName,
-        email: `${lecturerName.toLowerCase().replace(/\s+/g, '.')}@university.edu`,
-        department: 'General Faculty',
+        email: lecturerEmail || `${lecturerName.toLowerCase().replace(/\s+/g, '.')}@university.edu`,
+        department: lecturerDept,
         assignedCredits: lecturerCredits,
         status: 'Active',
       });
     } else if (recordType === 'Break Time') {
       if (!breakName) return;
       onAddBreak({
-        id: `b-${Date.now()}`,
         name: breakName,
         startTime: breakStart,
         endTime: breakEnd,
@@ -97,7 +87,6 @@ export const Modals: React.FC<ModalsProps> = ({
     }
 
     setShowNewRecordModal(false);
-    // Reset forms
     setRoomName('');
     setLecturerName('');
     setBreakName('');
@@ -193,6 +182,34 @@ export const Modals: React.FC<ModalsProps> = ({
                       className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold text-[#43474e] mb-1">
+                        Capacity
+                      </label>
+                      <input
+                        type="number"
+                        value={roomCapacity}
+                        onChange={(e) => setRoomCapacity(parseInt(e.target.value) || 0)}
+                        className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-[#43474e] mb-1">
+                        Type
+                      </label>
+                      <select
+                        value={roomType}
+                        onChange={(e) => setRoomType(e.target.value as any)}
+                        className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
+                      >
+                        <option value="LECTURE">LECTURE</option>
+                        <option value="LAB">LAB</option>
+                        <option value="SEMINAR">SEMINAR</option>
+                        <option value="STUDIO">STUDIO</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -211,14 +228,40 @@ export const Modals: React.FC<ModalsProps> = ({
                       className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-semibold text-[#43474e] mb-1">
+                        Department
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Computer Science"
+                        value={lecturerDept}
+                        onChange={(e) => setLecturerDept(e.target.value)}
+                        className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-[#43474e] mb-1">
+                        SKS Credits
+                      </label>
+                      <input
+                        type="number"
+                        value={lecturerCredits}
+                        onChange={(e) => setLecturerCredits(parseInt(e.target.value) || 0)}
+                        className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
+                      />
+                    </div>
+                  </div>
                   <div>
                     <label className="block font-semibold text-[#43474e] mb-1">
-                      SKS Credits
+                      Email (optional)
                     </label>
                     <input
-                      type="number"
-                      value={lecturerCredits}
-                      onChange={(e) => setLecturerCredits(parseInt(e.target.value) || 0)}
+                      type="email"
+                      placeholder="Auto-generated if empty"
+                      value={lecturerEmail}
+                      onChange={(e) => setLecturerEmail(e.target.value)}
                       className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
                     />
                   </div>

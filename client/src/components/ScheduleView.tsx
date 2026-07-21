@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
+import { apiPost, apiDelete } from '../api';
 import {
   Room,
   ScheduleSlot,
@@ -59,7 +61,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
   const activeDraftItem = draftPool.find((dp) => dp.id === selectedExpandedDraft);
 
-  const handlePlaceDraftOnGrid = (
+  const handlePlaceDraftOnGrid = async (
     draftItem: DraftCourseItem,
     targetDay?: DayOfWeek,
     targetTimeSlot?: string,
@@ -70,7 +72,6 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     const roomId = targetRoomId || assignRoomId;
     const selectedRoom = rooms.find((r) => r.id === roomId) || rooms[0];
 
-    // Check for conflict if autoConflictDetection is on
     let hasConflict = false;
     let conflictReason = '';
     if (sksSettings.autoConflictDetection) {
@@ -83,8 +84,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       }
     }
 
-    const newSlot: ScheduleSlot = {
-      id: `slot-${Date.now()}`,
+    const slotData = {
       courseCode: draftItem.code,
       courseTitle: draftItem.title,
       sks: draftItem.sks,
@@ -98,36 +98,48 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       conflictReason,
     };
 
-    const remainingDrafts = draftPool.filter((dp) => dp.id !== draftItem.id);
-    setScheduleSlots([...scheduleSlots, newSlot]);
-    setDraftPool(remainingDrafts);
+    try {
+      const created = await apiPost<ScheduleSlot>('/api/schedule-slots', slotData);
+      await apiDelete(`/api/draft-pool/${draftItem.id}`);
 
-    if (remainingDrafts.length > 0) {
-      setSelectedExpandedDraft(remainingDrafts[0].id);
-    } else {
-      setSelectedExpandedDraft(null);
+      const remainingDrafts = draftPool.filter((dp) => dp.id !== draftItem.id);
+      setScheduleSlots([...scheduleSlots, created]);
+      setDraftPool(remainingDrafts);
+
+      if (remainingDrafts.length > 0) {
+        setSelectedExpandedDraft(remainingDrafts[0].id);
+      } else {
+        setSelectedExpandedDraft(null);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to place course on schedule');
     }
   };
 
-  const handleRemoveSlotFromGrid = (slotId: string) => {
+  const handleRemoveSlotFromGrid = async (slotId: string) => {
     const slot = scheduleSlots.find((s) => s.id === slotId);
     if (!slot) return;
 
-    setScheduleSlots(scheduleSlots.filter((s) => s.id !== slotId));
+    try {
+      await apiDelete(`/api/schedule-slots/${slotId}`);
 
-    // Return to draft pool
-    setDraftPool([
-      ...draftPool,
-      {
-        id: `dp-restored-${Date.now()}`,
+      const restoredDraft = {
         code: slot.courseCode,
         title: slot.courseTitle,
         sks: slot.sks,
         department: 'General',
         lecturerName: slot.lecturerName,
-        type: 'LECTURE',
-      },
-    ]);
+        type: 'LECTURE' as const,
+      };
+      const created = await apiPost<DraftCourseItem>('/api/draft-pool', restoredDraft);
+
+      setScheduleSlots(scheduleSlots.filter((s) => s.id !== slotId));
+      setDraftPool([...draftPool, created]);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to remove course from schedule');
+    }
   };
 
   return (
