@@ -31,7 +31,6 @@ export interface Lecturer {
   department: string;
   assignedCredits: number;
   status: LecturerStatus;
-  avatarBgColor?: string;
 }
 
 export interface ClassCohort {
@@ -60,7 +59,6 @@ export interface Course {
   department: string;
   type: RoomType;
   prerequisites?: string[];
-  assignedLecturerId?: string;
   assignedLecturerName?: string;
 }
 

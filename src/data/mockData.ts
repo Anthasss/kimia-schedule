@@ -47,7 +47,6 @@ export const INITIAL_LECTURERS: Lecturer[] = [
     department: 'Computer Science',
     assignedCredits: 12,
     status: 'Active',
-    avatarBgColor: 'bg-[#d6e3ff] text-[#001b3c]',
   },
   {
     id: 'l2',
@@ -57,7 +56,6 @@ export const INITIAL_LECTURERS: Lecturer[] = [
     department: 'Theoretical Physics',
     assignedCredits: 18,
     status: 'Active',
-    avatarBgColor: 'bg-[#d3e4fe] text-[#0b1c30]',
   },
   {
     id: 'l3',
@@ -67,7 +65,6 @@ export const INITIAL_LECTURERS: Lecturer[] = [
     department: 'Modern History',
     assignedCredits: 6,
     status: 'Sabbatical',
-    avatarBgColor: 'bg-[#dae2fd] text-[#131b2e]',
   },
   {
     id: 'l4',
@@ -77,7 +74,6 @@ export const INITIAL_LECTURERS: Lecturer[] = [
     department: 'Data Science',
     assignedCredits: 14,
     status: 'Active',
-    avatarBgColor: 'bg-[#e0e3e5] text-[#191c1e]',
   },
   {
     id: 'l5',
@@ -87,7 +83,6 @@ export const INITIAL_LECTURERS: Lecturer[] = [
     department: 'Computer Science',
     assignedCredits: 16,
     status: 'Active',
-    avatarBgColor: 'bg-[#d6e3ff] text-[#001b3c]',
   },
   {
     id: 'l6',
@@ -97,7 +92,6 @@ export const INITIAL_LECTURERS: Lecturer[] = [
     department: 'Organic Chemistry',
     assignedCredits: 10,
     status: 'On Leave',
-    avatarBgColor: 'bg-[#ffdad6] text-[#93000a]',
   },
 ];
 
@@ -123,17 +117,6 @@ export const INITIAL_COURSES: Course[] = [
   { id: 'cour6', code: 'PHY-301', title: 'Quantum Mechanics', sks: 4, department: 'Theoretical Physics', type: 'LECTURE', prerequisites: ['MAT-202'], assignedLecturerName: 'Dr. Alicia Wang' },
   { id: 'cour7', code: 'HIS-102', title: 'European Political History', sks: 2, department: 'Modern History', type: 'SEMINAR', prerequisites: [], assignedLecturerName: 'Robert Klein, M.A.' },
   { id: 'cour8', code: 'DS-301', title: 'Applied Machine Learning', sks: 3, department: 'Data Science', type: 'LAB', prerequisites: ['CS-201', 'MAT-202'], assignedLecturerName: 'Dr. Sarah Jenkins' },
-];
-
-export const TIME_SLOTS = [
-  '07:30 SKS 1',
-  '08:20 SKS 2',
-  '09:10 SKS 3',
-  '10:30 SKS 4',
-  '11:20 SKS 5',
-  '13:00 SKS 6',
-  '13:50 SKS 7',
-  '14:40 SKS 8',
 ];
 
 export const INITIAL_SCHEDULE_SLOTS: ScheduleSlot[] = [
