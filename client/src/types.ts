@@ -21,7 +21,6 @@ export interface SksSettings {
 export interface Lecturer {
   id: string;
   name: string;
-  assignedCredits: number;
   color: string;
 }
 

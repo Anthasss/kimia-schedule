@@ -28,7 +28,6 @@ export const sksSettings = pgTable('sks_settings', {
 export const lecturers = pgTable('lecturers', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
-  assignedCredits: integer('assigned_credits').notNull(),
   color: text('color').notNull().default('#6366f1'),
 }, (table) => [
   unique('lecturers_name_unique').on(table.name),

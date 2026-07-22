@@ -29,7 +29,7 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
   const [deleteLecturerTarget, setDeleteLecturerTarget] = useState<Lecturer | null>(null);
   const [colorPickerLecturerId, setColorPickerLecturerId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 5;
 
   const filteredLecturers = lecturers.filter((lect) =>
     lect.name.toLowerCase().includes(lecturerSearch.toLowerCase())
@@ -144,9 +144,6 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
                 <th className="px-6 py-3 font-semibold text-[12px] text-[#43474e] uppercase tracking-wider">
                   Color
                 </th>
-                <th className="px-6 py-3 font-semibold text-[12px] text-[#43474e] uppercase tracking-wider">
-                  Assigned Credits
-                </th>
                 <th className="px-6 py-3 font-semibold text-[12px] text-[#43474e] uppercase tracking-wider text-right">
                   Actions
                 </th>
@@ -155,9 +152,6 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
             <tbody className="divide-y divide-[#c4c6cf] text-[13px]">
               {paginatedLecturers.map((lect, idx) => {
                 const isEven = idx % 2 === 1;
-                const assignedCredits = courses
-                  .filter((c) => c.assignedLecturerName === lect.name)
-                  .reduce((sum, c) => sum + c.sks, 0);
                 return (
                   <tr
                     key={lect.id}
@@ -182,11 +176,10 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
                                 <button
                                   key={c}
                                   onClick={() => handleUpdateLecturerColor(lect, c)}
-                                  className={`w-5 h-5 rounded-full cursor-pointer transition-all ${
-                                    (lect.color || '#6366f1') === c
+                                  className={`w-5 h-5 rounded-full cursor-pointer transition-all ${(lect.color || '#6366f1') === c
                                       ? 'ring-2 ring-offset-1 ring-[#002045]'
                                       : 'hover:scale-110'
-                                  }`}
+                                    }`}
                                   style={{ backgroundColor: c }}
                                 />
                               ))}
@@ -194,9 +187,6 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
                           </div>
                         )}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 font-semibold text-[#191c1e]">
-                      {assignedCredits} SKS
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button

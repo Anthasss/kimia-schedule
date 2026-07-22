@@ -8,7 +8,7 @@ export function useLecturers() {
 
   const addLecturer = async (data: { name: string; color: string }) => {
     try {
-      const created = await apiPost<Lecturer>('/api/lecturers', { ...data, assignedCredits: 0 });
+      const created = await apiPost<Lecturer>('/api/lecturers', data);
       setLecturers((prev) => [...prev, created]);
       toast.success('Lecturer created');
     } catch (err) {
