@@ -54,7 +54,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     activeDraftItem,
   } = useUnscheduledCourses(courses, scheduleSlots);
 
-  const { placeDraftOnGrid, removeSlotFromGrid } = useScheduleSlots({
+  const { placeDraftOnGrid, removeSlotFromGrid, isDirty, isSaving, saveChanges } = useScheduleSlots({
     scheduleSlots,
     setScheduleSlots,
     rooms,
@@ -130,22 +130,13 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
         <UnscheduledCoursesSidebar
           unscheduledCourses={unscheduledCourses}
           filteredDraftPool={filteredDraftPool}
-          selectedExpandedDraft={selectedExpandedDraft}
           draftSearch={draftSearch}
-          days={days}
-          timeSlots={timeSlots}
-          rooms={rooms}
-          assignDay={assignDay}
-          assignTimeSlot={assignTimeSlot}
-          assignRoomId={assignRoomId}
           coursesCount={courses.length}
+          isDirty={isDirty}
+          isSaving={isSaving}
           onSearchChange={setDraftSearch}
-          onToggleDraft={setSelectedExpandedDraft}
-          onPlace={(course) => placeDraftOnGrid(course, unscheduledCourses)}
-          onAssignDayChange={setAssignDay}
-          onAssignTimeSlotChange={setAssignTimeSlot}
-          onAssignRoomChange={setAssignRoomId}
           onNavigateToCourses={onNavigateToCourses}
+          onSave={saveChanges}
         />
       </div>
     </div>

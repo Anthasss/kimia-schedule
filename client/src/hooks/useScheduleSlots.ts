@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { apiPost, apiDelete } from '../api';
 import { Course, ScheduleSlot, SksSettings, DayOfWeek, Room } from '../types';
@@ -28,6 +28,12 @@ export function useScheduleSlots({
   assignRoomId,
   setSelectedExpandedDraft,
 }: UseScheduleSlotsParams) {
+  const [pendingAdds, setPendingAdds] = useState<ScheduleSlot[]>([]);
+  const [pendingRemoves, setPendingRemoves] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const isDirty = pendingAdds.length > 0 || pendingRemoves.length > 0;
+
   const placeDraftOnGrid = useCallback(
     async (
       course: Course,
@@ -53,7 +59,10 @@ export function useScheduleSlots({
         }
       }
 
-      const slotData = {
+      const tempId = 'local-' + crypto.randomUUID();
+
+      const slotData: ScheduleSlot = {
+        id: tempId,
         courseCode: course.code,
         courseTitle: course.title,
         sks: course.sks,
@@ -66,19 +75,14 @@ export function useScheduleSlots({
         conflictReason,
       };
 
-      try {
-        const created = await apiPost<ScheduleSlot>('/api/schedule-slots', slotData);
-        setScheduleSlots([...scheduleSlots, created]);
+      setScheduleSlots([...scheduleSlots, slotData]);
+      setPendingAdds((prev) => [...prev, slotData]);
 
-        const remaining = unscheduledCourses.filter((c) => c.id !== course.id);
-        if (remaining.length > 0) {
-          setSelectedExpandedDraft(remaining[0].id);
-        } else {
-          setSelectedExpandedDraft(null);
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error('Failed to place course on schedule');
+      const remaining = unscheduledCourses.filter((c) => c.id !== course.id);
+      if (remaining.length > 0) {
+        setSelectedExpandedDraft(remaining[0].id);
+      } else {
+        setSelectedExpandedDraft(null);
       }
     },
     [scheduleSlots, setScheduleSlots, rooms, sksSettings, days, assignDay, assignTimeSlot, assignRoomId, setSelectedExpandedDraft]
@@ -86,16 +90,60 @@ export function useScheduleSlots({
 
   const removeSlotFromGrid = useCallback(
     async (slotId: string) => {
-      try {
-        await apiDelete(`/api/schedule-slots/${slotId}`);
-        setScheduleSlots(scheduleSlots.filter((s) => s.id !== slotId));
-      } catch (err) {
-        console.error(err);
-        toast.error('Failed to remove course from schedule');
+      const slot = scheduleSlots.find((s) => s.id === slotId);
+
+      setScheduleSlots(scheduleSlots.filter((s) => s.id !== slotId));
+
+      if (slotId.startsWith('local-')) {
+        setPendingAdds((prev) => prev.filter((s) => s.id !== slotId));
+      } else {
+        setPendingRemoves((prev) => [...prev, slotId]);
       }
     },
     [scheduleSlots, setScheduleSlots]
   );
 
-  return { placeDraftOnGrid, removeSlotFromGrid };
+  const saveChanges = useCallback(async () => {
+    if (!isDirty) return;
+
+    setIsSaving(true);
+
+    try {
+      const addResults = await Promise.allSettled(
+        pendingAdds.map((slot) => {
+          const { id: _id, ...body } = slot;
+          return apiPost<ScheduleSlot>('/api/schedule-slots', body);
+        })
+      );
+
+      const removeResults = await Promise.allSettled(
+        pendingRemoves.map((slotId) =>
+          apiDelete(`/api/schedule-slots/${slotId}`)
+        )
+      );
+
+      const failedAdds = addResults.filter((r) => r.status === 'rejected').length;
+      const failedRemoves = removeResults.filter((r) => r.status === 'rejected').length;
+
+      const freshRes = await fetch('/api/schedule-slots');
+      const freshSlots = await freshRes.json();
+      setScheduleSlots(freshSlots);
+
+      setPendingAdds([]);
+      setPendingRemoves([]);
+
+      if (failedAdds > 0 || failedRemoves > 0) {
+        toast.warning(`Saved with issues: ${failedAdds} adds and ${failedRemoves} removes failed`);
+      } else {
+        toast.success('Schedule saved successfully');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save schedule');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [isDirty, pendingAdds, pendingRemoves, setScheduleSlots]);
+
+  return { placeDraftOnGrid, removeSlotFromGrid, isDirty, isSaving, saveChanges };
 }

@@ -1,47 +1,29 @@
 import React from 'react';
-import { Course, DayOfWeek } from '../types';
+import { Course } from '../types';
 import { CourseDraftCard } from './CourseDraftCard';
 
 interface UnscheduledCoursesSidebarProps {
   unscheduledCourses: Course[];
   filteredDraftPool: Course[];
-  selectedExpandedDraft: string | null;
   draftSearch: string;
-  days: DayOfWeek[];
-  timeSlots: string[];
-  rooms: { id: string; name: string }[];
-  assignDay: DayOfWeek;
-  assignTimeSlot: string;
-  assignRoomId: string;
   coursesCount: number;
+  isDirty: boolean;
+  isSaving: boolean;
   onSearchChange: (value: string) => void;
-  onToggleDraft: (id: string | null) => void;
-  onPlace: (course: Course) => void;
-  onAssignDayChange: (day: DayOfWeek) => void;
-  onAssignTimeSlotChange: (slot: string) => void;
-  onAssignRoomChange: (roomId: string) => void;
   onNavigateToCourses: () => void;
+  onSave: () => void;
 }
 
 export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps> = ({
   unscheduledCourses,
   filteredDraftPool,
-  selectedExpandedDraft,
   draftSearch,
-  days,
-  timeSlots,
-  rooms,
-  assignDay,
-  assignTimeSlot,
-  assignRoomId,
   coursesCount,
+  isDirty,
+  isSaving,
   onSearchChange,
-  onToggleDraft,
-  onPlace,
-  onAssignDayChange,
-  onAssignTimeSlotChange,
-  onAssignRoomChange,
   onNavigateToCourses,
+  onSave,
 }) => {
   return (
     <div className="flex flex-col h-full">
@@ -74,20 +56,6 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
           <CourseDraftCard
             key={item.id}
             course={item}
-            isExpanded={selectedExpandedDraft === item.id}
-            days={days}
-            timeSlots={timeSlots}
-            rooms={rooms}
-            assignDay={assignDay}
-            assignTimeSlot={assignTimeSlot}
-            assignRoomId={assignRoomId}
-            onToggle={() =>
-              onToggleDraft(selectedExpandedDraft === item.id ? null : item.id)
-            }
-            onPlace={() => onPlace(item)}
-            onAssignDayChange={onAssignDayChange}
-            onAssignTimeSlotChange={onAssignTimeSlotChange}
-            onAssignRoomChange={onAssignRoomChange}
           />
         ))}
 
@@ -109,6 +77,26 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
         <span className="material-symbols-outlined text-[17px]">menu_book</span>
         <span>Go to Courses to Define Block</span>
       </button>
+
+      {isDirty && (
+        <button
+          onClick={onSave}
+          disabled={isSaving}
+          className="w-full py-2 bg-[#002045] text-white rounded-lg text-[13px] font-semibold hover:bg-[#002f5e] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shrink-0 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSaving ? (
+            <>
+              <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
+              <span>Saving...</span>
+            </>
+          ) : (
+            <>
+              <span className="material-symbols-outlined text-[17px]">save</span>
+              <span>Save Changes</span>
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 };

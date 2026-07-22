@@ -87,7 +87,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
             {gridRooms.map((room, i) => (
               <div
                 key={room.id}
-                className={`px-4 py-3 font-semibold text-[13px] text-[#191c1e] text-center bg-[#f2f4f6] border-r border-b border-[#c4c6cf] ${i === gridRooms.length - 1 ? 'rounded-tr-xl border-r-0' : ''
+                className={`px-4 py-3 font-semibold text-[13px] text-[#191c1e] text-center bg-[#f2f4f6] flex justify-center items-center border-r border-b border-[#c4c6cf] ${i === gridRooms.length - 1 ? 'rounded-tr-xl border-r-0' : ''
                   }`}
               >
                 {room.name}
@@ -100,7 +100,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                 return (
                   <div
                     key={`break-${rowIdx}`}
-                    className="col-span-full bg-[#fef3c7] px-4 py-2.5 border-b border-[#f59e0b]/30"
+                    className="flex justify-center items-center col-span-full bg-[#fef3c7] px-4 py-2.5 border-b border-[#f59e0b]/30"
                     style={{ gridColumn: '1 / -1' }}
                   >
                     <div className="flex items-center justify-center gap-2">
@@ -122,8 +122,8 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
               return (
                 <React.Fragment key={ts}>
                   {/* Time label cell */}
-                  <div className="px-4 py-3 font-mono-code text-[12px] text-[#1f2329] font-semibold bg-[#f8fafc] border-r border-b border-[#c4c6cf]">
-                    <div className="flex flex-col items-center leading-tight">
+                  <div className="px-4 py-3 font-mono-code text-[12px] text-[#1f2329] font-semibold bg-[#f8fafc] border-r border-b border-[#c4c6cf] flex items-center justify-center">
+                    <div className="flex flex-col leading-tight items-center">
                       <span>{ts.split(' - ')[0]}</span>
                       <span>-</span>
                       <span>{ts.split(' - ')[1].split(' SKS')[0]}</span>
