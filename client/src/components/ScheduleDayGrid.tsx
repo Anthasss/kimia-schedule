@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Room, ScheduleSlot, Lecturer, DayOfWeek, Course } from '../types';
 import { GridRow } from '../hooks/useScheduleTimeSlots';
 import { SlottedCourseCard } from './SlottedCourseCard';
@@ -31,6 +31,39 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
   onRemoveSlot,
   onSelectEmpty,
 }) => {
+  const [hoveredCell, setHoveredCell] = useState<{ slotRowIdx: number; roomId: string } | null>(null);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCellEnter = useCallback((slotRowIdx: number, roomId: string) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setHoveredCell({ slotRowIdx, roomId });
+  }, []);
+
+  const handleCellLeave = useCallback(() => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredCell(null);
+    }, 100);
+  }, []);
+
+  const hoverSpanIndices = useMemo(() => {
+    if (!hoveredCell || !activeDraftItem) return [];
+    const startIdx = hoveredCell.slotRowIdx;
+    const sks = activeDraftItem.sks;
+    const endIdx = Math.min(startIdx + sks, slotRowLabels.length);
+    return Array.from({ length: endIdx - startIdx }, (_, i) => startIdx + i);
+  }, [hoveredCell, activeDraftItem, slotRowLabels.length]);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div key={day} className="space-y-2">
       <div className="flex items-center gap-2 border-l-4 border-[#002045] pl-3 py-1">
@@ -44,6 +77,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
             style={{
               display: 'grid',
               gridTemplateColumns: `80px repeat(${gridRooms.length}, minmax(120px, 1fr))`,
+              gridAutoRows: 'minmax(100px, auto)',
             }}
           >
             {/* Header row */}
@@ -131,6 +165,14 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                       return null;
                     }
 
+                    const isInHoverSpan =
+                      hoveredCell !== null &&
+                      activeDraftItem !== null &&
+                      room.id === hoveredCell.roomId &&
+                      hoverSpanIndices.includes(slotRowIdx);
+
+                    const isFirstInSpan = isInHoverSpan && slotRowIdx === hoveredCell?.slotRowIdx;
+
                     return (
                       <div
                         key={room.id}
@@ -145,6 +187,10 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                               onSelectEmpty(day, ts, room.id);
                             }
                           }}
+                          onMouseEnter={() => handleCellEnter(slotRowIdx, room.id)}
+                          onMouseLeave={handleCellLeave}
+                          isInHoverSpan={isInHoverSpan}
+                          isFirstInSpan={isFirstInSpan}
                         />
                       </div>
                     );

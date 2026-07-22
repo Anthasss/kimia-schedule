@@ -6,7 +6,10 @@ export function useUnscheduledCourses(courses: Course[], scheduleSlots: Schedule
   const [selectedExpandedDraft, setSelectedExpandedDraft] = useState<string | null>(null);
 
   const unscheduledCourses = useMemo(
-    () => courses.filter((c) => !scheduleSlots.some((s) => s.courseCode === c.code)),
+    () =>
+      courses
+        .filter((c) => !scheduleSlots.some((s) => s.courseCode === c.code))
+        .sort((a, b) => a.title.localeCompare(b.title)),
     [courses, scheduleSlots]
   );
 
