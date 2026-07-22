@@ -1,15 +1,36 @@
 import React from 'react';
-import { Course } from '../types';
+import { Course, Lecturer } from '../types';
 
 interface CourseDraftCardProps {
   course: Course;
+  lecturers: Lecturer[];
+  isSelected: boolean;
+  onSelect: () => void;
 }
 
 export const CourseDraftCard: React.FC<CourseDraftCardProps> = ({
   course,
+  lecturers,
+  isSelected,
+  onSelect,
 }) => {
+  const lecturer = lecturers.find((l) => l.name === course.assignedLecturerName);
+  const lecturerColor = lecturer?.color || '#6366f1';
+
   return (
-    <div className="border border-[#c4c6cf] rounded-lg p-3 bg-[#f7f9fb] transition-all">
+    <div
+      onClick={onSelect}
+      className={`rounded-lg p-3 transition-all cursor-pointer border ${
+        isSelected
+          ? 'border-[#002045]'
+          : 'border-[#c4c6cf] hover:border-[#002045]/30'
+      }`}
+      style={{
+        borderLeftWidth: '3px',
+        borderLeftColor: lecturerColor,
+        backgroundColor: isSelected ? `${lecturerColor}12` : `${lecturerColor}08`,
+      }}
+    >
       <div className="flex justify-between items-start">
         <div>
           <div className="flex items-center gap-2">

@@ -130,11 +130,14 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
         <UnscheduledCoursesSidebar
           unscheduledCourses={unscheduledCourses}
           filteredDraftPool={filteredDraftPool}
+          lecturers={lecturers}
           draftSearch={draftSearch}
           coursesCount={courses.length}
           isDirty={isDirty}
           isSaving={isSaving}
+          selectedCourseId={selectedExpandedDraft}
           onSearchChange={setDraftSearch}
+          onSelectCourse={setSelectedExpandedDraft}
           onNavigateToCourses={onNavigateToCourses}
           onSave={saveChanges}
         />

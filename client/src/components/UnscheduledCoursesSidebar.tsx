@@ -1,15 +1,18 @@
 import React from 'react';
-import { Course } from '../types';
+import { Course, Lecturer } from '../types';
 import { CourseDraftCard } from './CourseDraftCard';
 
 interface UnscheduledCoursesSidebarProps {
   unscheduledCourses: Course[];
   filteredDraftPool: Course[];
+  lecturers: Lecturer[];
   draftSearch: string;
   coursesCount: number;
   isDirty: boolean;
   isSaving: boolean;
+  selectedCourseId: string | null;
   onSearchChange: (value: string) => void;
+  onSelectCourse: (id: string) => void;
   onNavigateToCourses: () => void;
   onSave: () => void;
 }
@@ -17,11 +20,14 @@ interface UnscheduledCoursesSidebarProps {
 export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps> = ({
   unscheduledCourses,
   filteredDraftPool,
+  lecturers,
   draftSearch,
   coursesCount,
   isDirty,
   isSaving,
+  selectedCourseId,
   onSearchChange,
+  onSelectCourse,
   onNavigateToCourses,
   onSave,
 }) => {
@@ -56,6 +62,9 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
           <CourseDraftCard
             key={item.id}
             course={item}
+            lecturers={lecturers}
+            isSelected={selectedCourseId === item.id}
+            onSelect={() => onSelectCourse(item.id)}
           />
         ))}
 

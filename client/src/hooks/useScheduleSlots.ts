@@ -90,9 +90,8 @@ export function useScheduleSlots({
 
   const removeSlotFromGrid = useCallback(
     async (slotId: string) => {
-      const slot = scheduleSlots.find((s) => s.id === slotId);
-
       setScheduleSlots(scheduleSlots.filter((s) => s.id !== slotId));
+      setSelectedExpandedDraft(null);
 
       if (slotId.startsWith('local-')) {
         setPendingAdds((prev) => prev.filter((s) => s.id !== slotId));
@@ -100,7 +99,7 @@ export function useScheduleSlots({
         setPendingRemoves((prev) => [...prev, slotId]);
       }
     },
-    [scheduleSlots, setScheduleSlots]
+    [scheduleSlots, setScheduleSlots, setSelectedExpandedDraft]
   );
 
   const saveChanges = useCallback(async () => {
