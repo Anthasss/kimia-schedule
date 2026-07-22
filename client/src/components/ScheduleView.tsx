@@ -24,6 +24,10 @@ interface ScheduleViewProps {
   sksSettings: SksSettings;
   breakTimes: BreakTime[];
   onNavigateToCourses: () => void;
+  pendingAdds: ScheduleSlot[];
+  setPendingAdds: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
+  pendingRemoves: string[];
+  setPendingRemoves: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export const ScheduleView: React.FC<ScheduleViewProps> = ({
@@ -36,6 +40,10 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   sksSettings,
   breakTimes,
   onNavigateToCourses,
+  pendingAdds,
+  setPendingAdds,
+  pendingRemoves,
+  setPendingRemoves,
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [assignDay, setAssignDay] = useState<DayOfWeek>('Monday');
@@ -65,6 +73,10 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     assignTimeSlot,
     assignRoomId,
     setSelectedExpandedDraft,
+    pendingAdds,
+    setPendingAdds,
+    pendingRemoves,
+    setPendingRemoves,
   });
 
   useEffect(() => {

@@ -56,5 +56,4 @@ export interface ScheduleSlot {
   conflictReason?: string;
 }
 
-export type MainNavTab = 'Management' | 'Lecturers' | 'Courses' | 'Schedule';
 

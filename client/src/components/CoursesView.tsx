@@ -13,6 +13,9 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [isSavingCourse, setIsSavingCourse] = useState(false);
+  const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // New Course Form State
   const [newCode, setNewCode] = useState('');
@@ -43,6 +46,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
   const handleAddCourse = async () => {
     if (!newCode || !newTitle) return;
 
+    setIsSavingCourse(true);
     try {
       const created = await Promise.all(
         Array.from({ length: numClasses }, (_, i) => {
@@ -66,11 +70,14 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
     } catch (err) {
       console.error(err);
       toast.error('Failed to create courses');
+    } finally {
+      setIsSavingCourse(false);
     }
   };
 
   const handleDeleteCourse = async (id: string) => {
     if (confirm('Delete course from catalog?')) {
+      setDeletingCourseId(id);
       try {
         await apiDelete(`/api/courses/${id}`);
         setCourses(courses.filter((c) => c.id !== id));
@@ -78,6 +85,8 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
       } catch (err) {
         console.error(err);
         toast.error('Failed to delete course');
+      } finally {
+        setDeletingCourseId(null);
       }
     }
   };
@@ -166,9 +175,14 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
                       </button>
                       <button
                         onClick={() => handleDeleteCourse(c.id)}
-                        className="p-1.5 text-[#43474e] hover:text-[#ba1a1a] transition-colors cursor-pointer"
+                        disabled={deletingCourseId === c.id}
+                        className="p-1.5 text-[#43474e] hover:text-[#ba1a1a] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                        {deletingCourseId === c.id ? (
+                          <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                        ) : (
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        )}
                       </button>
                     </td>
                   </tr>
@@ -313,9 +327,17 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
               </button>
               <button
                 onClick={handleAddCourse}
-                className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold"
+                disabled={isSavingCourse}
+                className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
               >
-                Save Course Spec
+                {isSavingCourse ? (
+                  <>
+                    <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <span>Save Course Spec</span>
+                )}
               </button>
             </div>
           </div>
@@ -373,6 +395,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
               </button>
               <button
                 onClick={async () => {
+                  setIsSavingEdit(true);
                   try {
                     const updated = await apiPut<Course>(`/api/courses/${editingCourse.id}`, {
                       title: editingCourse.title,
@@ -385,11 +408,21 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
                   } catch (err) {
                     console.error(err);
                     toast.error('Failed to update course');
+                  } finally {
+                    setIsSavingEdit(false);
                   }
                 }}
-                className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold"
+                disabled={isSavingEdit}
+                className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
               >
-                Save Changes
+                {isSavingEdit ? (
+                  <>
+                    <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <span>Save Changes</span>
+                )}
               </button>
             </div>
           </div>

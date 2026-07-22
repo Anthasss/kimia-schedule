@@ -14,6 +14,10 @@ interface UseScheduleSlotsParams {
   assignTimeSlot: string;
   assignRoomId: string;
   setSelectedExpandedDraft: (id: string | null) => void;
+  pendingAdds: ScheduleSlot[];
+  setPendingAdds: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
+  pendingRemoves: string[];
+  setPendingRemoves: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export function useScheduleSlots({
@@ -27,9 +31,11 @@ export function useScheduleSlots({
   assignTimeSlot,
   assignRoomId,
   setSelectedExpandedDraft,
+  pendingAdds,
+  setPendingAdds,
+  pendingRemoves,
+  setPendingRemoves,
 }: UseScheduleSlotsParams) {
-  const [pendingAdds, setPendingAdds] = useState<ScheduleSlot[]>([]);
-  const [pendingRemoves, setPendingRemoves] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   const isDirty = pendingAdds.length > 0 || pendingRemoves.length > 0;

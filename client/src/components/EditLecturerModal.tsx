@@ -13,8 +13,10 @@ interface EditLecturerModalProps {
 export const EditLecturerModal: React.FC<EditLecturerModalProps> = ({ lecturer, onClose, onSave }) => {
   const [name, setName] = useState(lecturer.name);
   const [color, setColor] = useState(lecturer.color || LECTURER_COLORS[1]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       const updated = await apiPut<Lecturer>(`/api/lecturers/${lecturer.id}`, {
         name,
@@ -25,6 +27,8 @@ export const EditLecturerModal: React.FC<EditLecturerModalProps> = ({ lecturer, 
     } catch (err) {
       console.error(err);
       toast.error('Failed to update lecturer');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -70,9 +74,17 @@ export const EditLecturerModal: React.FC<EditLecturerModalProps> = ({ lecturer, 
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer"
+            disabled={isSaving}
+            className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
           >
-            Save Changes
+            {isSaving ? (
+              <>
+                <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
+                <span>Saving...</span>
+              </>
+            ) : (
+              <span>Save Changes</span>
+            )}
           </button>
         </div>
       </div>

@@ -29,6 +29,9 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
   const [deleteLecturerTarget, setDeleteLecturerTarget] = useState<Lecturer | null>(null);
   const [colorPickerLecturerId, setColorPickerLecturerId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [deletingLecturerId, setDeletingLecturerId] = useState<string | null>(null);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [updatingColorLecturerId, setUpdatingColorLecturerId] = useState<string | null>(null);
   const ITEMS_PER_PAGE = 5;
 
   const filteredLecturers = lecturers.filter((lect) =>
@@ -48,6 +51,7 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
       scheduleSlots.some((s) => s.lecturerName === lecturer.name);
 
     if (!isReferenced) {
+      setDeletingLecturerId(lecturer.id);
       try {
         await apiDelete(`/api/lecturers/${lecturer.id}`);
         setLecturers(lecturers.filter((l) => l.id !== lecturer.id));
@@ -61,6 +65,8 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
       } catch (err) {
         console.error(err);
         toast.error('Failed to delete lecturer');
+      } finally {
+        setDeletingLecturerId(null);
       }
     } else {
       setDeleteLecturerTarget(lecturer);
@@ -69,6 +75,7 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
 
   const confirmDeleteLecturer = async () => {
     if (!deleteLecturerTarget) return;
+    setIsConfirmingDelete(true);
     try {
       await apiDelete(`/api/lecturers/${deleteLecturerTarget.id}`);
       setLecturers(lecturers.filter((l) => l.id !== deleteLecturerTarget.id));
@@ -83,17 +90,23 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
     } catch (err) {
       console.error(err);
       toast.error('Failed to delete lecturer');
+    } finally {
+      setIsConfirmingDelete(false);
     }
   };
 
   const handleUpdateLecturerColor = async (lecturer: Lecturer, color: string) => {
+    setUpdatingColorLecturerId(lecturer.id);
     try {
       const updated = await apiPut<Lecturer>(`/api/lecturers/${lecturer.id}`, { color });
       setLecturers(lecturers.map((l) => (l.id === lecturer.id ? updated : l)));
       setColorPickerLecturerId(null);
+      toast.success('Color updated');
     } catch (err) {
       console.error(err);
       toast.error('Failed to update color');
+    } finally {
+      setUpdatingColorLecturerId(null);
     }
   };
 
@@ -172,17 +185,24 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
                         {colorPickerLecturerId === lect.id && (
                           <div className="absolute top-8 left-0 z-40 bg-white border border-[#c4c6cf] rounded-lg p-2.5 shadow-lg w-[180px]">
                             <div className="flex flex-wrap gap-1.5">
-                              {LECTURER_COLORS.map((c) => (
-                                <button
-                                  key={c}
-                                  onClick={() => handleUpdateLecturerColor(lect, c)}
-                                  className={`w-5 h-5 rounded-full cursor-pointer transition-all ${(lect.color || '#6366f1') === c
-                                      ? 'ring-2 ring-offset-1 ring-[#002045]'
-                                      : 'hover:scale-110'
-                                    }`}
-                                  style={{ backgroundColor: c }}
-                                />
-                              ))}
+                              {LECTURER_COLORS.map((c) => {
+                                const isUpdating = updatingColorLecturerId === lect.id;
+                                return (
+                                  <button
+                                    key={c}
+                                    onClick={() => handleUpdateLecturerColor(lect, c)}
+                                    disabled={isUpdating}
+                                    className={`w-5 h-5 rounded-full transition-all ${isUpdating
+                                        ? 'cursor-not-allowed opacity-40'
+                                        : 'cursor-pointer hover:scale-110'
+                                      } ${(lect.color || '#6366f1') === c
+                                        ? 'ring-2 ring-offset-1 ring-[#002045]'
+                                        : ''
+                                      }`}
+                                    style={{ backgroundColor: c }}
+                                  />
+                                );
+                              })}
                             </div>
                           </div>
                         )}
@@ -198,10 +218,15 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
                       </button>
                       <button
                         onClick={() => handleDeleteLecturer(lect)}
-                        className="p-1.5 text-[#43474e] hover:text-[#ba1a1a] transition-colors cursor-pointer"
+                        disabled={deletingLecturerId === lect.id}
+                        className="p-1.5 text-[#43474e] hover:text-[#ba1a1a] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         title="Delete Lecturer"
                       >
-                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                        {deletingLecturerId === lect.id ? (
+                          <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                        ) : (
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        )}
                       </button>
                     </td>
                   </tr>
@@ -287,9 +312,17 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
               </button>
               <button
                 onClick={confirmDeleteLecturer}
-                className="px-4 py-2 bg-[#ba1a1a] text-white rounded text-[13px] font-semibold cursor-pointer hover:bg-[#93000a]"
+                disabled={isConfirmingDelete}
+                className="px-4 py-2 bg-[#ba1a1a] text-white rounded text-[13px] font-semibold cursor-pointer hover:bg-[#93000a] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
               >
-                Delete Lecturer
+                {isConfirmingDelete ? (
+                  <>
+                    <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Delete Lecturer</span>
+                )}
               </button>
             </div>
           </div>

@@ -38,21 +38,26 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
 }) => {
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [editingBreak, setEditingBreak] = useState<BreakTime | null>(null);
-  const [saveSettingsSuccess, setSaveSettingsSuccess] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [deletingRoomId, setDeletingRoomId] = useState<string | null>(null);
+  const [deletingBreakId, setDeletingBreakId] = useState<string | null>(null);
 
   const handleSaveSksSettings = async () => {
+    setIsSavingSettings(true);
     try {
       await apiPost('/api/sks-settings', sksSettings);
-      setSaveSettingsSuccess(true);
-      setTimeout(() => setSaveSettingsSuccess(false), 2500);
+      toast.success('Settings saved');
     } catch (err) {
       console.error(err);
       toast.error('Failed to save settings');
+    } finally {
+      setIsSavingSettings(false);
     }
   };
 
   const handleDeleteRoom = async (id: string) => {
     if (confirm('Are you sure you want to delete this room?')) {
+      setDeletingRoomId(id);
       try {
         await apiDelete(`/api/rooms/${id}`);
         setRooms(rooms.filter((r) => r.id !== id));
@@ -60,11 +65,14 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
       } catch (err) {
         console.error(err);
         toast.error('Failed to delete room');
+      } finally {
+        setDeletingRoomId(null);
       }
     }
   };
 
   const handleDeleteBreak = async (id: string) => {
+    setDeletingBreakId(id);
     try {
       await apiDelete(`/api/break-times/${id}`);
       setBreakTimes(breakTimes.filter((b) => b.id !== id));
@@ -72,6 +80,8 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
     } catch (err) {
       console.error(err);
       toast.error('Failed to delete break time');
+    } finally {
+      setDeletingBreakId(null);
     }
   };
 
@@ -163,10 +173,15 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                         </button>
                         <button
                           onClick={() => handleDeleteRoom(room.id)}
-                          className="p-1.5 text-[#43474e] hover:text-[#ba1a1a] transition-colors cursor-pointer"
+                          disabled={deletingRoomId === room.id}
+                          className="p-1.5 text-[#43474e] hover:text-[#ba1a1a] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                           title="Delete Room"
                         >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                          {deletingRoomId === room.id ? (
+                            <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                          ) : (
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          )}
                         </button>
                       </td>
                     </tr>
@@ -302,9 +317,17 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
 
             <button
               onClick={handleSaveSksSettings}
-              className="w-full mt-6 py-2.5 bg-[#002045] text-white rounded-md font-semibold text-[13px] hover:bg-opacity-90 active:scale-95 transition-all shadow-sm cursor-pointer"
+              disabled={isSavingSettings}
+              className="w-full mt-6 py-2.5 bg-[#002045] text-white rounded-md font-semibold text-[13px] hover:bg-opacity-90 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
             >
-              {saveSettingsSuccess ? '✓ Settings Saved!' : 'Save Global Parameters'}
+              {isSavingSettings ? (
+                <>
+                  <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Save Global Parameters</span>
+              )}
             </button>
           </div>
 
@@ -359,9 +382,14 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                         </button>
                         <button
                           onClick={() => handleDeleteBreak(bt.id)}
-                          className="p-1 text-[#43474e] hover:text-[#ba1a1a] cursor-pointer"
+                          disabled={deletingBreakId === bt.id}
+                          className="p-1 text-[#43474e] hover:text-[#ba1a1a] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                          {deletingBreakId === bt.id ? (
+                            <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                          ) : (
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          )}
                         </button>
                       </td>
                     </tr>

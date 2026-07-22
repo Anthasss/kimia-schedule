@@ -1,4 +1,5 @@
 import { Dispatch, SetStateAction } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ScheduleView } from '../components/ScheduleView';
 import { Room, SksSettings, ScheduleSlot, Course, BreakTime, Lecturer } from '../types';
 
@@ -11,7 +12,10 @@ interface SchedulePageProps {
   lecturers: Lecturer[];
   sksSettings: SksSettings;
   breakTimes: BreakTime[];
-  onNavigateToCourses: () => void;
+  pendingAdds: ScheduleSlot[];
+  setPendingAdds: Dispatch<SetStateAction<ScheduleSlot[]>>;
+  pendingRemoves: string[];
+  setPendingRemoves: Dispatch<SetStateAction<string[]>>;
 }
 
 export function SchedulePage({
@@ -23,8 +27,13 @@ export function SchedulePage({
   lecturers,
   sksSettings,
   breakTimes,
-  onNavigateToCourses,
+  pendingAdds,
+  setPendingAdds,
+  pendingRemoves,
+  setPendingRemoves,
 }: SchedulePageProps) {
+  const navigate = useNavigate();
+
   return (
     <ScheduleView
       rooms={rooms}
@@ -35,7 +44,11 @@ export function SchedulePage({
       lecturers={lecturers}
       sksSettings={sksSettings}
       breakTimes={breakTimes}
-      onNavigateToCourses={onNavigateToCourses}
+      pendingAdds={pendingAdds}
+      setPendingAdds={setPendingAdds}
+      pendingRemoves={pendingRemoves}
+      setPendingRemoves={setPendingRemoves}
+      onNavigateToCourses={() => navigate('/courses')}
     />
   );
 }

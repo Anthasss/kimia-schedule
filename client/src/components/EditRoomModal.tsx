@@ -11,8 +11,10 @@ interface EditRoomModalProps {
 
 export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onSave }) => {
   const [name, setName] = useState(room.name);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       const updated = await apiPut<Room>(`/api/rooms/${room.id}`, { name });
       onSave(updated);
@@ -20,6 +22,8 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onS
     } catch (err) {
       console.error(err);
       toast.error('Failed to update room');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -47,9 +51,17 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({ room, onClose, onS
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer"
+            disabled={isSaving}
+            className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
           >
-            Save Changes
+            {isSaving ? (
+              <>
+                <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
+                <span>Saving...</span>
+              </>
+            ) : (
+              <span>Save Changes</span>
+            )}
           </button>
         </div>
       </div>

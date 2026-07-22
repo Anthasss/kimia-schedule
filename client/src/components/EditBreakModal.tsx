@@ -13,8 +13,10 @@ export const EditBreakModal: React.FC<EditBreakModalProps> = ({ breakTime, onClo
   const [name, setName] = useState(breakTime.name);
   const [startTime, setStartTime] = useState(breakTime.startTime);
   const [endTime, setEndTime] = useState(breakTime.endTime);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       const updated = await apiPut<BreakTime>(`/api/break-times/${breakTime.id}`, { name, startTime, endTime });
       onSave(updated);
@@ -22,6 +24,8 @@ export const EditBreakModal: React.FC<EditBreakModalProps> = ({ breakTime, onClo
     } catch (err) {
       console.error(err);
       toast.error('Failed to update break time');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -69,9 +73,17 @@ export const EditBreakModal: React.FC<EditBreakModalProps> = ({ breakTime, onClo
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer"
+            disabled={isSaving}
+            className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
           >
-            Save Changes
+            {isSaving ? (
+              <>
+                <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
+                <span>Saving...</span>
+              </>
+            ) : (
+              <span>Save Changes</span>
+            )}
           </button>
         </div>
       </div>

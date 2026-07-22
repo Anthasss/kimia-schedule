@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { LECTURER_COLORS } from '../constants';
 
 interface ModalsProps {
@@ -43,30 +44,47 @@ export const Modals: React.FC<ModalsProps> = ({
 
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [reportData, setReportData] = useState<any>(null);
+  const [isCreatingRecord, setIsCreatingRecord] = useState(false);
 
-  const handleCreateRecord = () => {
+  const handleCreateRecord = async () => {
     if (initialRecordType === 'Room') {
       if (!roomName) return;
-      onAddRoom({ name: roomName });
+      setIsCreatingRecord(true);
+      try {
+        await onAddRoom({ name: roomName });
+        setShowNewRecordModal(false);
+        setRoomName('');
+      } finally {
+        setIsCreatingRecord(false);
+      }
     } else if (initialRecordType === 'Lecturer') {
       if (!lecturerName) return;
-      onAddLecturer({
-        name: lecturerName,
-        color: LECTURER_COLORS[Math.floor(Math.random() * LECTURER_COLORS.length)],
-      });
+      setIsCreatingRecord(true);
+      try {
+        await onAddLecturer({
+          name: lecturerName,
+          color: LECTURER_COLORS[Math.floor(Math.random() * LECTURER_COLORS.length)],
+        });
+        setShowNewRecordModal(false);
+        setLecturerName('');
+      } finally {
+        setIsCreatingRecord(false);
+      }
     } else if (initialRecordType === 'Break Time') {
       if (!breakName) return;
-      onAddBreak({
-        name: breakName,
-        startTime: breakStart,
-        endTime: breakEnd,
-      });
+      setIsCreatingRecord(true);
+      try {
+        await onAddBreak({
+          name: breakName,
+          startTime: breakStart,
+          endTime: breakEnd,
+        });
+        setShowNewRecordModal(false);
+        setBreakName('');
+      } finally {
+        setIsCreatingRecord(false);
+      }
     }
-
-    setShowNewRecordModal(false);
-    setRoomName('');
-    setLecturerName('');
-    setBreakName('');
   };
 
   const handleFetchAiReport = async () => {
@@ -85,6 +103,7 @@ export const Modals: React.FC<ModalsProps> = ({
       setReportData(data);
     } catch (err) {
       console.error('Report fetch error:', err);
+      toast.error('Failed to generate report');
     } finally {
       setIsGeneratingReport(false);
     }
@@ -212,11 +231,21 @@ export const Modals: React.FC<ModalsProps> = ({
               </button>
               <button
                 onClick={handleCreateRecord}
-                className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold hover:bg-opacity-90 cursor-pointer shadow-xs"
+                disabled={isCreatingRecord}
+                className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold hover:bg-opacity-90 cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
               >
-                {initialRecordType === 'Room' && 'Add Room'}
-                {initialRecordType === 'Lecturer' && 'Add Lecturer'}
-                {initialRecordType === 'Break Time' && 'Add Break Time'}
+                {isCreatingRecord ? (
+                  <>
+                    <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
+                    <span>Adding...</span>
+                  </>
+                ) : (
+                  <>
+                    {initialRecordType === 'Room' && 'Add Room'}
+                    {initialRecordType === 'Lecturer' && 'Add Lecturer'}
+                    {initialRecordType === 'Break Time' && 'Add Break Time'}
+                  </>
+                )}
               </button>
             </div>
           </div>
