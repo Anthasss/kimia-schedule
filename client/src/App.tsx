@@ -4,6 +4,7 @@ import { Header } from './components/Header';
 import { Modals } from './components/Modals';
 import { ManagementPage } from './pages/ManagementPage';
 import { SchedulePage } from './pages/SchedulePage';
+import { LecturersPage } from './pages/LecturersPage';
 import { CoursesPage } from './pages/CoursesPage';
 import { useRooms } from './hooks/useRooms';
 import { useLecturers } from './hooks/useLecturers';
@@ -12,11 +13,10 @@ import { useSksSettings } from './hooks/useSksSettings';
 import { useScheduleData } from './hooks/useScheduleData';
 import { useCourses } from './hooks/useCourses';
 import { useDataFetching } from './hooks/useDataFetching';
-import { MainNavTab, ManagementSubTab } from './types';
+import { MainNavTab } from './types';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<MainNavTab>('Management');
-  const [activeSubTab, setActiveSubTab] = useState<ManagementSubTab>('Rooms');
 
   const { rooms, setRooms, addRoom } = useRooms();
   const { lecturers, setLecturers, addLecturer } = useLecturers();
@@ -60,16 +60,20 @@ export default function App() {
               setBreakTimes={setBreakTimes}
               sksSettings={sksSettings}
               setSksSettings={setSksSettings}
-              lecturers={lecturers}
-              setLecturers={setLecturers}
-              activeSubTab={activeSubTab}
-              setActiveSubTab={setActiveSubTab}
               onOpenNewRecordModal={handleOpenNewRecordModal}
               onExportData={() => setShowExportModal(true)}
+            />
+          )}
+
+          {activeTab === 'Lecturers' && (
+            <LecturersPage
+              lecturers={lecturers}
+              setLecturers={setLecturers}
               courses={courses}
               setCourses={setCourses}
               scheduleSlots={scheduleSlots}
               setScheduleSlots={setScheduleSlots}
+              onOpenNewRecordModal={handleOpenNewRecordModal}
             />
           )}
 

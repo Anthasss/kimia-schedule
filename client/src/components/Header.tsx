@@ -24,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         <nav className="hidden md:flex items-center gap-6 h-full pt-1">
-          {(['Management', 'Courses', 'Schedule'] as MainNavTab[]).map((tab) => {
+          {(['Management', 'Lecturers', 'Courses', 'Schedule'] as MainNavTab[]).map((tab) => {
             const isActive = activeTab === tab;
             return (
               <button

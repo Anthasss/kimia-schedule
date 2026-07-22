@@ -56,6 +56,5 @@ export interface ScheduleSlot {
   conflictReason?: string;
 }
 
-export type MainNavTab = 'Management' | 'Courses' | 'Schedule';
+export type MainNavTab = 'Management' | 'Lecturers' | 'Courses' | 'Schedule';
 
-export type ManagementSubTab = 'Rooms' | 'Lecturers' | 'SKS Settings';
