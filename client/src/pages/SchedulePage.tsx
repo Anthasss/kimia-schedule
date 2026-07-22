@@ -1,13 +1,13 @@
 import { Dispatch, SetStateAction } from 'react';
 import { ScheduleView } from '../components/ScheduleView';
-import { Room, SksSettings, ScheduleSlot, DraftCourseItem, BreakTime } from '../types';
+import { Room, SksSettings, ScheduleSlot, Course, BreakTime } from '../types';
 
 interface SchedulePageProps {
   rooms: Room[];
   scheduleSlots: ScheduleSlot[];
   setScheduleSlots: Dispatch<SetStateAction<ScheduleSlot[]>>;
-  draftPool: DraftCourseItem[];
-  setDraftPool: Dispatch<SetStateAction<DraftCourseItem[]>>;
+  courses: Course[];
+  setCourses: Dispatch<SetStateAction<Course[]>>;
   sksSettings: SksSettings;
   breakTimes: BreakTime[];
   onNavigateToCourses: () => void;
@@ -17,8 +17,8 @@ export function SchedulePage({
   rooms,
   scheduleSlots,
   setScheduleSlots,
-  draftPool,
-  setDraftPool,
+  courses,
+  setCourses,
   sksSettings,
   breakTimes,
   onNavigateToCourses,
@@ -28,8 +28,8 @@ export function SchedulePage({
       rooms={rooms}
       scheduleSlots={scheduleSlots}
       setScheduleSlots={setScheduleSlots}
-      draftPool={draftPool}
-      setDraftPool={setDraftPool}
+      courses={courses}
+      setCourses={setCourses}
       sksSettings={sksSettings}
       breakTimes={breakTimes}
       onNavigateToCourses={onNavigateToCourses}

@@ -7,25 +7,21 @@ import {
   getLecturers,
   getCourses,
   getScheduleSlots,
-  getDraftPool,
   createRoom,
   createBreakTime,
   createLecturer,
   createCourse,
   createScheduleSlot,
-  createDraftCourse,
   updateRoom,
   updateBreakTime,
   updateLecturer,
   updateCourse,
   updateScheduleSlot,
-  updateDraftCourse,
   deleteRoom,
   deleteBreakTime,
   deleteLecturer,
   deleteCourse,
   deleteScheduleSlot,
-  deleteDraftCourse,
   upsertSksSettings,
 } from "../controllers/dataController";
 
@@ -60,10 +56,5 @@ router.get("/api/schedule-slots", getScheduleSlots);
 router.post("/api/schedule-slots", createScheduleSlot);
 router.put("/api/schedule-slots/:id", updateScheduleSlot);
 router.delete("/api/schedule-slots/:id", deleteScheduleSlot);
-
-router.get("/api/draft-pool", getDraftPool);
-router.post("/api/draft-pool", createDraftCourse);
-router.put("/api/draft-pool/:id", updateDraftCourse);
-router.delete("/api/draft-pool/:id", deleteDraftCourse);
 
 export default router;

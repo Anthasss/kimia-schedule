@@ -6,7 +6,6 @@ import {
   Lecturer,
   Course,
   ScheduleSlot,
-  DraftCourseItem,
 } from '../types';
 
 interface DataFetchingSetters {
@@ -16,7 +15,6 @@ interface DataFetchingSetters {
   setLecturers: Dispatch<SetStateAction<Lecturer[]>>;
   setCourses: Dispatch<SetStateAction<Course[]>>;
   setScheduleSlots: Dispatch<SetStateAction<ScheduleSlot[]>>;
-  setDraftPool: Dispatch<SetStateAction<DraftCourseItem[]>>;
 }
 
 export function useDataFetching(setters: DataFetchingSetters) {
@@ -29,7 +27,6 @@ export function useDataFetching(setters: DataFetchingSetters) {
         lecturersRes,
         coursesRes,
         scheduleSlotsRes,
-        draftPoolRes,
       ] = await Promise.all([
         fetch('/api/rooms').then((r) => r.json()),
         fetch('/api/break-times').then((r) => r.json()),
@@ -37,7 +34,6 @@ export function useDataFetching(setters: DataFetchingSetters) {
         fetch('/api/lecturers').then((r) => r.json()),
         fetch('/api/courses').then((r) => r.json()),
         fetch('/api/schedule-slots').then((r) => r.json()),
-        fetch('/api/draft-pool').then((r) => r.json()),
       ]);
 
       setters.setRooms(roomsRes);
@@ -46,7 +42,6 @@ export function useDataFetching(setters: DataFetchingSetters) {
       setters.setLecturers(lecturersRes);
       setters.setCourses(coursesRes);
       setters.setScheduleSlots(scheduleSlotsRes);
-      setters.setDraftPool(draftPoolRes);
     }
     fetchData();
   }, []);

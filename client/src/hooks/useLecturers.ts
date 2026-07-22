@@ -6,9 +6,9 @@ import { Lecturer } from '../types';
 export function useLecturers() {
   const [lecturers, setLecturers] = useState<Lecturer[]>([]);
 
-  const addLecturer = async (data: Omit<Lecturer, 'id'>) => {
+  const addLecturer = async (data: { name: string }) => {
     try {
-      const created = await apiPost<Lecturer>('/api/lecturers', data);
+      const created = await apiPost<Lecturer>('/api/lecturers', { ...data, assignedCredits: 0 });
       setLecturers((prev) => [...prev, created]);
       toast.success('Lecturer created');
     } catch (err) {

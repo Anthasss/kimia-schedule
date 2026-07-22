@@ -5,6 +5,8 @@ import {
   BreakTime,
   SksSettings,
   Lecturer,
+  Course,
+  ScheduleSlot,
   ManagementSubTab,
 } from '../types';
 
@@ -21,6 +23,10 @@ interface ManagementPageProps {
   setActiveSubTab: Dispatch<SetStateAction<ManagementSubTab>>;
   onOpenNewRecordModal: (initialType?: string) => void;
   onExportData: () => void;
+  courses: Course[];
+  setCourses: Dispatch<SetStateAction<Course[]>>;
+  scheduleSlots: ScheduleSlot[];
+  setScheduleSlots: Dispatch<SetStateAction<ScheduleSlot[]>>;
 }
 
 export function ManagementPage({
@@ -36,6 +42,10 @@ export function ManagementPage({
   setActiveSubTab,
   onOpenNewRecordModal,
   onExportData,
+  courses,
+  setCourses,
+  scheduleSlots,
+  setScheduleSlots,
 }: ManagementPageProps) {
   return (
     <ManagementView
@@ -51,6 +61,10 @@ export function ManagementPage({
       setActiveSubTab={setActiveSubTab}
       onOpenNewRecordModal={onOpenNewRecordModal}
       onExportData={onExportData}
+      courses={courses}
+      setCourses={setCourses}
+      scheduleSlots={scheduleSlots}
+      setScheduleSlots={setScheduleSlots}
     />
   );
 }

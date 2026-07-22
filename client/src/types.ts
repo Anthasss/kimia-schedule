@@ -55,15 +55,6 @@ export interface ScheduleSlot {
   conflictReason?: string;
 }
 
-export interface DraftCourseItem {
-  id: string;
-  code: string;
-  title: string;
-  sks: number;
-  lecturerName: string;
-  urgencyTag?: string;
-}
-
 export type MainNavTab = 'Management' | 'Courses' | 'Schedule';
 
 export type ManagementSubTab = 'Rooms' | 'Lecturers' | 'SKS Settings';

@@ -22,7 +22,7 @@ export default function App() {
   const { lecturers, setLecturers, addLecturer } = useLecturers();
   const { breakTimes, setBreakTimes, addBreakTime } = useBreakTimes();
   const { sksSettings, setSksSettings } = useSksSettings();
-  const { scheduleSlots, setScheduleSlots, draftPool, setDraftPool } = useScheduleData();
+  const { scheduleSlots, setScheduleSlots } = useScheduleData();
   const { courses, setCourses } = useCourses();
 
   useDataFetching({
@@ -32,7 +32,6 @@ export default function App() {
     setLecturers,
     setCourses,
     setScheduleSlots,
-    setDraftPool,
   });
 
   const [showNewRecordModal, setShowNewRecordModal] = useState(false);
@@ -67,6 +66,10 @@ export default function App() {
               setActiveSubTab={setActiveSubTab}
               onOpenNewRecordModal={handleOpenNewRecordModal}
               onExportData={() => setShowExportModal(true)}
+              courses={courses}
+              setCourses={setCourses}
+              scheduleSlots={scheduleSlots}
+              setScheduleSlots={setScheduleSlots}
             />
           )}
 
@@ -75,8 +78,8 @@ export default function App() {
               rooms={rooms}
               scheduleSlots={scheduleSlots}
               setScheduleSlots={setScheduleSlots}
-              draftPool={draftPool}
-              setDraftPool={setDraftPool}
+              courses={courses}
+              setCourses={setCourses}
               sksSettings={sksSettings}
               breakTimes={breakTimes}
               onNavigateToCourses={() => setActiveTab('Courses')}
@@ -84,7 +87,7 @@ export default function App() {
           )}
 
           {activeTab === 'Courses' && (
-            <CoursesPage courses={courses} setCourses={setCourses} />
+            <CoursesPage courses={courses} setCourses={setCourses} lecturers={lecturers} />
           )}
         </main>
       </div>

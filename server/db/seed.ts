@@ -10,7 +10,6 @@ import {
   lecturers,
   courses,
   scheduleSlots,
-  draftPool,
 } from './schema';
 
 const sql = neon(process.env.DATABASE_URL!);
@@ -19,7 +18,6 @@ const db = drizzle({ client: sql });
 async function seed() {
   console.log('Clearing existing data...');
 
-  await db.delete(draftPool);
   await db.delete(scheduleSlots);
   await db.delete(courses);
   await db.delete(lecturers);
@@ -98,16 +96,6 @@ async function seed() {
     },
   ]);
   console.log('✓ Schedule slots seeded');
-
-  await db.insert(draftPool).values([
-    { id: 'dp1', code: 'CS-405', title: 'Advanced Cybersecurity', sks: 3, lecturerName: 'Prof. Marcus Vance' },
-    { id: 'dp2', code: 'MAT-202', title: 'Linear Algebra II', sks: 2, lecturerName: 'Dr. Alicia Wang' },
-    { id: 'dp3', code: 'CHE-101', title: 'Organic Chemistry', sks: 3, lecturerName: 'Dr. Helene Patel', urgencyTag: 'URGENT' },
-    { id: 'dp4', code: 'PHY-301', title: 'Quantum Mechanics', sks: 4, lecturerName: 'Dr. Alicia Wang' },
-    { id: 'dp5', code: 'DS-301', title: 'Applied Machine Learning', sks: 3, lecturerName: 'Dr. Sarah Jenkins' },
-    { id: 'dp6', code: 'HIS-102', title: 'European Political History', sks: 2, lecturerName: 'Robert Klein, M.A.' },
-  ]);
-  console.log('✓ Draft pool seeded');
 
   console.log('\nDatabase seeding complete!');
   process.exit(0);

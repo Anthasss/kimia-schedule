@@ -6,6 +6,8 @@ import {
   BreakTime,
   SksSettings,
   Lecturer,
+  Course,
+  ScheduleSlot,
   ManagementSubTab,
   DayOfWeek,
 } from '../types';
@@ -36,6 +38,10 @@ interface ManagementViewProps {
   setActiveSubTab: (subTab: ManagementSubTab) => void;
   onOpenNewRecordModal: (initialType?: string) => void;
   onExportData: () => void;
+  courses: Course[];
+  setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
+  scheduleSlots: ScheduleSlot[];
+  setScheduleSlots: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
 }
 
 export const ManagementView: React.FC<ManagementViewProps> = ({
@@ -51,11 +57,16 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
   setActiveSubTab,
   onOpenNewRecordModal,
   onExportData,
+  courses,
+  setCourses,
+  scheduleSlots,
+  setScheduleSlots,
 }) => {
   const [lecturerSearch, setLecturerSearch] = useState('');
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [editingLecturer, setEditingLecturer] = useState<Lecturer | null>(null);
   const [editingBreak, setEditingBreak] = useState<BreakTime | null>(null);
+  const [deleteLecturerTarget, setDeleteLecturerTarget] = useState<Lecturer | null>(null);
   const [saveSettingsSuccess, setSaveSettingsSuccess] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -87,16 +98,26 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
     }
   };
 
-  const handleDeleteLecturer = async (id: string) => {
-    if (confirm('Are you sure you want to delete this lecturer record?')) {
-      try {
-        await apiDelete(`/api/lecturers/${id}`);
-        setLecturers(lecturers.filter((l) => l.id !== id));
-        toast.success('Lecturer deleted');
-      } catch (err) {
-        console.error(err);
-        toast.error('Failed to delete lecturer');
-      }
+  const handleDeleteLecturer = async (lecturer: Lecturer) => {
+    setDeleteLecturerTarget(lecturer);
+  };
+
+  const confirmDeleteLecturer = async () => {
+    if (!deleteLecturerTarget) return;
+    try {
+      await apiDelete(`/api/lecturers/${deleteLecturerTarget.id}`);
+      setLecturers(lecturers.filter((l) => l.id !== deleteLecturerTarget.id));
+      setCourses(courses.map((c) =>
+        c.assignedLecturerName === deleteLecturerTarget.name
+          ? { ...c, assignedLecturerName: undefined }
+          : c
+      ));
+      setScheduleSlots(scheduleSlots.filter((s) => s.lecturerName !== deleteLecturerTarget.name));
+      setDeleteLecturerTarget(null);
+      toast.success('Lecturer deleted');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete lecturer');
     }
   };
 
@@ -458,6 +479,9 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
               <tbody className="divide-y divide-[#c4c6cf] text-[13px]">
                 {filteredLecturers.map((lect, idx) => {
                   const isEven = idx % 2 === 1;
+                  const assignedCredits = courses
+                    .filter((c) => c.assignedLecturerName === lect.name)
+                    .reduce((sum, c) => sum + c.sks, 0);
                   return (
                     <tr
                       key={lect.id}
@@ -468,7 +492,7 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                         {lect.name}
                       </td>
                       <td className="px-6 py-4 font-semibold text-[#191c1e]">
-                        {lect.assignedCredits} SKS
+                        {assignedCredits} SKS
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button
@@ -479,7 +503,7 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                           <span className="material-symbols-outlined text-[18px]">edit</span>
                         </button>
                         <button
-                          onClick={() => handleDeleteLecturer(lect.id)}
+                          onClick={() => handleDeleteLecturer(lect)}
                           className="p-1.5 text-[#43474e] hover:text-[#ba1a1a] transition-colors cursor-pointer"
                           title="Delete Lecturer"
                         >
@@ -546,6 +570,7 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
       {editingLecturer && (
         <EditLecturerModal
           lecturer={editingLecturer}
+          courses={courses}
           onClose={() => setEditingLecturer(null)}
           onSave={(updated) => {
             setLecturers(lecturers.map((l) => (l.id === updated.id ? updated : l)));
@@ -564,6 +589,45 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
             setEditingBreak(null);
           }}
         />
+      )}
+
+      {/* Delete Lecturer Confirmation Modal */}
+      {deleteLecturerTarget && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 border border-[#c4c6cf] shadow-xl space-y-4">
+            <h3 className="font-headline-sm text-[18px] text-[#191c1e] font-bold">Delete Lecturer</h3>
+            <p className="text-[13px] text-[#43474e]">
+              Are you sure you want to delete <span className="font-semibold text-[#191c1e]">{deleteLecturerTarget.name}</span>?
+            </p>
+            <div className="bg-[#fef3c7] border border-[#f59e0b]/40 rounded-lg p-3 space-y-1.5">
+              <p className="text-[12px] font-semibold text-[#92400e]">This will affect:</p>
+              {courses.filter((c) => c.assignedLecturerName === deleteLecturerTarget.name).length > 0 && (
+                <p className="text-[12px] text-[#92400e]">
+                  · {courses.filter((c) => c.assignedLecturerName === deleteLecturerTarget.name).length} course(s) will be unassigned
+                </p>
+              )}
+              {scheduleSlots.filter((s) => s.lecturerName === deleteLecturerTarget.name).length > 0 && (
+                <p className="text-[12px] text-[#92400e]">
+                  · {scheduleSlots.filter((s) => s.lecturerName === deleteLecturerTarget.name).length} schedule slot(s) will be removed from the grid
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setDeleteLecturerTarget(null)}
+                className="px-4 py-2 rounded text-[13px] text-[#43474e] hover:bg-[#f2f4f6] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteLecturer}
+                className="px-4 py-2 bg-[#ba1a1a] text-white rounded text-[13px] font-semibold cursor-pointer hover:bg-[#93000a]"
+              >
+                Delete Lecturer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { apiPost, apiPut, apiDelete } from '../api';
-import { Course } from '../types';
+import { Course, Lecturer } from '../types';
 
 interface CoursesViewProps {
   courses: Course[];
   setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
+  lecturers: Lecturer[];
 }
 
-export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses }) => {
+export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, lecturers }) => {
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -195,13 +196,18 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses })
               </div>
               <div className="col-span-2">
                 <label className="block text-[#43474e] font-semibold mb-1">Assigned Instructor</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Prof. James Sterling"
+                <select
                   value={newLecturer}
                   onChange={(e) => setNewLecturer(e.target.value)}
                   className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
-                />
+                >
+                  <option value="">Unassigned</option>
+                  {lecturers.map((l) => (
+                    <option key={l.id} value={l.name}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -238,15 +244,30 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses })
                 />
               </div>
               <div>
-                <label className="block text-[#43474e] font-semibold mb-1">Instructor</label>
+                <label className="block text-[#43474e] font-semibold mb-1">SKS Credits</label>
                 <input
-                  type="text"
-                  value={editingCourse.assignedLecturerName || ''}
-                  onChange={(e) =>
-                    setEditingCourse({ ...editingCourse, assignedLecturerName: e.target.value })
-                  }
+                  type="number"
+                  value={editingCourse.sks}
+                  onChange={(e) => setEditingCourse({ ...editingCourse, sks: parseInt(e.target.value) || 2 })}
                   className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
                 />
+              </div>
+              <div>
+                <label className="block text-[#43474e] font-semibold mb-1">Instructor</label>
+                <select
+                  value={editingCourse.assignedLecturerName || ''}
+                  onChange={(e) =>
+                    setEditingCourse({ ...editingCourse, assignedLecturerName: e.target.value || undefined })
+                  }
+                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
+                >
+                  <option value="">Unassigned</option>
+                  {lecturers.map((l) => (
+                    <option key={l.id} value={l.name}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -261,6 +282,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses })
                   try {
                     const updated = await apiPut<Course>(`/api/courses/${editingCourse.id}`, {
                       title: editingCourse.title,
+                      sks: editingCourse.sks,
                       assignedLecturerName: editingCourse.assignedLecturerName,
                     });
                     setCourses(courses.map((c) => (c.id === updated.id ? updated : c)));

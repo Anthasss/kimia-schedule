@@ -1,23 +1,25 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { apiPut } from '../api';
-import { Lecturer } from '../types';
+import { Lecturer, Course } from '../types';
 
 interface EditLecturerModalProps {
   lecturer: Lecturer;
+  courses: Course[];
   onClose: () => void;
   onSave: (updated: Lecturer) => void;
 }
 
-export const EditLecturerModal: React.FC<EditLecturerModalProps> = ({ lecturer, onClose, onSave }) => {
+export const EditLecturerModal: React.FC<EditLecturerModalProps> = ({ lecturer, courses, onClose, onSave }) => {
   const [name, setName] = useState(lecturer.name);
-  const [assignedCredits, setAssignedCredits] = useState(lecturer.assignedCredits);
+  const assignedCredits = courses
+    .filter((c) => c.assignedLecturerName === lecturer.name)
+    .reduce((sum, c) => sum + c.sks, 0);
 
   const handleSave = async () => {
     try {
       const updated = await apiPut<Lecturer>(`/api/lecturers/${lecturer.id}`, {
         name,
-        assignedCredits,
       });
       onSave(updated);
       toast.success('Lecturer updated');
@@ -43,12 +45,9 @@ export const EditLecturerModal: React.FC<EditLecturerModalProps> = ({ lecturer, 
           </div>
           <div>
             <label className="block text-[#43474e] font-semibold mb-1">Assigned SKS Credits</label>
-            <input
-              type="number"
-              value={assignedCredits}
-              onChange={(e) => setAssignedCredits(parseInt(e.target.value) || 0)}
-              className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none text-[#191c1e]"
-            />
+            <div className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] text-[#191c1e] font-semibold">
+              {assignedCredits} SKS
+            </div>
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-2">

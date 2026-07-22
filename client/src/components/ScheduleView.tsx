@@ -3,8 +3,8 @@ import { toast } from 'sonner';
 import { apiPost, apiDelete } from '../api';
 import {
   Room,
+  Course,
   ScheduleSlot,
-  DraftCourseItem,
   SksSettings,
   DayOfWeek,
   BreakTime,
@@ -14,8 +14,8 @@ interface ScheduleViewProps {
   rooms: Room[];
   scheduleSlots: ScheduleSlot[];
   setScheduleSlots: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
-  draftPool: DraftCourseItem[];
-  setDraftPool: React.Dispatch<React.SetStateAction<DraftCourseItem[]>>;
+  courses: Course[];
+  setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
   sksSettings: SksSettings;
   breakTimes: BreakTime[];
   onNavigateToCourses: () => void;
@@ -25,14 +25,14 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   rooms,
   scheduleSlots,
   setScheduleSlots,
-  draftPool,
-  setDraftPool,
+  courses,
+  setCourses,
   sksSettings,
   breakTimes,
   onNavigateToCourses,
 }) => {
   const [draftSearch, setDraftSearch] = useState('');
-  const [selectedExpandedDraft, setSelectedExpandedDraft] = useState<string | null>('dp1'); // CS-405 open by default
+  const [selectedExpandedDraft, setSelectedExpandedDraft] = useState<string | null>(null);
 
   // Form state for draft assignment
   const [assignDay, setAssignDay] = useState<DayOfWeek>('Monday');
@@ -127,17 +127,28 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
   const slotRowLabels = gridRows.filter((r) => r.type === 'slot').map((r) => r.label);
 
-  const filteredDraftPool = draftPool.filter(
+  // Courses that haven't been placed on the schedule yet
+  const unscheduledCourses = courses.filter(
+    (c) => !scheduleSlots.some((s) => s.courseCode === c.code)
+  );
+
+  const filteredDraftPool = unscheduledCourses.filter(
     (item) =>
       item.code.toLowerCase().includes(draftSearch.toLowerCase()) ||
       item.title.toLowerCase().includes(draftSearch.toLowerCase()) ||
-      item.lecturerName.toLowerCase().includes(draftSearch.toLowerCase())
+      (item.assignedLecturerName && item.assignedLecturerName.toLowerCase().includes(draftSearch.toLowerCase()))
   );
 
-  const activeDraftItem = draftPool.find((dp) => dp.id === selectedExpandedDraft);
+  const activeDraftItem = unscheduledCourses.find((c) => c.id === selectedExpandedDraft);
+
+  useEffect(() => {
+    if (unscheduledCourses.length > 0 && !selectedExpandedDraft) {
+      setSelectedExpandedDraft(unscheduledCourses[0].id);
+    }
+  }, [unscheduledCourses]);
 
   const handlePlaceDraftOnGrid = async (
-    draftItem: DraftCourseItem,
+    course: Course,
     targetDay?: DayOfWeek,
     targetTimeSlot?: string,
     targetRoomId?: string
@@ -160,10 +171,10 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     }
 
     const slotData = {
-      courseCode: draftItem.code,
-      courseTitle: draftItem.title,
-      sks: draftItem.sks,
-      lecturerName: draftItem.lecturerName,
+      courseCode: course.code,
+      courseTitle: course.title,
+      sks: course.sks,
+      lecturerName: course.assignedLecturerName || 'Unassigned',
       roomId: selectedRoom.id,
       roomName: selectedRoom.name,
       day,
@@ -174,14 +185,11 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
     try {
       const created = await apiPost<ScheduleSlot>('/api/schedule-slots', slotData);
-      await apiDelete(`/api/draft-pool/${draftItem.id}`);
-
-      const remainingDrafts = draftPool.filter((dp) => dp.id !== draftItem.id);
       setScheduleSlots([...scheduleSlots, created]);
-      setDraftPool(remainingDrafts);
 
-      if (remainingDrafts.length > 0) {
-        setSelectedExpandedDraft(remainingDrafts[0].id);
+      const remaining = unscheduledCourses.filter((c) => c.id !== course.id);
+      if (remaining.length > 0) {
+        setSelectedExpandedDraft(remaining[0].id);
       } else {
         setSelectedExpandedDraft(null);
       }
@@ -192,22 +200,9 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   };
 
   const handleRemoveSlotFromGrid = async (slotId: string) => {
-    const slot = scheduleSlots.find((s) => s.id === slotId);
-    if (!slot) return;
-
     try {
       await apiDelete(`/api/schedule-slots/${slotId}`);
-
-      const restoredDraft = {
-        code: slot.courseCode,
-        title: slot.courseTitle,
-        sks: slot.sks,
-        lecturerName: slot.lecturerName,
-      };
-      const created = await apiPost<DraftCourseItem>('/api/draft-pool', restoredDraft);
-
       setScheduleSlots(scheduleSlots.filter((s) => s.id !== slotId));
-      setDraftPool([...draftPool, created]);
     } catch (err) {
       console.error(err);
       toast.error('Failed to remove course from schedule');
@@ -342,7 +337,6 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                           }
 
                           if (spanningSlot) {
-                            // This cell is spanned by a card starting earlier — render nothing
                             return null;
                           }
 
@@ -356,11 +350,11 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                                 onClick={() => {
                                   if (activeDraftItem) {
                                     handlePlaceDraftOnGrid(activeDraftItem, day, ts, room.id);
-                                  } else if (draftPool.length > 0) {
+                                  } else if (unscheduledCourses.length > 0) {
                                     setAssignDay(day);
                                     setAssignTimeSlot(ts);
                                     setAssignRoomId(room.id);
-                                    setSelectedExpandedDraft(draftPool[0].id);
+                                    setSelectedExpandedDraft(unscheduledCourses[0].id);
                                   }
                                 }}
                                 className={`h-12 rounded border border-dashed flex items-center justify-center transition-all cursor-pointer group/cell ${
@@ -395,12 +389,12 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
         })}
       </div>
 
-      {/* Right Side Drawer - Draft Pool */}
+      {/* Right Side Drawer - Unscheduled Courses */}
       <div className="w-80 shrink-0 bg-white border border-[#c4c6cf] rounded-xl p-5 shadow-2xs flex flex-col gap-4 self-start sticky top-20 max-h-[calc(100vh-100px)]">
         <div className="flex justify-between items-center border-b border-[#c4c6cf] pb-3 shrink-0">
-          <h3 className="font-headline-sm text-[16px] text-[#191c1e] font-bold">Draft Pool</h3>
+          <h3 className="font-headline-sm text-[16px] text-[#191c1e] font-bold">Unscheduled Courses</h3>
           <span className="text-[11px] font-bold bg-[#002045] text-white px-2.5 py-0.5 rounded-full">
-            {draftPool.length} Items
+            {unscheduledCourses.length} Items
           </span>
         </div>
 
@@ -418,7 +412,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
           />
         </div>
 
-        {/* Draft Items Cards List */}
+        {/* Course Cards List */}
         <div className="flex-1 overflow-y-auto min-h-0 space-y-3 custom-scrollbar pr-1">
           {filteredDraftPool.map((item) => {
             const isExpanded = selectedExpandedDraft === item.id;
@@ -437,16 +431,11 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                         {item.code}
                       </span>
                       <span className="text-[11px] text-[#505f76] font-semibold">{item.sks} SKS</span>
-                      {item.urgencyTag && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 bg-[#ffdad6] text-[#93000a] rounded">
-                          {item.urgencyTag}
-                        </span>
-                      )}
                     </div>
                     <h4 className="font-semibold text-[13px] text-[#191c1e] mt-1.5 leading-tight">
                       {item.title}
                     </h4>
-                    <p className="text-[11px] text-[#43474e] mt-0.5">{item.lecturerName}</p>
+                    <p className="text-[11px] text-[#43474e] mt-0.5">{item.assignedLecturerName || 'Unassigned'}</p>
                   </div>
 
                   <span className="material-symbols-outlined text-[#505f76] text-[18px]">
@@ -533,7 +522,11 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
           {filteredDraftPool.length === 0 && (
             <div className="p-4 text-center text-[12px] text-[#74777f] italic bg-[#f7f9fb] rounded-lg border border-[#c4c6cf]">
-              No draft items remaining in queue.
+              {courses.length === 0
+                ? 'No courses defined yet.'
+                : unscheduledCourses.length === 0
+                  ? 'All courses have been scheduled!'
+                  : 'No matching courses found.'}
             </div>
           )}
         </div>

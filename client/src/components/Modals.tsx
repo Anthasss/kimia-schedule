@@ -5,7 +5,7 @@ interface ModalsProps {
   setShowNewRecordModal: (val: boolean) => void;
   initialRecordType?: string;
   onAddRoom: (data: { name: string }) => void;
-  onAddLecturer: (data: { name: string; assignedCredits: number }) => void;
+  onAddLecturer: (data: { name: string }) => void;
   onAddBreak: (data: { name: string; startTime: string; endTime: string }) => void;
   showReportModal: boolean;
   setShowReportModal: (val: boolean) => void;
@@ -35,7 +35,6 @@ export const Modals: React.FC<ModalsProps> = ({
 }) => {
   const [roomName, setRoomName] = useState('');
   const [lecturerName, setLecturerName] = useState('');
-  const [lecturerCredits, setLecturerCredits] = useState(12);
 
   const [breakName, setBreakName] = useState('');
   const [breakStart, setBreakStart] = useState('10:00');
@@ -52,7 +51,6 @@ export const Modals: React.FC<ModalsProps> = ({
       if (!lecturerName) return;
       onAddLecturer({
         name: lecturerName,
-        assignedCredits: lecturerCredits,
       });
     } else if (initialRecordType === 'Break Time') {
       if (!breakName) return;
@@ -154,17 +152,6 @@ export const Modals: React.FC<ModalsProps> = ({
                       placeholder="e.g. Dr. Emily Vance"
                       value={lecturerName}
                       onChange={(e) => setLecturerName(e.target.value)}
-                      className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-[#43474e] mb-1">
-                      SKS Credits
-                    </label>
-                    <input
-                      type="number"
-                      value={lecturerCredits}
-                      onChange={(e) => setLecturerCredits(parseInt(e.target.value) || 0)}
                       className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
                     />
                   </div>

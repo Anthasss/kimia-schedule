@@ -8,7 +8,6 @@ import {
   lecturers,
   courses,
   scheduleSlots,
-  draftPool,
 } from "../db/schema";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,7 +89,6 @@ export const getSksSettings = createGetOneHandler(sksSettings);
 export const getLecturers = createGetAllHandler(lecturers);
 export const getCourses = createGetAllHandler(courses);
 export const getScheduleSlots = createGetAllHandler(scheduleSlots);
-export const getDraftPool = createGetAllHandler(draftPool);
 
 // POST
 export const createRoom = createInsertHandler(rooms);
@@ -98,7 +96,6 @@ export const createBreakTime = createInsertHandler(breakTimes);
 export const createLecturer = createInsertHandler(lecturers);
 export const createCourse = createInsertHandler(courses);
 export const createScheduleSlot = createInsertHandler(scheduleSlots);
-export const createDraftCourse = createInsertHandler(draftPool);
 
 // PUT
 export const updateRoom = createUpdateHandler(rooms);
@@ -106,7 +103,6 @@ export const updateBreakTime = createUpdateHandler(breakTimes);
 export const updateLecturer = createUpdateHandler(lecturers);
 export const updateCourse = createUpdateHandler(courses);
 export const updateScheduleSlot = createUpdateHandler(scheduleSlots);
-export const updateDraftCourse = createUpdateHandler(draftPool);
 
 // DELETE
 export const deleteRoom = createDeleteHandler(rooms);
@@ -114,7 +110,6 @@ export const deleteBreakTime = createDeleteHandler(breakTimes);
 export const deleteLecturer = createDeleteHandler(lecturers);
 export const deleteCourse = createDeleteHandler(courses);
 export const deleteScheduleSlot = createDeleteHandler(scheduleSlots);
-export const deleteDraftCourse = createDeleteHandler(draftPool);
 
 // UPSERT (singleton)
 export const upsertSksSettings = createUpsertHandler(sksSettings);

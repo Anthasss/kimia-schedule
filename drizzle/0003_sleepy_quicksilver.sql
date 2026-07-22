@@ -1,0 +1,3 @@
+ALTER TABLE "courses" ADD CONSTRAINT "courses_lecturer_fk" FOREIGN KEY ("assigned_lecturer_name") REFERENCES "public"."lecturers"("name") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "draft_pool" ADD CONSTRAINT "draft_lecturer_fk" FOREIGN KEY ("lecturer_name") REFERENCES "public"."lecturers"("name") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "schedule_slots" ADD CONSTRAINT "slots_lecturer_fk" FOREIGN KEY ("lecturer_name") REFERENCES "public"."lecturers"("name") ON DELETE cascade ON UPDATE no action;
