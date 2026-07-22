@@ -98,9 +98,9 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col flex-1 min-h-0 gap-6">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="font-headline-lg text-[28px] text-[#191c1e] font-bold">
             Lecturers
@@ -133,8 +133,8 @@ export const LecturersView: React.FC<LecturersViewProps> = ({
       </div>
 
       {/* Lecturers Table */}
-      <div className="bg-white border border-[#c4c6cf] rounded-xl overflow-hidden shadow-2xs">
-        <div className="overflow-x-auto custom-scrollbar">
+      <div className="bg-white border border-[#c4c6cf] rounded-xl overflow-hidden shadow-2xs flex flex-col flex-1 min-h-0">
+        <div className="overflow-auto flex-1 min-h-0 custom-scrollbar">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#f2f4f6]">

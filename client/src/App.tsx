@@ -46,12 +46,12 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e] font-sans antialiased">
+    <div className="h-screen bg-[#f7f9fb] text-[#191c1e] font-sans antialiased flex flex-col">
       <Toaster position="top-right" richColors />
       <Header activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      <div className="min-h-[calc(100vh-64px)]">
-        <main className="p-8 max-w-7xl mx-auto">
+      <div className="flex-1 flex flex-col min-h-0">
+        <main className="p-8 max-w-7xl mx-auto w-full flex-1 flex flex-col min-h-0 overflow-auto">
           {activeTab === 'Management' && (
             <ManagementPage
               rooms={rooms}

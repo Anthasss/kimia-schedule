@@ -19,6 +19,8 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
   const [newTitle, setNewTitle] = useState('');
   const [newSks, setNewSks] = useState(3);
   const [newLecturer, setNewLecturer] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   const filteredCourses = courses.filter((c) => {
     const matchesSearch =
@@ -27,6 +29,13 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
       (c.assignedLecturerName && c.assignedLecturerName.toLowerCase().includes(search.toLowerCase()));
     return matchesSearch;
   });
+
+  const totalPages = Math.ceil(filteredCourses.length / ITEMS_PER_PAGE);
+  const safeCurrentPage = Math.min(currentPage, totalPages || 1);
+  const paginatedCourses = filteredCourses.slice(
+    (safeCurrentPage - 1) * ITEMS_PER_PAGE,
+    safeCurrentPage * ITEMS_PER_PAGE
+  );
 
   const handleAddCourse = async () => {
     if (!newCode || !newTitle) return;
@@ -63,16 +72,19 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Bar & Actions */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-xl border border-[#c4c6cf] shadow-2xs">
-        <h1 className="font-headline-lg text-[26px] text-[#191c1e] font-bold">
-          Academic Course Directory
-        </h1>
-
-        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-          {/* Search bar on left */}
-          <div className="relative w-full sm:w-64">
+    <div className="flex flex-col flex-1 min-h-0 gap-6">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+        <div>
+          <h1 className="font-headline-lg text-[28px] text-[#191c1e] font-bold">
+            Courses
+          </h1>
+          <p className="text-[#43474e] font-body-md text-[14px]">
+            Manage courses, credits, and instructor assignments.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="relative">
             <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[16px] text-[#43474e]">
               search
             </span>
@@ -81,14 +93,12 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search code, title, instructor..."
-              className="w-full bg-[#f2f4f6] border border-[#c4c6cf] rounded-md py-1.5 pl-8 pr-3 text-[12px] text-[#191c1e] focus:ring-1 focus:ring-[#002045] outline-none"
+              className="bg-white border border-[#c4c6cf] rounded-md py-2 pl-8 pr-3 text-[13px] text-[#191c1e] w-64 focus:ring-1 focus:ring-[#002045] outline-none"
             />
           </div>
-
-          {/* Add Course button to the right of searchbar */}
           <button
             onClick={() => setShowAddModal(true)}
-            className="bg-[#002045] text-white px-4 py-2 rounded-lg font-semibold text-[12px] flex items-center gap-2 hover:bg-opacity-90 active:scale-95 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+            className="bg-[#002045] text-white px-4 py-2 rounded-lg font-semibold text-[12px] flex items-center gap-2 hover:bg-opacity-90 active:scale-95 transition-all shadow-sm cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
             <span>Add Course</span>
@@ -97,8 +107,8 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
       </div>
 
       {/* Course Table */}
-      <div className="bg-white border border-[#c4c6cf] rounded-xl overflow-hidden shadow-2xs">
-        <div className="overflow-x-auto custom-scrollbar">
+      <div className="bg-white border border-[#c4c6cf] rounded-xl overflow-hidden shadow-2xs flex flex-col flex-1 min-h-0">
+        <div className="overflow-auto flex-1 min-h-0 custom-scrollbar">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#f2f4f6]">
@@ -120,7 +130,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
               </tr>
             </thead>
             <tbody className="divide-y divide-[#c4c6cf] text-[13px]">
-              {filteredCourses.map((c, idx) => {
+              {paginatedCourses.map((c, idx) => {
                 const isEven = idx % 2 === 1;
                 return (
                   <tr
@@ -157,6 +167,39 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
             </tbody>
           </table>
         </div>
+
+        {filteredCourses.length > ITEMS_PER_PAGE && (
+          <div className="px-6 py-3 border-t border-[#c4c6cf] bg-[#f2f4f6] flex justify-between items-center text-[12px]">
+            <span className="text-[#43474e] font-medium">
+              Showing {(safeCurrentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safeCurrentPage * ITEMS_PER_PAGE, filteredCourses.length)} of {filteredCourses.length} Courses
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                disabled={safeCurrentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="p-1 hover:bg-[#e0e3e5] rounded disabled:opacity-30 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-7 h-7 rounded font-bold text-[12px] ${safeCurrentPage === page ? 'bg-[#002045] text-white' : 'hover:bg-[#e0e3e5] text-[#191c1e]'}`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                disabled={safeCurrentPage === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="p-1 hover:bg-[#e0e3e5] rounded disabled:opacity-30 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add Course Modal */}
