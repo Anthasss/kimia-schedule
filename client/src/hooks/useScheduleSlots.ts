@@ -63,6 +63,7 @@ export function useScheduleSlots({
 
       const slotData: ScheduleSlot = {
         id: tempId,
+        courseId: course.id,
         courseCode: course.code,
         courseTitle: course.title,
         sks: course.sks,

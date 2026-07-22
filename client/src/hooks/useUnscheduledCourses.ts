@@ -8,7 +8,8 @@ export function useUnscheduledCourses(courses: Course[], scheduleSlots: Schedule
   const unscheduledCourses = useMemo(
     () =>
       courses
-        .filter((c) => !scheduleSlots.some((s) => s.courseCode === c.code))
+        .filter((c) => !scheduleSlots.some((s) => s.courseId === c.id))
+        .filter((c) => c.assignedLecturerName)
         .sort((a, b) => a.title.localeCompare(b.title)),
     [courses, scheduleSlots]
   );

@@ -1,0 +1,1 @@
+ALTER TABLE "lecturers" DROP COLUMN "assigned_credits";

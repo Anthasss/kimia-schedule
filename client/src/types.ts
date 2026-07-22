@@ -43,6 +43,7 @@ export type DayOfWeek =
 
 export interface ScheduleSlot {
   id: string;
+  courseId: string;
   courseCode: string;
   courseTitle: string;
   sks: number;

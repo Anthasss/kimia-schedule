@@ -49,6 +49,7 @@ export const courses = pgTable('courses', {
 
 export const scheduleSlots = pgTable('schedule_slots', {
   id: text('id').primaryKey(),
+  courseId: text('course_id').notNull(),
   courseCode: text('course_code').notNull(),
   courseTitle: text('course_title').notNull(),
   sks: integer('sks').notNull(),
