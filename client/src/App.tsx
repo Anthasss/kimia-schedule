@@ -11,7 +11,6 @@ import { useBreakTimes } from './hooks/useBreakTimes';
 import { useSksSettings } from './hooks/useSksSettings';
 import { useScheduleData } from './hooks/useScheduleData';
 import { useCourses } from './hooks/useCourses';
-import { useManagementMeta } from './hooks/useManagementMeta';
 import { useDataFetching } from './hooks/useDataFetching';
 import { MainNavTab, ManagementSubTab } from './types';
 
@@ -25,15 +24,12 @@ export default function App() {
   const { sksSettings, setSksSettings } = useSksSettings();
   const { scheduleSlots, setScheduleSlots, draftPool, setDraftPool } = useScheduleData();
   const { courses, setCourses } = useCourses();
-  const { classes, setClasses, semesters, setSemesters } = useManagementMeta();
 
   useDataFetching({
     setRooms,
     setBreakTimes,
     setSksSettings,
     setLecturers,
-    setClasses,
-    setSemesters,
     setCourses,
     setScheduleSlots,
     setDraftPool,
@@ -67,10 +63,6 @@ export default function App() {
               setSksSettings={setSksSettings}
               lecturers={lecturers}
               setLecturers={setLecturers}
-              classes={classes}
-              setClasses={setClasses}
-              semesters={semesters}
-              setSemesters={setSemesters}
               activeSubTab={activeSubTab}
               setActiveSubTab={setActiveSubTab}
               onOpenNewRecordModal={handleOpenNewRecordModal}
@@ -86,6 +78,7 @@ export default function App() {
               draftPool={draftPool}
               setDraftPool={setDraftPool}
               sksSettings={sksSettings}
+              breakTimes={breakTimes}
               onNavigateToCourses={() => setActiveTab('Courses')}
             />
           )}

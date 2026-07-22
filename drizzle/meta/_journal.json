@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1784679551584,
+      "tag": "0000_chubby_tony_stark",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784680464306,
+      "tag": "0001_yielding_vapor",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784681541363,
+      "tag": "0002_bright_carmella_unuscione",
+      "breakpoints": true
+    }
+  ]
+}

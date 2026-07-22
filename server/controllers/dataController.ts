@@ -6,8 +6,6 @@ import {
   breakTimes,
   sksSettings,
   lecturers,
-  classCohorts,
-  semesters,
   courses,
   scheduleSlots,
   draftPool,
@@ -90,8 +88,6 @@ export const getRooms = createGetAllHandler(rooms);
 export const getBreakTimes = createGetAllHandler(breakTimes);
 export const getSksSettings = createGetOneHandler(sksSettings);
 export const getLecturers = createGetAllHandler(lecturers);
-export const getClassCohorts = createGetAllHandler(classCohorts);
-export const getSemesters = createGetAllHandler(semesters);
 export const getCourses = createGetAllHandler(courses);
 export const getScheduleSlots = createGetAllHandler(scheduleSlots);
 export const getDraftPool = createGetAllHandler(draftPool);
@@ -100,8 +96,6 @@ export const getDraftPool = createGetAllHandler(draftPool);
 export const createRoom = createInsertHandler(rooms);
 export const createBreakTime = createInsertHandler(breakTimes);
 export const createLecturer = createInsertHandler(lecturers);
-export const createClassCohort = createInsertHandler(classCohorts);
-export const createSemester = createInsertHandler(semesters);
 export const createCourse = createInsertHandler(courses);
 export const createScheduleSlot = createInsertHandler(scheduleSlots);
 export const createDraftCourse = createInsertHandler(draftPool);
@@ -110,8 +104,6 @@ export const createDraftCourse = createInsertHandler(draftPool);
 export const updateRoom = createUpdateHandler(rooms);
 export const updateBreakTime = createUpdateHandler(breakTimes);
 export const updateLecturer = createUpdateHandler(lecturers);
-export const updateClassCohort = createUpdateHandler(classCohorts);
-export const updateSemester = createUpdateHandler(semesters);
 export const updateCourse = createUpdateHandler(courses);
 export const updateScheduleSlot = createUpdateHandler(scheduleSlots);
 export const updateDraftCourse = createUpdateHandler(draftPool);
@@ -120,8 +112,6 @@ export const updateDraftCourse = createUpdateHandler(draftPool);
 export const deleteRoom = createDeleteHandler(rooms);
 export const deleteBreakTime = createDeleteHandler(breakTimes);
 export const deleteLecturer = createDeleteHandler(lecturers);
-export const deleteClassCohort = createDeleteHandler(classCohorts);
-export const deleteSemester = createDeleteHandler(semesters);
 export const deleteCourse = createDeleteHandler(courses);
 export const deleteScheduleSlot = createDeleteHandler(scheduleSlots);
 export const deleteDraftCourse = createDeleteHandler(draftPool);

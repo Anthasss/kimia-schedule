@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction } from 'react';
 import { ScheduleView } from '../components/ScheduleView';
-import { Room, SksSettings, ScheduleSlot, DraftCourseItem } from '../types';
+import { Room, SksSettings, ScheduleSlot, DraftCourseItem, BreakTime } from '../types';
 
 interface SchedulePageProps {
   rooms: Room[];
@@ -9,6 +9,7 @@ interface SchedulePageProps {
   draftPool: DraftCourseItem[];
   setDraftPool: Dispatch<SetStateAction<DraftCourseItem[]>>;
   sksSettings: SksSettings;
+  breakTimes: BreakTime[];
   onNavigateToCourses: () => void;
 }
 
@@ -19,6 +20,7 @@ export function SchedulePage({
   draftPool,
   setDraftPool,
   sksSettings,
+  breakTimes,
   onNavigateToCourses,
 }: SchedulePageProps) {
   return (
@@ -29,6 +31,7 @@ export function SchedulePage({
       draftPool={draftPool}
       setDraftPool={setDraftPool}
       sksSettings={sksSettings}
+      breakTimes={breakTimes}
       onNavigateToCourses={onNavigateToCourses}
     />
   );

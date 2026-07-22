@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { apiPut, apiDelete, apiPost } from '../api';
+import { apiPost, apiPut, apiDelete } from '../api';
 import {
   Room,
   BreakTime,
   SksSettings,
   Lecturer,
-  ClassCohort,
-  Semester,
   ManagementSubTab,
   DayOfWeek,
 } from '../types';
+import { EditRoomModal } from './EditRoomModal';
+import { EditLecturerModal } from './EditLecturerModal';
+import { EditBreakModal } from './EditBreakModal';
 
 const ALL_WEEKDAYS: DayOfWeek[] = [
   'Monday',
@@ -31,10 +32,6 @@ interface ManagementViewProps {
   setSksSettings: React.Dispatch<React.SetStateAction<SksSettings>>;
   lecturers: Lecturer[];
   setLecturers: React.Dispatch<React.SetStateAction<Lecturer[]>>;
-  classes: ClassCohort[];
-  setClasses: React.Dispatch<React.SetStateAction<ClassCohort[]>>;
-  semesters: Semester[];
-  setSemesters: React.Dispatch<React.SetStateAction<Semester[]>>;
   activeSubTab: ManagementSubTab;
   setActiveSubTab: (subTab: ManagementSubTab) => void;
   onOpenNewRecordModal: (initialType?: string) => void;
@@ -62,7 +59,6 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
   const [saveSettingsSuccess, setSaveSettingsSuccess] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Filtered Lecturers by name search
   const filteredLecturers = lecturers.filter((lect) =>
     lect.name.toLowerCase().includes(lecturerSearch.toLowerCase())
   );
@@ -187,9 +183,8 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                   return (
                     <tr
                       key={room.id}
-                      className={`${
-                        isEven ? 'bg-[#f7f9fb]' : 'bg-white'
-                      } hover:bg-[#eceef0] transition-colors group`}
+                      className={`${isEven ? 'bg-[#f7f9fb]' : 'bg-white'
+                        } hover:bg-[#eceef0] transition-colors group`}
                     >
                       <td className="px-6 py-4 font-semibold text-[#191c1e]">
                         {room.name}
@@ -220,7 +215,6 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
 
         {/* Right Stack: SKS Settings - 5 cols */}
         <div className="col-span-12 lg:col-span-5 flex flex-col gap-6">
-          {/* SKS Settings Box */}
           <div className="bg-white border border-[#c4c6cf] rounded-xl p-6 shadow-2xs flex-1 flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-2 mb-6">
@@ -258,6 +252,41 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                   </p>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-semibold text-[12px] text-[#43474e] mb-2">
+                      Day Start Time
+                    </label>
+                    <input
+                      type="time"
+                      value={sksSettings.dayStartTime || '07:30'}
+                      onChange={(e) =>
+                        setSksSettings({
+                          ...sksSettings,
+                          dayStartTime: e.target.value,
+                        })
+                      }
+                      className="w-full bg-[#eceef0] border-none focus:ring-2 focus:ring-[#002045] focus:bg-white rounded-md px-4 py-2 font-mono-code text-[14px] text-[#191c1e] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[12px] text-[#43474e] mb-2">
+                      Day End Time
+                    </label>
+                    <input
+                      type="time"
+                      value={sksSettings.dayEndTime || '17:00'}
+                      onChange={(e) =>
+                        setSksSettings({
+                          ...sksSettings,
+                          dayEndTime: e.target.value,
+                        })
+                      }
+                      className="w-full bg-[#eceef0] border-none focus:ring-2 focus:ring-[#002045] focus:bg-white rounded-md px-4 py-2 font-mono-code text-[14px] text-[#191c1e] outline-none"
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label className="block font-semibold text-[12px] text-[#43474e] mb-2">
                     Active Academic Days
@@ -269,14 +298,13 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                         'Tuesday',
                         'Wednesday',
                         'Thursday',
-                        'Friday',
                       ];
                       const isSelected = currentActiveDays.includes(day);
 
                       const handleToggleDay = () => {
                         let newDays: DayOfWeek[];
                         if (isSelected) {
-                          if (currentActiveDays.length === 1) return; // Must keep at least 1 day
+                          if (currentActiveDays.length === 1) return;
                           newDays = currentActiveDays.filter((d) => d !== day);
                         } else {
                           newDays = ALL_WEEKDAYS.filter(
@@ -291,11 +319,10 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                           key={day}
                           type="button"
                           onClick={handleToggleDay}
-                          className={`px-3 py-1.5 rounded-md text-[12px] font-semibold transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-[#002045] text-white shadow-xs'
-                              : 'bg-[#eceef0] text-[#505f76] hover:bg-[#e0e3e5] border border-[#c4c6cf]'
-                          }`}
+                          className={`px-3 py-1.5 rounded-md text-[12px] font-semibold transition-all cursor-pointer ${isSelected
+                            ? 'bg-[#002045] text-white shadow-xs'
+                            : 'bg-[#eceef0] text-[#505f76] hover:bg-[#e0e3e5] border border-[#c4c6cf]'
+                            }`}
                         >
                           {day.slice(0, 3)}
                         </button>
@@ -391,7 +418,6 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
               <h3 className="font-headline-sm text-[18px] text-[#191c1e]">Lecturers</h3>
             </div>
             <div className="flex items-center gap-3">
-              {/* Search Lecturers Input */}
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[16px] text-[#43474e]">
                   search
@@ -435,9 +461,8 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                   return (
                     <tr
                       key={lect.id}
-                      className={`${
-                        isEven ? 'bg-[#f7f9fb]' : 'bg-white'
-                      } hover:bg-[#eceef0] transition-colors group`}
+                      className={`${isEven ? 'bg-[#f7f9fb]' : 'bg-white'
+                        } hover:bg-[#eceef0] transition-colors group`}
                     >
                       <td className="px-6 py-4 font-semibold text-[#191c1e]">
                         {lect.name}
@@ -468,7 +493,6 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
             </table>
           </div>
 
-          {/* Table Footer Pagination */}
           <div className="px-6 py-3 border-t border-[#c4c6cf] bg-[#f2f4f6] flex justify-between items-center text-[12px]">
             <span className="text-[#43474e] font-medium">
               Showing {filteredLecturers.length} Lecturers
@@ -483,17 +507,15 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
               </button>
               <button
                 onClick={() => setCurrentPage(1)}
-                className={`w-7 h-7 rounded font-bold text-[12px] ${
-                  currentPage === 1 ? 'bg-[#002045] text-white' : 'hover:bg-[#e0e3e5] text-[#191c1e]'
-                }`}
+                className={`w-7 h-7 rounded font-bold text-[12px] ${currentPage === 1 ? 'bg-[#002045] text-white' : 'hover:bg-[#e0e3e5] text-[#191c1e]'
+                  }`}
               >
                 1
               </button>
               <button
                 onClick={() => setCurrentPage(2)}
-                className={`w-7 h-7 rounded font-bold text-[12px] ${
-                  currentPage === 2 ? 'bg-[#002045] text-white' : 'hover:bg-[#e0e3e5] text-[#191c1e]'
-                }`}
+                className={`w-7 h-7 rounded font-bold text-[12px] ${currentPage === 2 ? 'bg-[#002045] text-white' : 'hover:bg-[#e0e3e5] text-[#191c1e]'
+                  }`}
               >
                 2
               </button>
@@ -508,111 +530,40 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
         </div>
       </div>
 
-      {/* Inline Modal for Editing Room */}
+      {/* Edit Room Modal */}
       {editingRoom && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 border border-[#c4c6cf] shadow-xl space-y-4">
-            <h3 className="font-headline-sm text-[18px] text-[#191c1e] font-bold">Edit Room</h3>
-            <div className="space-y-3 text-[13px]">
-              <div>
-                <label className="block text-[#43474e] font-semibold mb-1">Room Name</label>
-                <input
-                  type="text"
-                  value={editingRoom.name}
-                  onChange={(e) => setEditingRoom({ ...editingRoom, name: e.target.value })}
-                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none font-semibold text-[#191c1e]"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setEditingRoom(null)}
-                className="px-4 py-2 rounded text-[13px] text-[#43474e] hover:bg-[#f2f4f6] cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    const updated = await apiPut<Room>(`/api/rooms/${editingRoom.id}`, { name: editingRoom.name });
-                    setRooms(rooms.map((r) => (r.id === updated.id ? updated : r)));
-                    setEditingRoom(null);
-                    toast.success('Room updated');
-                  } catch (err) {
-                    console.error(err);
-                    toast.error('Failed to update room');
-                  }
-                }}
-                className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
+        <EditRoomModal
+          room={editingRoom}
+          onClose={() => setEditingRoom(null)}
+          onSave={(updated) => {
+            setRooms(rooms.map((r) => (r.id === updated.id ? updated : r)));
+            setEditingRoom(null);
+          }}
+        />
       )}
 
-      {/* Inline Modal for Editing Lecturer */}
+      {/* Edit Lecturer Modal */}
       {editingLecturer && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 border border-[#c4c6cf] shadow-xl space-y-4">
-            <h3 className="font-headline-sm text-[18px] text-[#191c1e] font-bold">Edit Lecturer</h3>
-            <div className="space-y-3 text-[13px]">
-              <div>
-                <label className="block text-[#43474e] font-semibold mb-1">Name</label>
-                <input
-                  type="text"
-                  value={editingLecturer.name}
-                  onChange={(e) => setEditingLecturer({ ...editingLecturer, name: e.target.value })}
-                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none font-semibold text-[#191c1e]"
-                />
-              </div>
-              <div>
-                <label className="block text-[#43474e] font-semibold mb-1">Assigned SKS Credits</label>
-                <input
-                  type="number"
-                  value={editingLecturer.assignedCredits}
-                  onChange={(e) =>
-                    setEditingLecturer({
-                      ...editingLecturer,
-                      assignedCredits: parseInt(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none text-[#191c1e]"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setEditingLecturer(null)}
-                className="px-4 py-2 rounded text-[13px] text-[#43474e] hover:bg-[#f2f4f6] cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    const updated = await apiPut<Lecturer>(`/api/lecturers/${editingLecturer.id}`, {
-                      name: editingLecturer.name,
-                      assignedCredits: editingLecturer.assignedCredits,
-                    });
-                    setLecturers(
-                      lecturers.map((l) => (l.id === updated.id ? updated : l))
-                    );
-                    setEditingLecturer(null);
-                    toast.success('Lecturer updated');
-                  } catch (err) {
-                    console.error(err);
-                    toast.error('Failed to update lecturer');
-                  }
-                }}
-                className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
+        <EditLecturerModal
+          lecturer={editingLecturer}
+          onClose={() => setEditingLecturer(null)}
+          onSave={(updated) => {
+            setLecturers(lecturers.map((l) => (l.id === updated.id ? updated : l)));
+            setEditingLecturer(null);
+          }}
+        />
+      )}
+
+      {/* Edit Break Modal */}
+      {editingBreak && (
+        <EditBreakModal
+          breakTime={editingBreak}
+          onClose={() => setEditingBreak(null)}
+          onSave={(updated) => {
+            setBreakTimes(breakTimes.map((b) => (b.id === updated.id ? updated : b)));
+            setEditingBreak(null);
+          }}
+        />
       )}
     </div>
   );

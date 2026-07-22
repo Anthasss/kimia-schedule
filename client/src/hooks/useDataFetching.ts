@@ -4,8 +4,6 @@ import {
   BreakTime,
   SksSettings,
   Lecturer,
-  ClassCohort,
-  Semester,
   Course,
   ScheduleSlot,
   DraftCourseItem,
@@ -16,8 +14,6 @@ interface DataFetchingSetters {
   setBreakTimes: Dispatch<SetStateAction<BreakTime[]>>;
   setSksSettings: Dispatch<SetStateAction<SksSettings>>;
   setLecturers: Dispatch<SetStateAction<Lecturer[]>>;
-  setClasses: Dispatch<SetStateAction<ClassCohort[]>>;
-  setSemesters: Dispatch<SetStateAction<Semester[]>>;
   setCourses: Dispatch<SetStateAction<Course[]>>;
   setScheduleSlots: Dispatch<SetStateAction<ScheduleSlot[]>>;
   setDraftPool: Dispatch<SetStateAction<DraftCourseItem[]>>;
@@ -31,8 +27,6 @@ export function useDataFetching(setters: DataFetchingSetters) {
         breakTimesRes,
         sksSettingsRes,
         lecturersRes,
-        classesRes,
-        semestersRes,
         coursesRes,
         scheduleSlotsRes,
         draftPoolRes,
@@ -41,8 +35,6 @@ export function useDataFetching(setters: DataFetchingSetters) {
         fetch('/api/break-times').then((r) => r.json()),
         fetch('/api/sks-settings').then((r) => r.json()),
         fetch('/api/lecturers').then((r) => r.json()),
-        fetch('/api/class-cohorts').then((r) => r.json()),
-        fetch('/api/semesters').then((r) => r.json()),
         fetch('/api/courses').then((r) => r.json()),
         fetch('/api/schedule-slots').then((r) => r.json()),
         fetch('/api/draft-pool').then((r) => r.json()),
@@ -52,8 +44,6 @@ export function useDataFetching(setters: DataFetchingSetters) {
       setters.setBreakTimes(breakTimesRes);
       if (sksSettingsRes) setters.setSksSettings(sksSettingsRes);
       setters.setLecturers(lecturersRes);
-      setters.setClasses(classesRes);
-      setters.setSemesters(semestersRes);
       setters.setCourses(coursesRes);
       setters.setScheduleSlots(scheduleSlotsRes);
       setters.setDraftPool(draftPoolRes);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { apiPost, apiDelete } from '../api';
 import {
@@ -7,6 +7,7 @@ import {
   DraftCourseItem,
   SksSettings,
   DayOfWeek,
+  BreakTime,
 } from '../types';
 
 interface ScheduleViewProps {
@@ -16,6 +17,7 @@ interface ScheduleViewProps {
   draftPool: DraftCourseItem[];
   setDraftPool: React.Dispatch<React.SetStateAction<DraftCourseItem[]>>;
   sksSettings: SksSettings;
+  breakTimes: BreakTime[];
   onNavigateToCourses: () => void;
 }
 
@@ -26,6 +28,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   draftPool,
   setDraftPool,
   sksSettings,
+  breakTimes,
   onNavigateToCourses,
 }) => {
   const [draftSearch, setDraftSearch] = useState('');
@@ -33,24 +36,96 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
   // Form state for draft assignment
   const [assignDay, setAssignDay] = useState<DayOfWeek>('Monday');
-  const [assignTimeSlot, setAssignTimeSlot] = useState('07:30 SKS 1');
+  const [assignTimeSlot, setAssignTimeSlot] = useState('');
   const [assignRoomId, setAssignRoomId] = useState('r5'); // Lab 101
 
   const days: DayOfWeek[] =
     sksSettings.activeDays && sksSettings.activeDays.length > 0
       ? sksSettings.activeDays
       : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-  const timeSlots = [
-    '07:30 SKS 1',
-    '08:20 SKS 2',
-    '09:10 SKS 3',
-    '10:30 SKS 4',
-    '11:20 SKS 5',
-    '13:00 SKS 6',
-  ];
+
+  const timeSlots = (() => {
+    const startParts = (sksSettings.dayStartTime || '07:30').split(':').map(Number);
+    const endParts = (sksSettings.dayEndTime || '17:00').split(':').map(Number);
+    const duration = sksSettings.durationPerSks || 50;
+
+    let currentMinutes = startParts[0] * 60 + startParts[1];
+    const endMinutes = endParts[0] * 60 + endParts[1];
+
+    const breaks = breakTimes
+      .map((bt) => {
+        const s = bt.startTime.split(':').map(Number);
+        const e = bt.endTime.split(':').map(Number);
+        return { start: s[0] * 60 + s[1], end: e[0] * 60 + e[1] };
+      })
+      .sort((a, b) => a.start - b.start);
+
+    const slots: string[] = [];
+    let sksNum = 1;
+
+    while (currentMinutes + duration <= endMinutes) {
+      const slotEnd = currentMinutes + duration;
+      const overlappingBreak = breaks.find(
+        (b) => currentMinutes < b.end && slotEnd > b.start
+      );
+      const actualEnd = overlappingBreak ? overlappingBreak.end : slotEnd;
+      const hh = String(Math.floor(currentMinutes / 60)).padStart(2, '0');
+      const mm = String(currentMinutes % 60).padStart(2, '0');
+      const eh = String(Math.floor(slotEnd / 60)).padStart(2, '0');
+      const em = String(slotEnd % 60).padStart(2, '0');
+      slots.push(`${hh}:${mm} - ${eh}:${em} SKS ${sksNum}`);
+      currentMinutes = actualEnd;
+      sksNum++;
+    }
+
+    return slots;
+  })();
+
+  type GridRow =
+    | { type: 'slot'; label: string }
+    | { type: 'break'; name: string; startTime: string; endTime: string };
+
+  const gridRows: GridRow[] = (() => {
+    const breaksSorted = [...breakTimes]
+      .map((bt) => ({
+        type: 'break' as const,
+        name: bt.name,
+        startTime: bt.startTime,
+        endTime: bt.endTime,
+        startMin: (() => { const p = bt.startTime.split(':').map(Number); return p[0] * 60 + p[1]; })(),
+      }))
+      .sort((a, b) => a.startMin - b.startMin);
+
+    const rows: GridRow[] = [];
+    let slotIdx = 0;
+
+    for (const brk of breaksSorted) {
+      while (slotIdx < timeSlots.length) {
+        const slotTime = timeSlots[slotIdx].split(':');
+        const slotMin = parseInt(slotTime[0]) * 60 + parseInt(slotTime[1]);
+        if (slotMin >= brk.startMin) break;
+        rows.push({ type: 'slot', label: timeSlots[slotIdx] });
+        slotIdx++;
+      }
+      rows.push({ type: 'break', name: brk.name, startTime: brk.startTime, endTime: brk.endTime });
+    }
+    while (slotIdx < timeSlots.length) {
+      rows.push({ type: 'slot', label: timeSlots[slotIdx] });
+      slotIdx++;
+    }
+    return rows;
+  })();
+
+  useEffect(() => {
+    if (timeSlots.length > 0 && !timeSlots.includes(assignTimeSlot)) {
+      setAssignTimeSlot(timeSlots[0]);
+    }
+  }, [timeSlots]);
 
   // Schedule rooms to display on grid columns
-  const gridRooms = rooms.slice(0, 4); // Lab 101, Hall A, Studio 204, Lab 102
+  const gridRooms = rooms.slice(0, 4);
+
+  const slotRowLabels = gridRows.filter((r) => r.type === 'slot').map((r) => r.label);
 
   const filteredDraftPool = draftPool.filter(
     (item) =>
@@ -93,7 +168,6 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       roomName: selectedRoom.name,
       day,
       timeSlot,
-      durationSks: draftItem.sks,
       hasConflict,
       conflictReason,
     };
@@ -128,9 +202,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
         code: slot.courseCode,
         title: slot.courseTitle,
         sks: slot.sks,
-        department: 'General',
         lecturerName: slot.lecturerName,
-        type: 'LECTURE' as const,
       };
       const created = await apiPost<DraftCourseItem>('/api/draft-pool', restoredDraft);
 
@@ -147,60 +219,103 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
       {/* Left / Main Workspace - Schedule Builder */}
       <div className="flex-1 space-y-6 overflow-x-auto">
         {/* Schedule Timetable Days */}
-        {days.map((day) => (
+        {days.map((day) => {
+          return (
           <div key={day} className="space-y-2">
             <div className="flex items-center gap-2 border-l-4 border-[#002045] pl-3 py-1">
               <h2 className="font-headline-sm text-[20px] text-[#191c1e] font-bold">{day}</h2>
             </div>
 
             <div className="bg-white border border-[#c4c6cf] rounded-xl overflow-hidden shadow-2xs">
-              <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse min-w-[650px]">
-                  <thead>
-                    <tr className="bg-[#f2f4f6] border-b border-[#c4c6cf]">
-                      <th className="px-4 py-3 font-semibold text-[12px] text-[#43474e] w-36 border-r border-[#c4c6cf]">
-                        Time / SKS
-                      </th>
-                      {gridRooms.map((room) => (
-                        <th
-                          key={room.id}
-                          className="px-4 py-3 font-semibold text-[12px] text-[#191c1e] text-center border-r border-[#c4c6cf] last:border-r-0 min-w-[120px]"
+              <div className="overflow-x-auto custom-scrollbar p-4">
+                <div
+                  className="schedule-grid"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: `180px repeat(${gridRooms.length}, minmax(120px, 1fr))`,
+                  }}
+                >
+                  {/* Header row */}
+                  <div className="px-4 py-3 font-semibold text-[12px] text-[#43474e] bg-[#f2f4f6] border-r border-b border-[#c4c6cf] rounded-tl-xl">
+                    Time / SKS
+                  </div>
+                  {gridRooms.map((room, i) => (
+                    <div
+                      key={room.id}
+                      className={`px-4 py-3 font-semibold text-[12px] text-[#191c1e] text-center bg-[#f2f4f6] border-r border-b border-[#c4c6cf] ${i === gridRooms.length - 1 ? 'rounded-tr-xl border-r-0' : ''}`}
+                    >
+                      {room.name}
+                    </div>
+                  ))}
+
+                  {/* Data rows */}
+                  {gridRows.map((row, rowIdx) => {
+                    if (row.type === 'break') {
+                      return (
+                        <div
+                          key={`break-${rowIdx}`}
+                          className="col-span-full bg-[#fef3c7] px-4 py-2.5 border-b border-[#f59e0b]/30"
+                          style={{ gridColumn: '1 / -1' }}
                         >
-                          {room.name}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#c4c6cf] text-[12px]">
-                    {timeSlots.map((ts) => (
-                      <tr key={ts} className="hover:bg-[#f7f9fb] transition-colors">
-                        <td className="px-4 py-3 font-mono-code text-[11px] text-[#43474e] font-semibold border-r border-[#c4c6cf] bg-[#f8fafc]">
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="material-symbols-outlined text-[16px] text-[#92400e]">coffee</span>
+                            <span className="font-semibold text-[12px] text-[#92400e]">{row.name}</span>
+                            <span className="text-[11px] text-[#b45309] font-mono-code">· {row.startTime} – {row.endTime}</span>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    const ts = row.label;
+                    const slotRowIdx = slotRowLabels.indexOf(ts);
+
+                    return (
+                      <React.Fragment key={ts}>
+                        {/* Time label cell */}
+                        <div className="px-4 py-3 font-mono-code text-[11px] text-[#43474e] font-semibold bg-[#f8fafc] border-r border-b border-[#c4c6cf]">
                           {ts}
-                        </td>
+                        </div>
+
+                        {/* Room cells for this row */}
                         {gridRooms.map((room) => {
-                          const slotItem = scheduleSlots.find(
-                            (s) => s.day === day && s.timeSlot === ts && s.roomId === room.id
+                          const roomSlots = scheduleSlots.filter(
+                            (s) => s.day === day && s.roomId === room.id
                           );
 
-                          return (
-                            <td
-                              key={room.id}
-                              className="px-2 py-2 border-r border-[#c4c6cf] last:border-r-0 min-h-[50px] vertical-top"
-                            >
-                              {slotItem ? (
+                          // Check if a slot starts exactly at this row
+                          const startSlot = roomSlots.find((s) => s.timeSlot === ts);
+
+                          // Check if a slot from an earlier row spans into this one
+                          const spanningSlot = roomSlots.find((s) => {
+                            const startIdx = slotRowLabels.indexOf(s.timeSlot);
+                            return startIdx !== -1 && startIdx < slotRowIdx && slotRowIdx < startIdx + s.sks;
+                          });
+
+                          if (startSlot) {
+                            return (
+                              <div
+                                key={room.id}
+                                className="px-2 py-2 border-r border-b border-[#c4c6cf]"
+                                style={{ gridRow: `span ${startSlot.sks}` }}
+                              >
                                 <div
-                                  className={`p-2 rounded border transition-all text-left relative group ${
-                                    slotItem.hasConflict
+                                  className={`p-2 rounded border transition-all text-left relative group h-full ${
+                                    startSlot.hasConflict
                                       ? 'bg-[#ffdad6] border-[#ba1a1a] text-[#93000a]'
                                       : 'bg-[#eceef0] border-[#c4c6cf] text-[#191c1e] hover:border-[#002045]'
                                   }`}
                                 >
                                   <div className="flex justify-between items-start">
-                                    <span className="font-bold text-[11px]">
-                                      {slotItem.courseCode}
-                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-bold text-[11px]">
+                                        {startSlot.courseCode}
+                                      </span>
+                                      <span className="text-[9px] text-[#505f76] font-semibold bg-[#f2f4f6] px-1 py-0.5 rounded">
+                                        {startSlot.sks} SKS
+                                      </span>
+                                    </div>
                                     <button
-                                      onClick={() => handleRemoveSlotFromGrid(slotItem.id)}
+                                      onClick={() => handleRemoveSlotFromGrid(startSlot.id)}
                                       className="opacity-0 group-hover:opacity-100 text-[#ba1a1a] hover:bg-white rounded px-1 text-[10px] cursor-pointer"
                                       title="Remove block"
                                     >
@@ -208,59 +323,76 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                                     </button>
                                   </div>
                                   <p className="text-[10px] text-[#43474e] truncate mt-0.5">
-                                    {slotItem.courseTitle}
+                                    {startSlot.courseTitle}
                                   </p>
                                   <p className="text-[9px] text-[#74777f] mt-1 font-mono-code">
-                                    {slotItem.lecturerName}
+                                    {startSlot.lecturerName}
                                   </p>
-                                  {slotItem.hasConflict && (
+                                  <p className="text-[9px] text-[#74777f] font-mono-code">
+                                    {startSlot.roomName}
+                                  </p>
+                                  {startSlot.hasConflict && (
                                     <span className="text-[9px] text-[#ba1a1a] font-semibold block mt-1">
-                                      ⚠️ {slotItem.conflictReason}
+                                      ⚠️ {startSlot.conflictReason}
                                     </span>
                                   )}
                                 </div>
-                              ) : (
-                                <div
-                                  onClick={() => {
-                                    if (activeDraftItem) {
-                                      handlePlaceDraftOnGrid(activeDraftItem, day, ts, room.id);
-                                    } else if (draftPool.length > 0) {
-                                      setAssignDay(day);
-                                      setAssignTimeSlot(ts);
-                                      setAssignRoomId(room.id);
-                                      setSelectedExpandedDraft(draftPool[0].id);
-                                    }
-                                  }}
-                                  className={`h-12 rounded border border-dashed flex items-center justify-center transition-all cursor-pointer group/cell ${
-                                    activeDraftItem
-                                      ? 'border-[#002045]/20 hover:border-[#002045] hover:bg-[#002045]/5'
-                                      : 'border-transparent hover:border-[#c4c6cf] hover:bg-[#f2f4f6]'
-                                  }`}
-                                  title={
-                                    activeDraftItem
-                                      ? `Click to place ${activeDraftItem.code} (${activeDraftItem.sks} SKS) here`
-                                      : 'Click to select slot'
+                              </div>
+                            );
+                          }
+
+                          if (spanningSlot) {
+                            // This cell is spanned by a card starting earlier — render nothing
+                            return null;
+                          }
+
+                          // Empty cell
+                          return (
+                            <div
+                              key={room.id}
+                              className="px-2 py-2 border-r border-b border-[#c4c6cf]"
+                            >
+                              <div
+                                onClick={() => {
+                                  if (activeDraftItem) {
+                                    handlePlaceDraftOnGrid(activeDraftItem, day, ts, room.id);
+                                  } else if (draftPool.length > 0) {
+                                    setAssignDay(day);
+                                    setAssignTimeSlot(ts);
+                                    setAssignRoomId(room.id);
+                                    setSelectedExpandedDraft(draftPool[0].id);
                                   }
-                                >
-                                  {activeDraftItem && (
-                                    <span className="text-[10px] text-[#002045] opacity-0 group-hover/cell:opacity-100 font-semibold transition-opacity flex items-center gap-1">
-                                      <span className="material-symbols-outlined text-[14px]">add_circle</span>
-                                      <span>Place {activeDraftItem.code}</span>
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </td>
+                                }}
+                                className={`h-12 rounded border border-dashed flex items-center justify-center transition-all cursor-pointer group/cell ${
+                                  activeDraftItem
+                                    ? 'border-[#002045]/20 hover:border-[#002045] hover:bg-[#002045]/5'
+                                    : 'border-transparent hover:border-[#c4c6cf] hover:bg-[#f2f4f6]'
+                                }`}
+                                title={
+                                  activeDraftItem
+                                    ? `Click to place ${activeDraftItem.code} (${activeDraftItem.sks} SKS) here`
+                                    : 'Click to select slot'
+                                }
+                              >
+                                {activeDraftItem && (
+                                  <span className="text-[10px] text-[#002045] opacity-0 group-hover/cell:opacity-100 font-semibold transition-opacity flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[14px]">add_circle</span>
+                                    <span>Place {activeDraftItem.code}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           );
                         })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Right Side Drawer - Draft Pool */}
@@ -381,7 +513,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                       >
                         {gridRooms.map((r) => (
                           <option key={r.id} value={r.id}>
-                            {r.name} ({r.type})
+                            {r.name}
                           </option>
                         ))}
                       </select>

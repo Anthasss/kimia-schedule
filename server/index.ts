@@ -33,7 +33,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`UniSched Admin server running on http://localhost:${PORT}`);
+    console.log(`Admin server running on http://localhost:${PORT}`);
   });
 }
 

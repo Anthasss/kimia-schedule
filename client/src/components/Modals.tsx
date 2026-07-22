@@ -4,8 +4,8 @@ interface ModalsProps {
   showNewRecordModal: boolean;
   setShowNewRecordModal: (val: boolean) => void;
   initialRecordType?: string;
-  onAddRoom: (data: { name: string; capacity: number; type: string }) => void;
-  onAddLecturer: (data: { initials: string; name: string; email: string; department: string; assignedCredits: number; status: string }) => void;
+  onAddRoom: (data: { name: string }) => void;
+  onAddLecturer: (data: { name: string; assignedCredits: number }) => void;
   onAddBreak: (data: { name: string; startTime: string; endTime: string }) => void;
   showReportModal: boolean;
   setShowReportModal: (val: boolean) => void;
@@ -33,51 +33,28 @@ export const Modals: React.FC<ModalsProps> = ({
   roomsCount,
   lecturersCount,
 }) => {
-  const [recordType, setRecordType] = useState<string>(initialRecordType);
-
-  // Form states
   const [roomName, setRoomName] = useState('');
-  const [roomCapacity, setRoomCapacity] = useState(40);
-  const [roomType, setRoomType] = useState<'LECTURE' | 'LAB' | 'SEMINAR' | 'STUDIO'>('LECTURE');
-
   const [lecturerName, setLecturerName] = useState('');
-  const [lecturerEmail, setLecturerEmail] = useState('');
-  const [lecturerDept, setLecturerDept] = useState('Computer Science');
   const [lecturerCredits, setLecturerCredits] = useState(12);
 
   const [breakName, setBreakName] = useState('');
   const [breakStart, setBreakStart] = useState('10:00');
   const [breakEnd, setBreakEnd] = useState('10:30');
 
-  // Report state
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [reportData, setReportData] = useState<any>(null);
 
   const handleCreateRecord = () => {
-    if (recordType === 'Room') {
+    if (initialRecordType === 'Room') {
       if (!roomName) return;
-      onAddRoom({
-        name: roomName,
-        capacity: roomCapacity,
-        type: roomType,
-      });
-    } else if (recordType === 'Lecturer') {
+      onAddRoom({ name: roomName });
+    } else if (initialRecordType === 'Lecturer') {
       if (!lecturerName) return;
-      const initials = lecturerName
-        .split(' ')
-        .map((n) => n[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase();
       onAddLecturer({
-        initials: initials || 'FL',
         name: lecturerName,
-        email: lecturerEmail || `${lecturerName.toLowerCase().replace(/\s+/g, '.')}@university.edu`,
-        department: lecturerDept,
         assignedCredits: lecturerCredits,
-        status: 'Active',
       });
-    } else if (recordType === 'Break Time') {
+    } else if (initialRecordType === 'Break Time') {
       if (!breakName) return;
       onAddBreak({
         name: breakName,
@@ -115,7 +92,7 @@ export const Modals: React.FC<ModalsProps> = ({
 
   const handleDownloadCsv = () => {
     const csvContent =
-      'data:text/csv;charset=utf-8,Type,Name,Details\nRoom,Auditorium A-101,250 Persons\nLecturer,Prof. James Sterling,12 SKS\n';
+      'data:text/csv;charset=utf-8,Type,Name\nRoom,Auditorium A-101\nLecturer,Prof. James Sterling\n';
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
@@ -134,7 +111,9 @@ export const Modals: React.FC<ModalsProps> = ({
           <div className="bg-white rounded-xl max-w-lg w-full p-6 border border-[#c4c6cf] shadow-xl space-y-4">
             <div className="flex justify-between items-center border-b border-[#c4c6cf] pb-3">
               <h3 className="font-headline-sm text-[18px] text-[#191c1e] font-bold">
-                Create New Academic Record
+                {initialRecordType === 'Room' && 'Add Room'}
+                {initialRecordType === 'Lecturer' && 'Add Lecturer'}
+                {initialRecordType === 'Break Time' && 'Add Break Time'}
               </h3>
               <button
                 onClick={() => setShowNewRecordModal(false)}
@@ -145,30 +124,8 @@ export const Modals: React.FC<ModalsProps> = ({
             </div>
 
             <div className="space-y-4 text-[13px]">
-              <div>
-                <label className="block font-semibold text-[#43474e] mb-1">
-                  Record Type
-                </label>
-                <div className="flex gap-2">
-                  {['Room', 'Lecturer', 'Break Time'].map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setRecordType(type)}
-                      className={`flex-1 py-1.5 px-3 rounded-md font-semibold text-[12px] border transition-all cursor-pointer ${
-                        recordType === type
-                          ? 'bg-[#002045] text-white border-[#002045]'
-                          : 'bg-[#f2f4f6] text-[#43474e] border-[#c4c6cf]'
-                      }`}
-                    >
-                      {type}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Room Form */}
-              {recordType === 'Room' && (
+              {initialRecordType === 'Room' && (
                 <div className="space-y-3">
                   <div>
                     <label className="block font-semibold text-[#43474e] mb-1">
@@ -182,39 +139,11 @@ export const Modals: React.FC<ModalsProps> = ({
                       className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block font-semibold text-[#43474e] mb-1">
-                        Capacity
-                      </label>
-                      <input
-                        type="number"
-                        value={roomCapacity}
-                        onChange={(e) => setRoomCapacity(parseInt(e.target.value) || 0)}
-                        className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold text-[#43474e] mb-1">
-                        Type
-                      </label>
-                      <select
-                        value={roomType}
-                        onChange={(e) => setRoomType(e.target.value as any)}
-                        className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
-                      >
-                        <option value="LECTURE">LECTURE</option>
-                        <option value="LAB">LAB</option>
-                        <option value="SEMINAR">SEMINAR</option>
-                        <option value="STUDIO">STUDIO</option>
-                      </select>
-                    </div>
-                  </div>
                 </div>
               )}
 
               {/* Lecturer Form */}
-              {recordType === 'Lecturer' && (
+              {initialRecordType === 'Lecturer' && (
                 <div className="space-y-3">
                   <div>
                     <label className="block font-semibold text-[#43474e] mb-1">
@@ -228,40 +157,14 @@ export const Modals: React.FC<ModalsProps> = ({
                       className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block font-semibold text-[#43474e] mb-1">
-                        Department
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Computer Science"
-                        value={lecturerDept}
-                        onChange={(e) => setLecturerDept(e.target.value)}
-                        className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-semibold text-[#43474e] mb-1">
-                        SKS Credits
-                      </label>
-                      <input
-                        type="number"
-                        value={lecturerCredits}
-                        onChange={(e) => setLecturerCredits(parseInt(e.target.value) || 0)}
-                        className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
-                      />
-                    </div>
-                  </div>
                   <div>
                     <label className="block font-semibold text-[#43474e] mb-1">
-                      Email (optional)
+                      SKS Credits
                     </label>
                     <input
-                      type="email"
-                      placeholder="Auto-generated if empty"
-                      value={lecturerEmail}
-                      onChange={(e) => setLecturerEmail(e.target.value)}
+                      type="number"
+                      value={lecturerCredits}
+                      onChange={(e) => setLecturerCredits(parseInt(e.target.value) || 0)}
                       className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
                     />
                   </div>
@@ -269,7 +172,7 @@ export const Modals: React.FC<ModalsProps> = ({
               )}
 
               {/* Break Time Form */}
-              {recordType === 'Break Time' && (
+              {initialRecordType === 'Break Time' && (
                 <div className="space-y-3">
                   <div>
                     <label className="block font-semibold text-[#43474e] mb-1">
@@ -322,7 +225,9 @@ export const Modals: React.FC<ModalsProps> = ({
                 onClick={handleCreateRecord}
                 className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold hover:bg-opacity-90 cursor-pointer shadow-xs"
               >
-                Create Record
+                {initialRecordType === 'Room' && 'Add Room'}
+                {initialRecordType === 'Lecturer' && 'Add Lecturer'}
+                {initialRecordType === 'Break Time' && 'Add Break Time'}
               </button>
             </div>
           </div>

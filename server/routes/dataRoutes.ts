@@ -5,32 +5,24 @@ import {
   getBreakTimes,
   getSksSettings,
   getLecturers,
-  getClassCohorts,
-  getSemesters,
   getCourses,
   getScheduleSlots,
   getDraftPool,
   createRoom,
   createBreakTime,
   createLecturer,
-  createClassCohort,
-  createSemester,
   createCourse,
   createScheduleSlot,
   createDraftCourse,
   updateRoom,
   updateBreakTime,
   updateLecturer,
-  updateClassCohort,
-  updateSemester,
   updateCourse,
   updateScheduleSlot,
   updateDraftCourse,
   deleteRoom,
   deleteBreakTime,
   deleteLecturer,
-  deleteClassCohort,
-  deleteSemester,
   deleteCourse,
   deleteScheduleSlot,
   deleteDraftCourse,
@@ -58,16 +50,6 @@ router.get("/api/lecturers", getLecturers);
 router.post("/api/lecturers", createLecturer);
 router.put("/api/lecturers/:id", updateLecturer);
 router.delete("/api/lecturers/:id", deleteLecturer);
-
-router.get("/api/class-cohorts", getClassCohorts);
-router.post("/api/class-cohorts", createClassCohort);
-router.put("/api/class-cohorts/:id", updateClassCohort);
-router.delete("/api/class-cohorts/:id", deleteClassCohort);
-
-router.get("/api/semesters", getSemesters);
-router.post("/api/semesters", createSemester);
-router.put("/api/semesters/:id", updateSemester);
-router.delete("/api/semesters/:id", deleteSemester);
 
 router.get("/api/courses", getCourses);
 router.post("/api/courses", createCourse);

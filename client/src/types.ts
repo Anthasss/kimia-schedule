@@ -1,10 +1,6 @@
-export type RoomType = 'LECTURE' | 'LAB' | 'SEMINAR' | 'STUDIO';
-
 export interface Room {
   id: string;
   name: string;
-  capacity: number;
-  type: RoomType;
 }
 
 export interface BreakTime {
@@ -17,38 +13,15 @@ export interface BreakTime {
 export interface SksSettings {
   durationPerSks: number;
   autoConflictDetection: boolean;
-  allowOverlap: boolean;
   activeDays?: DayOfWeek[];
+  dayStartTime?: string;
+  dayEndTime?: string;
 }
-
-export type LecturerStatus = 'Active' | 'Sabbatical' | 'On Leave';
 
 export interface Lecturer {
   id: string;
-  initials: string;
   name: string;
-  email: string;
-  department: string;
   assignedCredits: number;
-  status: LecturerStatus;
-}
-
-export interface ClassCohort {
-  id: string;
-  code: string;
-  name: string;
-  department: string;
-  studentCount: number;
-  semester: string;
-}
-
-export interface Semester {
-  id: string;
-  name: string;
-  academicYear: string;
-  startDate: string;
-  endDate: string;
-  status: 'Active' | 'Draft' | 'Archived';
 }
 
 export interface Course {
@@ -56,9 +29,6 @@ export interface Course {
   code: string;
   title: string;
   sks: number;
-  department: string;
-  type: RoomType;
-  prerequisites?: string[];
   assignedLecturerName?: string;
 }
 
@@ -80,8 +50,7 @@ export interface ScheduleSlot {
   roomId: string;
   roomName: string;
   day: DayOfWeek;
-  timeSlot: string; // e.g., '07:30 SKS 1'
-  durationSks: number; // 1, 2, 3 SKS blocks
+  timeSlot: string;
   hasConflict?: boolean;
   conflictReason?: string;
 }
@@ -91,12 +60,10 @@ export interface DraftCourseItem {
   code: string;
   title: string;
   sks: number;
-  department: string;
   lecturerName: string;
-  type: RoomType;
   urgencyTag?: string;
 }
 
 export type MainNavTab = 'Management' | 'Courses' | 'Schedule';
 
-export type ManagementSubTab = 'Rooms' | 'Lecturers' | 'SKS Settings' | 'Classes' | 'Semesters';
+export type ManagementSubTab = 'Rooms' | 'Lecturers' | 'SKS Settings';

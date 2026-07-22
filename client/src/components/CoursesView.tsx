@@ -10,7 +10,6 @@ interface CoursesViewProps {
 
 export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses }) => {
   const [search, setSearch] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('All');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
 
@@ -18,43 +17,30 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses })
   const [newCode, setNewCode] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newSks, setNewSks] = useState(3);
-  const [newDepartment, setNewDepartment] = useState('Computer Science');
-  const [newType, setNewType] = useState<'LECTURE' | 'LAB' | 'SEMINAR' | 'STUDIO'>('LECTURE');
   const [newLecturer, setNewLecturer] = useState('');
-  const [newPrereqs, setNewPrereqs] = useState('');
-
-  const departments = ['All', 'Computer Science', 'Theoretical Physics', 'Chemistry', 'Data Science', 'Modern History'];
 
   const filteredCourses = courses.filter((c) => {
     const matchesSearch =
       c.code.toLowerCase().includes(search.toLowerCase()) ||
       c.title.toLowerCase().includes(search.toLowerCase()) ||
       (c.assignedLecturerName && c.assignedLecturerName.toLowerCase().includes(search.toLowerCase()));
-    const matchesDept = departmentFilter === 'All' || c.department === departmentFilter;
-    return matchesSearch && matchesDept;
+    return matchesSearch;
   });
 
   const handleAddCourse = async () => {
     if (!newCode || !newTitle) return;
-    const prereqList = newPrereqs
-      ? newPrereqs.split(',').map((p) => p.trim())
-      : [];
 
     try {
       const created = await apiPost<Course>('/api/courses', {
         code: newCode,
         title: newTitle,
         sks: newSks,
-        department: newDepartment,
-        type: newType,
-        prerequisites: prereqList,
         assignedLecturerName: newLecturer || 'Unassigned',
       });
       setCourses([...courses, created]);
       setShowAddModal(false);
       setNewCode('');
       setNewTitle('');
-      setNewPrereqs('');
       toast.success('Course created');
     } catch (err) {
       console.error(err);
@@ -97,19 +83,6 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses })
               className="w-full bg-[#f2f4f6] border border-[#c4c6cf] rounded-md py-1.5 pl-8 pr-3 text-[12px] text-[#191c1e] focus:ring-1 focus:ring-[#002045] outline-none"
             />
           </div>
-
-          {/* Department Filter */}
-          <select
-            value={departmentFilter}
-            onChange={(e) => setDepartmentFilter(e.target.value)}
-            className="bg-[#f2f4f6] text-[12px] font-semibold text-[#191c1e] px-3 py-1.5 rounded-md border border-[#c4c6cf] focus:ring-1 focus:ring-[#002045] outline-none cursor-pointer"
-          >
-            {departments.map((dept) => (
-              <option key={dept} value={dept}>
-                {dept}
-              </option>
-            ))}
-          </select>
 
           {/* Add Course button to the right of searchbar */}
           <button
@@ -220,33 +193,6 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses })
                   className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
                 />
               </div>
-              <div>
-                <label className="block text-[#43474e] font-semibold mb-1">Department</label>
-                <select
-                  value={newDepartment}
-                  onChange={(e) => setNewDepartment(e.target.value)}
-                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
-                >
-                  <option value="Computer Science">Computer Science</option>
-                  <option value="Theoretical Physics">Theoretical Physics</option>
-                  <option value="Chemistry">Chemistry</option>
-                  <option value="Data Science">Data Science</option>
-                  <option value="Modern History">Modern History</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[#43474e] font-semibold mb-1">Room Format</label>
-                <select
-                  value={newType}
-                  onChange={(e) => setNewType(e.target.value as any)}
-                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
-                >
-                  <option value="LECTURE">LECTURE</option>
-                  <option value="LAB">LAB</option>
-                  <option value="SEMINAR">SEMINAR</option>
-                  <option value="STUDIO">STUDIO</option>
-                </select>
-              </div>
               <div className="col-span-2">
                 <label className="block text-[#43474e] font-semibold mb-1">Assigned Instructor</label>
                 <input
@@ -255,18 +201,6 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses })
                   value={newLecturer}
                   onChange={(e) => setNewLecturer(e.target.value)}
                   className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-[#43474e] font-semibold mb-1">
-                  Prerequisites (comma separated)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. CS-101, MAT-101"
-                  value={newPrereqs}
-                  onChange={(e) => setNewPrereqs(e.target.value)}
-                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none font-mono-code"
                 />
               </div>
             </div>
