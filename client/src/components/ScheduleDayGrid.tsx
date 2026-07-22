@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Room, ScheduleSlot, Lecturer, DayOfWeek, Course } from '../types';
 import { GridRow } from '../hooks/useScheduleTimeSlots';
 import { SlottedCourseCard } from './SlottedCourseCard';
@@ -55,6 +56,55 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
     const endIdx = Math.min(startIdx + sks, slotRowLabels.length);
     return Array.from({ length: endIdx - startIdx }, (_, i) => startIdx + i);
   }, [hoveredCell, activeDraftItem, slotRowLabels.length]);
+
+  const getPlacementError = useCallback((slotRowIdx: number): string | null => {
+    if (!activeDraftItem) return null;
+
+    const sks = activeDraftItem.sks;
+    const startIdx = slotRowIdx;
+
+    if (startIdx + sks > slotRowLabels.length) {
+      return `Not enough time slots remaining for ${activeDraftItem.code} (${sks} SKS)`;
+    }
+
+    const firstGridPos = gridRows.findIndex(
+      (r) => r.type === 'slot' && r.label === slotRowLabels[startIdx]
+    );
+    const lastGridPos = gridRows.findIndex(
+      (r) => r.type === 'slot' && r.label === slotRowLabels[startIdx + sks - 1]
+    );
+
+    for (let i = firstGridPos + 1; i < lastGridPos; i++) {
+      if (gridRows[i].type === 'break') {
+        const brk = gridRows[i];
+        if (brk.type === 'break') {
+          return `Cannot place here: "${brk.name}" (${brk.startTime} – ${brk.endTime}) falls between these time slots`;
+        }
+      }
+    }
+
+    if (activeDraftItem.assignedLecturerName) {
+      const ourStart = startIdx;
+      const ourEnd = startIdx + sks;
+      const conflictingSlot = scheduleSlots.find((s) => {
+        if (s.day !== day || s.lecturerName !== activeDraftItem.assignedLecturerName) return false;
+        const theirStart = slotRowLabels.indexOf(s.timeSlot);
+        if (theirStart === -1) return false;
+        const theirEnd = theirStart + s.sks;
+        return ourStart < theirEnd && theirStart < ourEnd;
+      });
+      if (conflictingSlot) {
+        return `${activeDraftItem.assignedLecturerName} is already scheduled in ${conflictingSlot.roomName} at this time`;
+      }
+    }
+
+    return null;
+  }, [activeDraftItem, scheduleSlots, gridRows, slotRowLabels, day]);
+
+  const hoverValidationError = useMemo(() => {
+    if (!hoveredCell || !activeDraftItem) return null;
+    return getPlacementError(hoveredCell.slotRowIdx);
+  }, [hoveredCell, activeDraftItem, getPlacementError]);
 
   useEffect(() => {
     return () => {
@@ -173,6 +223,8 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
 
                     const isFirstInSpan = isInHoverSpan && slotRowIdx === hoveredCell?.slotRowIdx;
 
+                    const hasValidationError = isInHoverSpan && hoverValidationError !== null;
+
                     return (
                       <div
                         key={room.id}
@@ -182,6 +234,11 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                           activeDraftItem={activeDraftItem}
                           onPlace={() => {
                             if (activeDraftItem) {
+                              const error = getPlacementError(slotRowIdx);
+                              if (error) {
+                                toast.error(error);
+                                return;
+                              }
                               onPlaceDraft(activeDraftItem, day, ts, room.id);
                             } else if (unscheduledCourses.length > 0) {
                               onSelectEmpty(day, ts, room.id);
@@ -191,6 +248,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                           onMouseLeave={handleCellLeave}
                           isInHoverSpan={isInHoverSpan}
                           isFirstInSpan={isFirstInSpan}
+                          hasError={hasValidationError}
                         />
                       </div>
                     );
