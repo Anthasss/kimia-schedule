@@ -1,25 +1,24 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { apiPut } from '../api';
-import { Lecturer, Course } from '../types';
+import { Lecturer } from '../types';
+import { LECTURER_COLORS } from '../constants';
 
 interface EditLecturerModalProps {
   lecturer: Lecturer;
-  courses: Course[];
   onClose: () => void;
   onSave: (updated: Lecturer) => void;
 }
 
-export const EditLecturerModal: React.FC<EditLecturerModalProps> = ({ lecturer, courses, onClose, onSave }) => {
+export const EditLecturerModal: React.FC<EditLecturerModalProps> = ({ lecturer, onClose, onSave }) => {
   const [name, setName] = useState(lecturer.name);
-  const assignedCredits = courses
-    .filter((c) => c.assignedLecturerName === lecturer.name)
-    .reduce((sum, c) => sum + c.sks, 0);
+  const [color, setColor] = useState(lecturer.color || LECTURER_COLORS[1]);
 
   const handleSave = async () => {
     try {
       const updated = await apiPut<Lecturer>(`/api/lecturers/${lecturer.id}`, {
         name,
+        color,
       });
       onSave(updated);
       toast.success('Lecturer updated');
@@ -44,9 +43,21 @@ export const EditLecturerModal: React.FC<EditLecturerModalProps> = ({ lecturer, 
             />
           </div>
           <div>
-            <label className="block text-[#43474e] font-semibold mb-1">Assigned SKS Credits</label>
-            <div className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] text-[#191c1e] font-semibold">
-              {assignedCredits} SKS
+            <label className="block text-[#43474e] font-semibold mb-1">Color</label>
+            <div className="flex flex-wrap gap-1.5">
+              {LECTURER_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  className={`w-6 h-6 rounded-full cursor-pointer transition-all ${
+                    color === c
+                      ? 'ring-2 ring-offset-2 ring-[#002045]'
+                      : 'hover:scale-110'
+                  }`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
             </div>
           </div>
         </div>

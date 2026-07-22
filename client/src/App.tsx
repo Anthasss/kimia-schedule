@@ -80,6 +80,7 @@ export default function App() {
               setScheduleSlots={setScheduleSlots}
               courses={courses}
               setCourses={setCourses}
+              lecturers={lecturers}
               sksSettings={sksSettings}
               breakTimes={breakTimes}
               onNavigateToCourses={() => setActiveTab('Courses')}

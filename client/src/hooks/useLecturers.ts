@@ -6,7 +6,7 @@ import { Lecturer } from '../types';
 export function useLecturers() {
   const [lecturers, setLecturers] = useState<Lecturer[]>([]);
 
-  const addLecturer = async (data: { name: string }) => {
+  const addLecturer = async (data: { name: string; color: string }) => {
     try {
       const created = await apiPost<Lecturer>('/api/lecturers', { ...data, assignedCredits: 0 });
       setLecturers((prev) => [...prev, created]);

@@ -14,6 +14,7 @@ import {
 import { EditRoomModal } from './EditRoomModal';
 import { EditLecturerModal } from './EditLecturerModal';
 import { EditBreakModal } from './EditBreakModal';
+import { LECTURER_COLORS } from '../constants';
 
 const ALL_WEEKDAYS: DayOfWeek[] = [
   'Monday',
@@ -67,11 +68,20 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
   const [editingLecturer, setEditingLecturer] = useState<Lecturer | null>(null);
   const [editingBreak, setEditingBreak] = useState<BreakTime | null>(null);
   const [deleteLecturerTarget, setDeleteLecturerTarget] = useState<Lecturer | null>(null);
+  const [colorPickerLecturerId, setColorPickerLecturerId] = useState<string | null>(null);
   const [saveSettingsSuccess, setSaveSettingsSuccess] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const filteredLecturers = lecturers.filter((lect) =>
     lect.name.toLowerCase().includes(lecturerSearch.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredLecturers.length / ITEMS_PER_PAGE);
+  const safeCurrentPage = Math.min(currentPage, totalPages || 1);
+  const paginatedLecturers = filteredLecturers.slice(
+    (safeCurrentPage - 1) * ITEMS_PER_PAGE,
+    safeCurrentPage * ITEMS_PER_PAGE
   );
 
   const handleSaveSksSettings = async () => {
@@ -99,7 +109,28 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
   };
 
   const handleDeleteLecturer = async (lecturer: Lecturer) => {
-    setDeleteLecturerTarget(lecturer);
+    const isReferenced =
+      courses.some((c) => c.assignedLecturerName === lecturer.name) ||
+      scheduleSlots.some((s) => s.lecturerName === lecturer.name);
+
+    if (!isReferenced) {
+      try {
+        await apiDelete(`/api/lecturers/${lecturer.id}`);
+        setLecturers(lecturers.filter((l) => l.id !== lecturer.id));
+        setCourses(courses.map((c) =>
+          c.assignedLecturerName === lecturer.name
+            ? { ...c, assignedLecturerName: undefined }
+            : c
+        ));
+        setScheduleSlots(scheduleSlots.filter((s) => s.lecturerName !== lecturer.name));
+        toast.success('Lecturer deleted');
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to delete lecturer');
+      }
+    } else {
+      setDeleteLecturerTarget(lecturer);
+    }
   };
 
   const confirmDeleteLecturer = async () => {
@@ -118,6 +149,17 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
     } catch (err) {
       console.error(err);
       toast.error('Failed to delete lecturer');
+    }
+  };
+
+  const handleUpdateLecturerColor = async (lecturer: Lecturer, color: string) => {
+    try {
+      const updated = await apiPut<Lecturer>(`/api/lecturers/${lecturer.id}`, { color });
+      setLecturers(lecturers.map((l) => (l.id === lecturer.id ? updated : l)));
+      setColorPickerLecturerId(null);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update color');
     }
   };
 
@@ -469,6 +511,9 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                     Faculty Member
                   </th>
                   <th className="px-6 py-3 font-semibold text-[12px] text-[#43474e] uppercase tracking-wider">
+                    Color
+                  </th>
+                  <th className="px-6 py-3 font-semibold text-[12px] text-[#43474e] uppercase tracking-wider">
                     Assigned Credits
                   </th>
                   <th className="px-6 py-3 font-semibold text-[12px] text-[#43474e] uppercase tracking-wider text-right">
@@ -477,7 +522,7 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#c4c6cf] text-[13px]">
-                {filteredLecturers.map((lect, idx) => {
+                {paginatedLecturers.map((lect, idx) => {
                   const isEven = idx % 2 === 1;
                   const assignedCredits = courses
                     .filter((c) => c.assignedLecturerName === lect.name)
@@ -490,6 +535,34 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                     >
                       <td className="px-6 py-4 font-semibold text-[#191c1e]">
                         {lect.name}
+                      </td>
+                      <td className="px-6 py-4 relative">
+                        <div className="relative inline-block">
+                          <button
+                            onClick={() => setColorPickerLecturerId(colorPickerLecturerId === lect.id ? null : lect.id)}
+                            className="w-6 h-6 rounded-full cursor-pointer hover:scale-110 transition-transform border border-[#c4c6cf]"
+                            style={{ backgroundColor: lect.color || '#6366f1' }}
+                            title="Change color"
+                          />
+                          {colorPickerLecturerId === lect.id && (
+                            <div className="absolute top-8 left-0 z-40 bg-white border border-[#c4c6cf] rounded-lg p-2.5 shadow-lg w-[180px]">
+                              <div className="flex flex-wrap gap-1.5">
+                                {LECTURER_COLORS.map((c) => (
+                                  <button
+                                    key={c}
+                                    onClick={() => handleUpdateLecturerColor(lect, c)}
+                                    className={`w-5 h-5 rounded-full cursor-pointer transition-all ${
+                                      (lect.color || '#6366f1') === c
+                                        ? 'ring-2 ring-offset-1 ring-[#002045]'
+                                        : 'hover:scale-110'
+                                    }`}
+                                    style={{ backgroundColor: c }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 font-semibold text-[#191c1e]">
                         {assignedCredits} SKS
@@ -517,40 +590,38 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
             </table>
           </div>
 
-          <div className="px-6 py-3 border-t border-[#c4c6cf] bg-[#f2f4f6] flex justify-between items-center text-[12px]">
-            <span className="text-[#43474e] font-medium">
-              Showing {filteredLecturers.length} Lecturers
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="p-1 hover:bg-[#e0e3e5] rounded disabled:opacity-30 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[18px]">chevron_left</span>
-              </button>
-              <button
-                onClick={() => setCurrentPage(1)}
-                className={`w-7 h-7 rounded font-bold text-[12px] ${currentPage === 1 ? 'bg-[#002045] text-white' : 'hover:bg-[#e0e3e5] text-[#191c1e]'
-                  }`}
-              >
-                1
-              </button>
-              <button
-                onClick={() => setCurrentPage(2)}
-                className={`w-7 h-7 rounded font-bold text-[12px] ${currentPage === 2 ? 'bg-[#002045] text-white' : 'hover:bg-[#e0e3e5] text-[#191c1e]'
-                  }`}
-              >
-                2
-              </button>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(2, p + 1))}
-                className="p-1 hover:bg-[#e0e3e5] rounded cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[18px]">chevron_right</span>
-              </button>
+          {filteredLecturers.length > ITEMS_PER_PAGE && (
+            <div className="px-6 py-3 border-t border-[#c4c6cf] bg-[#f2f4f6] flex justify-between items-center text-[12px]">
+              <span className="text-[#43474e] font-medium">
+                Showing {(safeCurrentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(safeCurrentPage * ITEMS_PER_PAGE, filteredLecturers.length)} of {filteredLecturers.length} Lecturers
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  disabled={safeCurrentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="p-1 hover:bg-[#e0e3e5] rounded disabled:opacity-30 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-7 h-7 rounded font-bold text-[12px] ${safeCurrentPage === page ? 'bg-[#002045] text-white' : 'hover:bg-[#e0e3e5] text-[#191c1e]'}`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  disabled={safeCurrentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="p-1 hover:bg-[#e0e3e5] rounded disabled:opacity-30 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -570,7 +641,6 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
       {editingLecturer && (
         <EditLecturerModal
           lecturer={editingLecturer}
-          courses={courses}
           onClose={() => setEditingLecturer(null)}
           onSave={(updated) => {
             setLecturers(lecturers.map((l) => (l.id === updated.id ? updated : l)));

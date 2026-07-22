@@ -8,6 +8,7 @@ import {
   SksSettings,
   DayOfWeek,
   BreakTime,
+  Lecturer,
 } from '../types';
 
 interface ScheduleViewProps {
@@ -16,6 +17,7 @@ interface ScheduleViewProps {
   setScheduleSlots: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
   courses: Course[];
   setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
+  lecturers: Lecturer[];
   sksSettings: SksSettings;
   breakTimes: BreakTime[];
   onNavigateToCourses: () => void;
@@ -27,6 +29,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   setScheduleSlots,
   courses,
   setCourses,
+  lecturers,
   sksSettings,
   breakTimes,
   onNavigateToCourses,
@@ -38,6 +41,11 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   const [assignDay, setAssignDay] = useState<DayOfWeek>('Monday');
   const [assignTimeSlot, setAssignTimeSlot] = useState('');
   const [assignRoomId, setAssignRoomId] = useState('r5'); // Lab 101
+
+  const getLecturerColor = (lecturerName: string): string => {
+    const lecturer = lecturers.find((l) => l.name === lecturerName);
+    return lecturer?.color || '#6366f1';
+  };
 
   const days: DayOfWeek[] =
     sksSettings.activeDays && sksSettings.activeDays.length > 0
@@ -123,7 +131,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   }, [timeSlots]);
 
   // Schedule rooms to display on grid columns
-  const gridRooms = rooms.slice(0, 4);
+  const gridRooms = rooms;
 
   const slotRowLabels = gridRows.filter((r) => r.type === 'slot').map((r) => r.label);
 
@@ -210,9 +218,9 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   };
 
   return (
-    <div className="flex gap-6 relative min-h-[calc(100vh-120px)]">
+    <div className="flex gap-6 relative h-[calc(100vh-120px)]">
       {/* Left / Main Workspace - Schedule Builder */}
-      <div className="flex-1 space-y-6 overflow-x-auto">
+      <div className="flex-1 space-y-6 overflow-y-auto overflow-x-auto custom-scrollbar pr-1">
         {/* Schedule Timetable Days */}
         {days.map((day) => {
           return (
@@ -287,6 +295,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                           });
 
                           if (startSlot) {
+                            const lecturerColor = getLecturerColor(startSlot.lecturerName);
                             return (
                               <div
                                 key={room.id}
@@ -297,8 +306,17 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                                   className={`p-2 rounded border transition-all text-left relative group h-full ${
                                     startSlot.hasConflict
                                       ? 'bg-[#ffdad6] border-[#ba1a1a] text-[#93000a]'
-                                      : 'bg-[#eceef0] border-[#c4c6cf] text-[#191c1e] hover:border-[#002045]'
+                                      : 'text-[#191c1e] hover:border-[#002045]'
                                   }`}
+                                  style={
+                                    startSlot.hasConflict
+                                      ? undefined
+                                      : {
+                                          borderLeftWidth: '3px',
+                                          borderLeftColor: lecturerColor,
+                                          backgroundColor: `${lecturerColor}0D`,
+                                        }
+                                  }
                                 >
                                   <div className="flex justify-between items-start">
                                     <div className="flex items-center gap-1.5">

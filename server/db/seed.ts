@@ -62,12 +62,12 @@ async function seed() {
   console.log('✓ SKS settings seeded');
 
   await db.insert(lecturers).values([
-    { id: 'l1', name: 'Prof. James Sterling', assignedCredits: 12 },
-    { id: 'l2', name: 'Dr. Alicia Wang', assignedCredits: 18 },
-    { id: 'l3', name: 'Robert Klein, M.A.', assignedCredits: 6 },
-    { id: 'l4', name: 'Dr. Sarah Jenkins', assignedCredits: 14 },
-    { id: 'l5', name: 'Prof. Marcus Vance', assignedCredits: 16 },
-    { id: 'l6', name: 'Dr. Helene Patel', assignedCredits: 10 },
+    { id: 'l1', name: 'Prof. James Sterling', assignedCredits: 12, color: '#6366f1' },
+    { id: 'l2', name: 'Dr. Alicia Wang', assignedCredits: 18, color: '#f43f5e' },
+    { id: 'l3', name: 'Robert Klein, M.A.', assignedCredits: 6, color: '#10b981' },
+    { id: 'l4', name: 'Dr. Sarah Jenkins', assignedCredits: 14, color: '#f59e0b' },
+    { id: 'l5', name: 'Prof. Marcus Vance', assignedCredits: 16, color: '#06b6d4' },
+    { id: 'l6', name: 'Dr. Helene Patel', assignedCredits: 10, color: '#8b5cf6' },
   ]);
   console.log('✓ Lecturers seeded');
 

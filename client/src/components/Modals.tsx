@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { LECTURER_COLORS } from '../constants';
 
 interface ModalsProps {
   showNewRecordModal: boolean;
   setShowNewRecordModal: (val: boolean) => void;
   initialRecordType?: string;
   onAddRoom: (data: { name: string }) => void;
-  onAddLecturer: (data: { name: string }) => void;
+  onAddLecturer: (data: { name: string; color: string }) => void;
   onAddBreak: (data: { name: string; startTime: string; endTime: string }) => void;
   showReportModal: boolean;
   setShowReportModal: (val: boolean) => void;
@@ -51,6 +52,7 @@ export const Modals: React.FC<ModalsProps> = ({
       if (!lecturerName) return;
       onAddLecturer({
         name: lecturerName,
+        color: LECTURER_COLORS[Math.floor(Math.random() * LECTURER_COLORS.length)],
       });
     } else if (initialRecordType === 'Break Time') {
       if (!breakName) return;

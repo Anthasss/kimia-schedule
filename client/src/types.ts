@@ -22,6 +22,7 @@ export interface Lecturer {
   id: string;
   name: string;
   assignedCredits: number;
+  color: string;
 }
 
 export interface Course {

@@ -1,0 +1,1 @@
+ALTER TABLE "lecturers" ADD COLUMN "color" text DEFAULT '#6366f1' NOT NULL;
