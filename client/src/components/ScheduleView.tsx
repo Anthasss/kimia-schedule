@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
   Room,
   Course,
@@ -7,7 +8,9 @@ import {
   DayOfWeek,
   BreakTime,
   Lecturer,
+  SemesterPeriod,
 } from '../types';
+import { apiPost } from '../api';
 import { useScheduleTimeSlots } from '../hooks/useScheduleTimeSlots';
 import { useScheduleSlots } from '../hooks/useScheduleSlots';
 import { useUnscheduledCourses } from '../hooks/useUnscheduledCourses';
@@ -22,7 +25,10 @@ interface ScheduleViewProps {
   setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
   lecturers: Lecturer[];
   sksSettings: SksSettings;
+  setSksSettings: React.Dispatch<React.SetStateAction<SksSettings>>;
   breakTimes: BreakTime[];
+  semesterPeriods: SemesterPeriod[];
+  setSemesterPeriods: React.Dispatch<React.SetStateAction<SemesterPeriod[]>>;
   onNavigateToCourses: () => void;
   pendingAdds: ScheduleSlot[];
   setPendingAdds: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
@@ -34,8 +40,7 @@ function getDefaultYearOptions() {
   const current = new Date().getFullYear();
   const years: string[] = [];
   for (let i = -1; i <= 3; i++) {
-    const y = current + i;
-    years.push(`${y}/${y + 1}`);
+    years.push(String(current + i));
   }
   return years;
 }
@@ -48,7 +53,10 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   setCourses,
   lecturers,
   sksSettings,
+  setSksSettings,
   breakTimes,
+  semesterPeriods,
+  setSemesterPeriods,
   onNavigateToCourses,
   pendingAdds,
   setPendingAdds,
@@ -60,39 +68,54 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   const [assignTimeSlot, setAssignTimeSlot] = useState('');
   const [assignRoomId, setAssignRoomId] = useState('r5');
 
-  const [currentPeriod, setCurrentPeriod] = useState<{ year: string; semester: 1 | 2 } | null>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('scheduleCurrentPeriod') || 'null');
-    } catch { return null; }
-  });
-  const [savedPeriods, setSavedPeriods] = useState<{ year: string; semester: 1 | 2 }[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('scheduleSavedPeriods') || '[]');
-    } catch { return []; }
-  });
-
   const [showAddPeriodModal, setShowAddPeriodModal] = useState(false);
   const [newPeriodYear, setNewPeriodYear] = useState('');
   const [newPeriodSemester, setNewPeriodSemester] = useState<1 | 2>(1);
 
-  useEffect(() => {
-    localStorage.setItem('scheduleCurrentPeriod', JSON.stringify(currentPeriod));
-  }, [currentPeriod]);
-
-  useEffect(() => {
-    localStorage.setItem('scheduleSavedPeriods', JSON.stringify(savedPeriods));
-  }, [savedPeriods]);
-
   const yearOptions = getDefaultYearOptions();
 
-  const handleAddPeriod = () => {
-    if (!newPeriodYear) return;
-    const period = { year: newPeriodYear, semester: newPeriodSemester };
-    const exists = savedPeriods.some((p) => p.year === period.year && p.semester === period.semester);
-    if (!exists) {
-      setSavedPeriods((prev) => [...prev, period]);
+  const currentPeriod: { year: string; semester: 1 | 2 } | null = React.useMemo(() => {
+    if (!sksSettings.currentPeriodId) return null;
+    const found = semesterPeriods.find((p) => p.id === sksSettings.currentPeriodId);
+    return found ? { year: found.year, semester: found.semester as 1 | 2 } : null;
+  }, [semesterPeriods, sksSettings.currentPeriodId]);
+
+  const handlePeriodChange = async (period: { year: string; semester: 1 | 2 } | null) => {
+    if (!period) {
+      setSksSettings({ ...sksSettings, currentPeriodId: null });
+      await apiPost('/api/sks-settings', { ...sksSettings, currentPeriodId: null });
+    } else {
+      const match = semesterPeriods.find((p) => p.year === period.year && p.semester === period.semester);
+      if (match) {
+        setSksSettings({ ...sksSettings, currentPeriodId: match.id });
+        await apiPost('/api/sks-settings', { ...sksSettings, currentPeriodId: match.id });
+      }
     }
-    setCurrentPeriod(period);
+  };
+
+  const handleAddPeriod = async () => {
+    if (!newPeriodYear) return;
+    const exists = semesterPeriods.some((p) => p.year === newPeriodYear && p.semester === newPeriodSemester);
+    if (!exists) {
+      try {
+        const created = await apiPost<SemesterPeriod>('/api/semester-periods', {
+          year: newPeriodYear,
+          semester: newPeriodSemester,
+        });
+        setSemesterPeriods((prev) => [...prev, created]);
+        setSksSettings({ ...sksSettings, currentPeriodId: created.id });
+        await apiPost('/api/sks-settings', { ...sksSettings, currentPeriodId: created.id });
+        toast.success('Period added');
+      } catch {
+        toast.error('Failed to add period');
+      }
+    } else {
+      const match = semesterPeriods.find((p) => p.year === newPeriodYear && p.semester === newPeriodSemester);
+      if (match) {
+        setSksSettings({ ...sksSettings, currentPeriodId: match.id });
+        await apiPost('/api/sks-settings', { ...sksSettings, currentPeriodId: match.id });
+      }
+    }
     setShowAddPeriodModal(false);
     setNewPeriodYear('');
     setNewPeriodSemester(1);
@@ -142,31 +165,43 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
   return (
     <div className="relative h-[calc(100vh-120px)]">
-      {/* Left / Main Workspace - Schedule Builder */}
-      <div
-        className={`space-y-6 overflow-y-auto overflow-x-auto custom-scrollbar pr-1 transition-all duration-300 ${
-          isSidebarOpen ? 'mr-80' : ''
-        }`}
-      >
-        {days.map((day) => (
-          <ScheduleDayGrid
-            key={day}
-            day={day}
-            gridRooms={rooms}
-            gridRows={gridRows}
-            slotRowLabels={slotRowLabels}
-            scheduleSlots={scheduleSlots}
-            lecturers={lecturers}
-            activeDraftItem={activeDraftItem}
-            unscheduledCourses={unscheduledCourses}
-            onPlaceDraft={(course, day, timeSlot, roomId) =>
-              placeDraftOnGrid(course, unscheduledCourses, day, timeSlot, roomId)
-            }
-            onRemoveSlot={removeSlotFromGrid}
-            onSelectEmpty={handleSelectEmpty}
-          />
-        ))}
-      </div>
+      {/* Left / Main Workspace */}
+      {currentPeriod ? (
+        <div
+          className={`space-y-6 overflow-y-auto overflow-x-auto custom-scrollbar pr-1 transition-all duration-300 ${
+            isSidebarOpen ? 'mr-80' : ''
+          }`}
+        >
+          {days.map((day) => (
+            <ScheduleDayGrid
+              key={day}
+              day={day}
+              gridRooms={rooms}
+              gridRows={gridRows}
+              slotRowLabels={slotRowLabels}
+              scheduleSlots={scheduleSlots}
+              lecturers={lecturers}
+              activeDraftItem={activeDraftItem}
+              unscheduledCourses={unscheduledCourses}
+              onPlaceDraft={(course, day, timeSlot, roomId) =>
+                placeDraftOnGrid(course, unscheduledCourses, day, timeSlot, roomId)
+              }
+              onRemoveSlot={removeSlotFromGrid}
+              onSelectEmpty={handleSelectEmpty}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className={`flex items-center justify-center h-full transition-all duration-300 ${isSidebarOpen ? 'mr-80' : ''}`}>
+          <div className="text-center max-w-md">
+            <span className="material-symbols-outlined text-[48px] text-[#c4c6cf] mb-4">calendar_month</span>
+            <h2 className="font-headline-sm text-[18px] text-[#191c1e] mb-2">No Semester Period Selected</h2>
+            <p className="text-[13px] text-[#74777f]">
+              Use the settings icon in the sidebar to add or select a semester period.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Toggle Button */}
       <button
@@ -197,12 +232,12 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
           isSaving={isSaving}
           selectedCourseId={selectedExpandedDraft}
           currentPeriod={currentPeriod}
-          savedPeriods={savedPeriods}
+          savedPeriods={semesterPeriods.map((p) => ({ year: p.year, semester: p.semester as 1 | 2 }))}
           onSearchChange={setDraftSearch}
           onSelectCourse={setSelectedExpandedDraft}
           onNavigateToCourses={onNavigateToCourses}
           onSave={saveChanges}
-          onPeriodChange={setCurrentPeriod}
+          onPeriodChange={(p) => handlePeriodChange(p)}
           onOpenAddPeriod={() => {
             setNewPeriodYear(yearOptions[0] || '');
             setNewPeriodSemester(1);
@@ -218,7 +253,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
             <h3 className="font-headline-sm text-[18px] text-[#191c1e]">Add Semester Period</h3>
             <div className="space-y-3 text-[13px]">
               <div>
-                <label className="block text-[#43474e] font-semibold mb-1">Academic Year</label>
+                <label className="block text-[#43474e] font-semibold mb-1">Year</label>
                 <select
                   value={newPeriodYear}
                   onChange={(e) => setNewPeriodYear(e.target.value)}

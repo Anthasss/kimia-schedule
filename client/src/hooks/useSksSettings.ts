@@ -7,6 +7,7 @@ export function useSksSettings() {
     autoConflictDetection: true,
     dayStartTime: '07:30',
     dayEndTime: '17:00',
+    currentPeriodId: null,
   });
 
   return { sksSettings, setSksSettings };

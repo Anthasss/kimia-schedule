@@ -71,61 +71,56 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0 mt-4">
-        <div className="relative flex-1">
-          <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[17px] text-[#43474e]">
-            search
-          </span>
-          <input
-            type="text"
-            value={draftSearch}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search class or lecturer..."
-            className="w-full bg-[#f2f4f6] border border-[#c4c6cf] rounded-md py-1.5 pl-8 pr-3 text-[13px] text-[#191c1e] focus:ring-1 focus:ring-[#002045] outline-none"
-          />
-        </div>
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setShowPeriodMenu((v) => !v)}
-            className="flex items-center gap-1 bg-[#f2f4f6] border border-[#c4c6cf] rounded-md px-2 py-1.5 text-[13px] text-[#43474e] hover:bg-[#e8eaec] cursor-pointer shrink-0"
-            title="Select semester period"
-          >
-            <span className="material-symbols-outlined text-[17px]">settings</span>
-          </button>
-          {showPeriodMenu && (
-            <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-[#c4c6cf] rounded-lg shadow-lg z-50 py-1 text-[13px]">
-              <button
-                onClick={() => { onPeriodChange(null); setShowPeriodMenu(false); }}
-                className={`w-full text-left px-3 py-2 hover:bg-[#f2f4f6] flex items-center gap-2 ${!currentPeriod ? 'font-semibold text-[#002045]' : 'text-[#43474e]'}`}
-              >
-                <span className="material-symbols-outlined text-[16px]">check</span>
-                <span>All Semesters</span>
-              </button>
-              {savedPeriods.length > 0 && <div className="border-t border-[#c4c6cf] my-1" />}
-              {savedPeriods.map((p, i) => {
-                const isActive = currentPeriod?.year === p.year && currentPeriod?.semester === p.semester;
-                return (
-                  <button
-                    key={i}
-                    onClick={() => { onPeriodChange(p); setShowPeriodMenu(false); }}
-                    className={`w-full text-left px-3 py-2 hover:bg-[#f2f4f6] flex items-center gap-2 ${isActive ? 'font-semibold text-[#002045]' : 'text-[#43474e]'}`}
-                  >
-                    <span className="material-symbols-outlined text-[16px]">{isActive ? 'check' : ''}</span>
-                    <span>{formatPeriodLabel(p)}</span>
-                  </button>
-                );
-              })}
-              <div className="border-t border-[#c4c6cf] my-1" />
-              <button
-                onClick={() => { onOpenAddPeriod(); setShowPeriodMenu(false); }}
-                className="w-full text-left px-3 py-2 text-[#002045] font-semibold hover:bg-[#f2f4f6] flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-[16px]">add</span>
-                <span>Add new period...</span>
-              </button>
-            </div>
-          )}
-        </div>
+      <div className="relative shrink-0 mt-4 mb-2" ref={menuRef}>
+        <button
+          onClick={() => setShowPeriodMenu((v) => !v)}
+          className="w-full flex items-center gap-2 bg-[#f2f4f6] border border-[#c4c6cf] rounded-md py-1.5 px-3 text-[13px] text-[#43474e] hover:bg-[#e8eaec] cursor-pointer text-left"
+        >
+          <span className="material-symbols-outlined text-[17px]">schedule</span>
+          <span className="flex-1">{currentPeriod ? formatPeriodLabel(currentPeriod) : 'Select semester period...'}</span>
+          <span className="material-symbols-outlined text-[17px]">arrow_drop_down</span>
+        </button>
+        {showPeriodMenu && (
+          <div className="absolute left-0 top-full mt-1 w-full bg-white border border-[#c4c6cf] rounded-lg shadow-lg z-50 py-1 text-[13px]">
+            {savedPeriods.length === 0 && (
+              <div className="px-3 py-2 text-[#74777f] italic">No periods yet</div>
+            )}
+            {savedPeriods.map((p, i) => {
+              const isActive = currentPeriod?.year === p.year && currentPeriod?.semester === p.semester;
+              return (
+                <button
+                  key={i}
+                  onClick={() => { onPeriodChange(p); setShowPeriodMenu(false); }}
+                  className={`w-full text-left px-3 py-2 hover:bg-[#f2f4f6] flex items-center gap-2 ${isActive ? 'font-semibold text-[#002045]' : 'text-[#43474e]'}`}
+                >
+                  <span className="material-symbols-outlined text-[16px] w-4">{isActive ? 'check' : ''}</span>
+                  <span>{formatPeriodLabel(p)}</span>
+                </button>
+              );
+            })}
+            <div className="border-t border-[#c4c6cf] my-1" />
+            <button
+              onClick={() => { onOpenAddPeriod(); setShowPeriodMenu(false); }}
+              className="w-full text-left px-3 py-2 text-[#002045] font-semibold hover:bg-[#f2f4f6] flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[16px]">add</span>
+              <span>Add new period...</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="relative shrink-0">
+        <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[17px] text-[#43474e]">
+          search
+        </span>
+        <input
+          type="text"
+          value={draftSearch}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Search class or lecturer..."
+          className="w-full bg-[#f2f4f6] border border-[#c4c6cf] rounded-md py-1.5 pl-8 pr-3 text-[13px] text-[#191c1e] focus:ring-1 focus:ring-[#002045] outline-none"
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-3 custom-scrollbar pr-1 mt-4">

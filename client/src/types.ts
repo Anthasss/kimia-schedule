@@ -10,12 +10,19 @@ export interface BreakTime {
   endTime: string;
 }
 
+export interface SemesterPeriod {
+  id: string;
+  year: string;
+  semester: number;
+}
+
 export interface SksSettings {
   durationPerSks: number;
   autoConflictDetection: boolean;
   activeDays?: DayOfWeek[];
   dayStartTime?: string;
   dayEndTime?: string;
+  currentPeriodId?: string | null;
 }
 
 export interface Lecturer {

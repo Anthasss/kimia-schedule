@@ -8,6 +8,7 @@ import {
   lecturers,
   courses,
   scheduleSlots,
+  semesterPeriods,
 } from "../db/schema";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -113,3 +114,8 @@ export const deleteScheduleSlot = createDeleteHandler(scheduleSlots);
 
 // UPSERT (singleton)
 export const upsertSksSettings = createUpsertHandler(sksSettings);
+
+// Semester Periods
+export const getSemesterPeriods = createGetAllHandler(semesterPeriods);
+export const createSemesterPeriod = createInsertHandler(semesterPeriods);
+export const deleteSemesterPeriod = createDeleteHandler(semesterPeriods);

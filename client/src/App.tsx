@@ -13,6 +13,7 @@ import { useBreakTimes } from './hooks/useBreakTimes';
 import { useSksSettings } from './hooks/useSksSettings';
 import { useScheduleData } from './hooks/useScheduleData';
 import { useCourses } from './hooks/useCourses';
+import { useSemesterPeriods } from './hooks/useSemesterPeriods';
 import { useDataFetching } from './hooks/useDataFetching';
 import { ScheduleSlot } from './types';
 
@@ -26,6 +27,7 @@ export default function App() {
   const { sksSettings, setSksSettings } = useSksSettings();
   const { scheduleSlots, setScheduleSlots } = useScheduleData();
   const { courses, setCourses } = useCourses();
+  const { semesterPeriods, setSemesterPeriods } = useSemesterPeriods();
 
   useDataFetching({
     setRooms,
@@ -34,6 +36,7 @@ export default function App() {
     setLecturers,
     setCourses,
     setScheduleSlots,
+    setSemesterPeriods,
   });
 
   const [showNewRecordModal, setShowNewRecordModal] = useState(false);
@@ -95,7 +98,10 @@ export default function App() {
                   setCourses={setCourses}
                   lecturers={lecturers}
                   sksSettings={sksSettings}
+                  setSksSettings={setSksSettings}
                   breakTimes={breakTimes}
+                  semesterPeriods={semesterPeriods}
+                  setSemesterPeriods={setSemesterPeriods}
                   pendingAdds={pendingAdds}
                   setPendingAdds={setPendingAdds}
                   pendingRemoves={pendingRemoves}

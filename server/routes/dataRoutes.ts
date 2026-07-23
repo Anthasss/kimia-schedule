@@ -23,6 +23,9 @@ import {
   deleteCourse,
   deleteScheduleSlot,
   upsertSksSettings,
+  getSemesterPeriods,
+  createSemesterPeriod,
+  deleteSemesterPeriod,
 } from "../controllers/dataController";
 
 const router = Router();
@@ -56,5 +59,9 @@ router.get("/api/schedule-slots", getScheduleSlots);
 router.post("/api/schedule-slots", createScheduleSlot);
 router.put("/api/schedule-slots/:id", updateScheduleSlot);
 router.delete("/api/schedule-slots/:id", deleteScheduleSlot);
+
+router.get("/api/semester-periods", getSemesterPeriods);
+router.post("/api/semester-periods", createSemesterPeriod);
+router.delete("/api/semester-periods/:id", deleteSemesterPeriod);
 
 export default router;

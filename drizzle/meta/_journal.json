@@ -64,6 +64,13 @@
       "when": 1784762243888,
       "tag": "0008_wild_morg",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784768124650,
+      "tag": "0009_classy_crystal",
+      "breakpoints": true
     }
   ]
 }

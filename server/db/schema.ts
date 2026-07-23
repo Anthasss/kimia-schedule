@@ -16,6 +16,12 @@ export const breakTimes = pgTable('break_times', {
   endTime: text('end_time').notNull(),
 });
 
+export const semesterPeriods = pgTable('semester_periods', {
+  id: text('id').primaryKey(),
+  year: text('year').notNull(),
+  semester: integer('semester').notNull(),
+});
+
 export const sksSettings = pgTable('sks_settings', {
   id: serial('id').primaryKey(),
   durationPerSks: integer('duration_per_sks').notNull().default(50),
@@ -23,7 +29,14 @@ export const sksSettings = pgTable('sks_settings', {
   activeDays: jsonb('active_days').$type<string[]>().default(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']),
   dayStartTime: text('day_start_time').notNull().default('07:30'),
   dayEndTime: text('day_end_time').notNull().default('17:00'),
-});
+  currentPeriodId: text('current_period_id'),
+}, (table) => [
+  foreignKey({
+    columns: [table.currentPeriodId],
+    foreignColumns: [semesterPeriods.id],
+    name: 'sks_settings_current_period_fk',
+  }).onDelete('set null'),
+]);
 
 export const lecturers = pgTable('lecturers', {
   id: text('id').primaryKey(),

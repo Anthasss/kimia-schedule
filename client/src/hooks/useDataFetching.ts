@@ -6,6 +6,7 @@ import {
   Lecturer,
   Course,
   ScheduleSlot,
+  SemesterPeriod,
 } from '../types';
 
 interface DataFetchingSetters {
@@ -15,6 +16,7 @@ interface DataFetchingSetters {
   setLecturers: Dispatch<SetStateAction<Lecturer[]>>;
   setCourses: Dispatch<SetStateAction<Course[]>>;
   setScheduleSlots: Dispatch<SetStateAction<ScheduleSlot[]>>;
+  setSemesterPeriods: Dispatch<SetStateAction<SemesterPeriod[]>>;
 }
 
 export function useDataFetching(setters: DataFetchingSetters) {
@@ -27,6 +29,7 @@ export function useDataFetching(setters: DataFetchingSetters) {
         lecturersRes,
         coursesRes,
         scheduleSlotsRes,
+        semesterPeriodsRes,
       ] = await Promise.all([
         fetch('/api/rooms').then((r) => r.json()),
         fetch('/api/break-times').then((r) => r.json()),
@@ -34,6 +37,7 @@ export function useDataFetching(setters: DataFetchingSetters) {
         fetch('/api/lecturers').then((r) => r.json()),
         fetch('/api/courses').then((r) => r.json()),
         fetch('/api/schedule-slots').then((r) => r.json()),
+        fetch('/api/semester-periods').then((r) => r.json()),
       ]);
 
       setters.setRooms(roomsRes);
@@ -42,6 +46,7 @@ export function useDataFetching(setters: DataFetchingSetters) {
       setters.setLecturers(lecturersRes);
       setters.setCourses(coursesRes);
       setters.setScheduleSlots(scheduleSlotsRes);
+      setters.setSemesterPeriods(semesterPeriodsRes);
     }
     fetchData();
   }, []);

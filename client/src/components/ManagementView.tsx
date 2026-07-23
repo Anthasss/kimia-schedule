@@ -192,7 +192,7 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
           </div>
         </div>
 
-        {/* Right Stack: SKS Settings - 5 cols */}
+        {/* Right Stack: Time Settings - 5 cols */}
         <div className="col-span-12 lg:col-span-5 flex flex-col gap-6">
           <div className="bg-white border border-[#c4c6cf] rounded-xl p-6 shadow-2xs flex-1 flex flex-col justify-between">
             <div>
@@ -201,7 +201,7 @@ export const ManagementView: React.FC<ManagementViewProps> = ({
                   settings_applications
                 </span>
                 <h3 className="font-headline-sm text-[18px] text-[#191c1e]">
-                  SKS Settings
+                  Time Settings
                 </h3>
               </div>
 
