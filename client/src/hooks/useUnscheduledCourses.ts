@@ -1,7 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Course, ScheduleSlot } from '../types';
 
-export function useUnscheduledCourses(courses: Course[], scheduleSlots: ScheduleSlot[]) {
+export function useUnscheduledCourses(
+  courses: Course[],
+  scheduleSlots: ScheduleSlot[],
+  currentPeriod: { year: string; semester: 1 | 2 } | null
+) {
   const [draftSearch, setDraftSearch] = useState('');
   const [selectedExpandedDraft, setSelectedExpandedDraft] = useState<string | null>(null);
 
@@ -10,8 +14,15 @@ export function useUnscheduledCourses(courses: Course[], scheduleSlots: Schedule
       courses
         .filter((c) => !scheduleSlots.some((s) => s.courseId === c.id))
         .filter((c) => c.assignedLecturerName)
+        .filter((c) => {
+          if (!currentPeriod) return true;
+          if (c.semester === 'Both') return true;
+          if (currentPeriod.semester === 1) return c.semester === 'Ganjil';
+          if (currentPeriod.semester === 2) return c.semester === 'Genap';
+          return false;
+        })
         .sort((a, b) => a.title.localeCompare(b.title)),
-    [courses, scheduleSlots]
+    [courses, scheduleSlots, currentPeriod]
   );
 
   const filteredDraftPool = useMemo(

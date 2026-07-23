@@ -29,6 +29,7 @@ export interface Course {
   code: string;
   title: string;
   sks: number;
+  semester: string;
   assignedLecturerName?: string;
 }
 

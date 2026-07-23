@@ -38,6 +38,7 @@ export const courses = pgTable('courses', {
   code: text('code').notNull(),
   title: text('title').notNull(),
   sks: integer('sks').notNull(),
+  semester: text('semester').notNull().default('Both'),
   assignedLecturerName: text('assigned_lecturer_name'),
 }, (table) => [
   foreignKey({

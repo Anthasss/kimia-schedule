@@ -21,6 +21,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
   const [newCode, setNewCode] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newSks, setNewSks] = useState(3);
+  const [newSemester, setNewSemester] = useState('Both');
   const [numClasses, setNumClasses] = useState(4);
   const [classLecturers, setClassLecturers] = useState<string[]>(Array.from({ length: 4 }, () => ''));
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,6 +56,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
             code: newCode,
             title: `${newTitle} ${classLetter}`,
             sks: newSks,
+            semester: newSemester,
             assignedLecturerName: classLecturers[i] || null,
           });
         })
@@ -64,6 +66,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
       setNewCode('');
       setNewTitle('');
       setNewSks(3);
+      setNewSemester('Both');
       setNumClasses(4);
       setClassLecturers(Array.from({ length: 4 }, () => ''));
       toast.success(`${numClasses} courses created`);
@@ -142,6 +145,9 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
                   SKS
                 </th>
                 <th className="px-6 py-3 font-semibold text-[12px] text-[#43474e] uppercase tracking-wider">
+                  Semester
+                </th>
+                <th className="px-6 py-3 font-semibold text-[12px] text-[#43474e] uppercase tracking-wider">
                   Instructor
                 </th>
                 <th className="px-6 py-3 font-semibold text-[12px] text-[#43474e] uppercase tracking-wider text-right">
@@ -163,6 +169,9 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
                     </td>
                     <td className="px-6 py-4 font-semibold text-[#191c1e]">{c.title}</td>
                     <td className="px-6 py-4 font-semibold text-[#191c1e]">{c.sks} SKS</td>
+                    <td className="px-6 py-4 font-medium text-[#191c1e]">
+                      {c.semester}
+                    </td>
                     <td className="px-6 py-4 font-medium text-[#191c1e]">
                       {c.assignedLecturerName || 'Unassigned'}
                     </td>
@@ -262,6 +271,18 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
                     className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
                   />
                 </div>
+                <div>
+                  <label className="block text-[#43474e] font-semibold mb-1">Semester</label>
+                  <select
+                    value={newSemester}
+                    onChange={(e) => setNewSemester(e.target.value)}
+                    className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
+                  >
+                    <option value="Ganjil">Ganjil</option>
+                    <option value="Genap">Genap</option>
+                    <option value="Both">Both</option>
+                  </select>
+                </div>
               </div>
               <div className="space-y-3">
                 <div>
@@ -318,6 +339,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
                   setNewCode('');
                   setNewTitle('');
                   setNewSks(3);
+                  setNewSemester('Both');
                   setNumClasses(4);
                   setClassLecturers(Array.from({ length: 4 }, () => ''));
                 }}
@@ -369,6 +391,18 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
                 />
               </div>
               <div>
+                <label className="block text-[#43474e] font-semibold mb-1">Semester</label>
+                <select
+                  value={editingCourse.semester}
+                  onChange={(e) => setEditingCourse({ ...editingCourse, semester: e.target.value })}
+                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
+                >
+                  <option value="Ganjil">Ganjil</option>
+                  <option value="Genap">Genap</option>
+                  <option value="Both">Both</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-[#43474e] font-semibold mb-1">Instructor</label>
                 <select
                   value={editingCourse.assignedLecturerName || ''}
@@ -400,6 +434,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({ courses, setCourses, l
                     const updated = await apiPut<Course>(`/api/courses/${editingCourse.id}`, {
                       title: editingCourse.title,
                       sks: editingCourse.sks,
+                      semester: editingCourse.semester,
                       assignedLecturerName: editingCourse.assignedLecturerName,
                     });
                     setCourses(courses.map((c) => (c.id === updated.id ? updated : c)));

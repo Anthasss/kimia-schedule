@@ -30,6 +30,16 @@ interface ScheduleViewProps {
   setPendingRemoves: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
+function getDefaultYearOptions() {
+  const current = new Date().getFullYear();
+  const years: string[] = [];
+  for (let i = -1; i <= 3; i++) {
+    const y = current + i;
+    years.push(`${y}/${y + 1}`);
+  }
+  return years;
+}
+
 export const ScheduleView: React.FC<ScheduleViewProps> = ({
   rooms,
   scheduleSlots,
@@ -50,6 +60,44 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   const [assignTimeSlot, setAssignTimeSlot] = useState('');
   const [assignRoomId, setAssignRoomId] = useState('r5');
 
+  const [currentPeriod, setCurrentPeriod] = useState<{ year: string; semester: 1 | 2 } | null>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('scheduleCurrentPeriod') || 'null');
+    } catch { return null; }
+  });
+  const [savedPeriods, setSavedPeriods] = useState<{ year: string; semester: 1 | 2 }[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('scheduleSavedPeriods') || '[]');
+    } catch { return []; }
+  });
+
+  const [showAddPeriodModal, setShowAddPeriodModal] = useState(false);
+  const [newPeriodYear, setNewPeriodYear] = useState('');
+  const [newPeriodSemester, setNewPeriodSemester] = useState<1 | 2>(1);
+
+  useEffect(() => {
+    localStorage.setItem('scheduleCurrentPeriod', JSON.stringify(currentPeriod));
+  }, [currentPeriod]);
+
+  useEffect(() => {
+    localStorage.setItem('scheduleSavedPeriods', JSON.stringify(savedPeriods));
+  }, [savedPeriods]);
+
+  const yearOptions = getDefaultYearOptions();
+
+  const handleAddPeriod = () => {
+    if (!newPeriodYear) return;
+    const period = { year: newPeriodYear, semester: newPeriodSemester };
+    const exists = savedPeriods.some((p) => p.year === period.year && p.semester === period.semester);
+    if (!exists) {
+      setSavedPeriods((prev) => [...prev, period]);
+    }
+    setCurrentPeriod(period);
+    setShowAddPeriodModal(false);
+    setNewPeriodYear('');
+    setNewPeriodSemester(1);
+  };
+
   const { days, timeSlots, gridRows, slotRowLabels } = useScheduleTimeSlots(sksSettings, breakTimes);
 
   const {
@@ -60,7 +108,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     unscheduledCourses,
     filteredDraftPool,
     activeDraftItem,
-  } = useUnscheduledCourses(courses, scheduleSlots);
+  } = useUnscheduledCourses(courses, scheduleSlots, currentPeriod);
 
   const { placeDraftOnGrid, removeSlotFromGrid, isDirty, isSaving, saveChanges } = useScheduleSlots({
     scheduleSlots,
@@ -148,12 +196,68 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
           isDirty={isDirty}
           isSaving={isSaving}
           selectedCourseId={selectedExpandedDraft}
+          currentPeriod={currentPeriod}
+          savedPeriods={savedPeriods}
           onSearchChange={setDraftSearch}
           onSelectCourse={setSelectedExpandedDraft}
           onNavigateToCourses={onNavigateToCourses}
           onSave={saveChanges}
+          onPeriodChange={setCurrentPeriod}
+          onOpenAddPeriod={() => {
+            setNewPeriodYear(yearOptions[0] || '');
+            setNewPeriodSemester(1);
+            setShowAddPeriodModal(true);
+          }}
         />
       </div>
+
+      {/* Add Period Modal */}
+      {showAddPeriodModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 border border-[#c4c6cf] shadow-xl space-y-4">
+            <h3 className="font-headline-sm text-[18px] text-[#191c1e]">Add Semester Period</h3>
+            <div className="space-y-3 text-[13px]">
+              <div>
+                <label className="block text-[#43474e] font-semibold mb-1">Academic Year</label>
+                <select
+                  value={newPeriodYear}
+                  onChange={(e) => setNewPeriodYear(e.target.value)}
+                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
+                >
+                  {yearOptions.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[#43474e] font-semibold mb-1">Semester</label>
+                <select
+                  value={newPeriodSemester}
+                  onChange={(e) => setNewPeriodSemester(parseInt(e.target.value) as 1 | 2)}
+                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
+                >
+                  <option value={1}>Ganjil</option>
+                  <option value={2}>Genap</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#c4c6cf]">
+              <button
+                onClick={() => setShowAddPeriodModal(false)}
+                className="px-4 py-2 rounded text-[13px] text-[#43474e] hover:bg-[#f2f4f6] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddPeriod}
+                className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer"
+              >
+                Add Period
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
