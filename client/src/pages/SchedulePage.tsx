@@ -1,7 +1,8 @@
-import { Dispatch, SetStateAction } from 'react';
+import { Dispatch, SetStateAction, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ScheduleView } from '../components/ScheduleView';
 import { Room, SksSettings, ScheduleSlot, Course, BreakTime, Lecturer, SemesterPeriod } from '../types';
+import { exportScheduleToExcel } from '../utils/exportToExcel';
 
 interface SchedulePageProps {
   rooms: Room[];
@@ -40,6 +41,10 @@ export function SchedulePage({
 }: SchedulePageProps) {
   const navigate = useNavigate();
 
+  const handleExport = useCallback(() => {
+    exportScheduleToExcel(scheduleSlots, rooms, sksSettings, breakTimes, lecturers);
+  }, [scheduleSlots, rooms, sksSettings, breakTimes, lecturers]);
+
   return (
     <ScheduleView
       rooms={rooms}
@@ -58,6 +63,7 @@ export function SchedulePage({
       pendingRemoves={pendingRemoves}
       setPendingRemoves={setPendingRemoves}
       onNavigateToCourses={() => navigate('/courses')}
+      onExport={handleExport}
     />
   );
 }

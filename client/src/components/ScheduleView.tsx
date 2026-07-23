@@ -34,6 +34,7 @@ interface ScheduleViewProps {
   setPendingAdds: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
   pendingRemoves: string[];
   setPendingRemoves: React.Dispatch<React.SetStateAction<string[]>>;
+  onExport: () => void;
 }
 
 function getDefaultYearOptions() {
@@ -62,6 +63,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
   setPendingAdds,
   pendingRemoves,
   setPendingRemoves,
+  onExport,
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [assignDay, setAssignDay] = useState<DayOfWeek>('Monday');
@@ -243,6 +245,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
             setNewPeriodSemester(1);
             setShowAddPeriodModal(true);
           }}
+          onExport={onExport}
         />
       </div>
 
