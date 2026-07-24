@@ -2,8 +2,8 @@ import React, { useState, Dispatch, SetStateAction } from 'react';
 import { toast } from 'sonner';
 import { apiPost, apiDelete } from '../api';
 import { Room, BreakTime, SksSettings, DayOfWeek } from '../types';
-import { EditRoomModal } from '../components/EditRoomModal';
-import { EditBreakModal } from '../components/EditBreakModal';
+import { EditRoomModal } from '../components/ManagementPage/EditRoomModal';
+import { EditBreakModal } from '../components/ManagementPage/EditBreakModal';
 
 const ALL_WEEKDAYS: DayOfWeek[] = [
   'Monday',

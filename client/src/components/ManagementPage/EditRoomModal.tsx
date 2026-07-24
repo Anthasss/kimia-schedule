@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { apiPut } from '../api';
-import { Room } from '../types';
+import { apiPut } from '../../api';
+import { Room } from '../../types';
 
 interface EditRoomModalProps {
   room: Room;

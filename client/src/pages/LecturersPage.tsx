@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { apiPost, apiPut, apiDelete } from '../api';
 import { Lecturer, Course, ScheduleSlot } from '../types';
-import { EditLecturerModal } from '../components/EditLecturerModal';
+import { EditLecturerModal } from '../components/LecturersPage/EditLecturerModal';
 import { LECTURER_COLORS } from '../constants';
 
 interface LecturersPageProps {

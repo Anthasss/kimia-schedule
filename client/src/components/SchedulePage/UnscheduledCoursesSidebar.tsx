@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Course, Lecturer } from '../types';
+import { Course, Lecturer } from '../../types';
 import { CourseDraftCard } from './CourseDraftCard';
 
 interface UnscheduledCoursesSidebarProps {

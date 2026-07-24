@@ -1,5 +1,5 @@
 import React from 'react';
-import { Course } from '../types';
+import { Course } from '../../types';
 
 interface EmptyCellProps {
   activeDraftItem: Course | null;

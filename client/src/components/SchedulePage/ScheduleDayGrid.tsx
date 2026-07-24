@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Room, ScheduleSlot, Lecturer, DayOfWeek, Course } from '../types';
-import { GridRow } from '../hooks/useScheduleTimeSlots';
+import { Room, ScheduleSlot, Lecturer, DayOfWeek, Course } from '../../types';
+import { GridRow } from '../../hooks/useScheduleTimeSlots';
 import { SlottedCourseCard } from './SlottedCourseCard';
 import { EmptyCell } from './EmptyCell';
 

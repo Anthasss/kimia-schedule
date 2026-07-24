@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScheduleSlot, Lecturer } from '../types';
+import { ScheduleSlot, Lecturer } from '../../types';
 
 interface SlottedCourseCardProps {
   slot: ScheduleSlot;

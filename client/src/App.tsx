@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { Header } from './components/Header';
-import { Modals } from './components/Modals';
+import { Header } from './components/Shared/Header';
+import { Modals } from './components/Shared/Modals';
 import { ManagementPage } from './pages/ManagementPage';
 import { SchedulePage } from './pages/SchedulePage';
 import { LecturersPage } from './pages/LecturersPage';

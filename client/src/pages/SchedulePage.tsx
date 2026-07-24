@@ -15,8 +15,8 @@ import { apiPost } from '../api';
 import { useScheduleTimeSlots } from '../hooks/useScheduleTimeSlots';
 import { useScheduleSlots } from '../hooks/useScheduleSlots';
 import { useUnscheduledCourses } from '../hooks/useUnscheduledCourses';
-import { ScheduleDayGrid } from '../components/ScheduleDayGrid';
-import { UnscheduledCoursesSidebar } from '../components/UnscheduledCoursesSidebar';
+import { ScheduleDayGrid } from '../components/SchedulePage/ScheduleDayGrid';
+import { UnscheduledCoursesSidebar } from '../components/SchedulePage/UnscheduledCoursesSidebar';
 import { exportScheduleToExcel } from '../utils/exportToExcel';
 
 interface SchedulePageProps {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { LECTURER_COLORS } from '../constants';
+import { LECTURER_COLORS } from '../../constants';
 
 interface ModalsProps {
   showNewRecordModal: boolean;
