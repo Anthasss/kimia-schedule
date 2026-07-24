@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { apiPost } from '../api';
+import { apiPost, apiDelete } from '../api';
 import { BreakTime } from '../types';
 
 export function useBreakTimes() {
   const [breakTimes, setBreakTimes] = useState<BreakTime[]>([]);
+  const [deletingBreakId, setDeletingBreakId] = useState<string | null>(null);
 
   const addBreakTime = async (data: Omit<BreakTime, 'id'>) => {
     try {
@@ -17,5 +18,19 @@ export function useBreakTimes() {
     }
   };
 
-  return { breakTimes, setBreakTimes, addBreakTime };
+  const deleteBreakTime = async (id: string) => {
+    setDeletingBreakId(id);
+    try {
+      await apiDelete(`/api/break-times/${id}`);
+      setBreakTimes((prev) => prev.filter((b) => b.id !== id));
+      toast.success('Break time deleted');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete break time');
+    } finally {
+      setDeletingBreakId(null);
+    }
+  };
+
+  return { breakTimes, setBreakTimes, addBreakTime, deleteBreakTime, deletingBreakId };
 }

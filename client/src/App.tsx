@@ -21,10 +21,10 @@ export default function App() {
   const [pendingAdds, setPendingAdds] = useState<ScheduleSlot[]>([]);
   const [pendingRemoves, setPendingRemoves] = useState<string[]>([]);
 
-  const { rooms, setRooms, addRoom } = useRooms();
+  const { rooms, setRooms, addRoom, deleteRoom, deletingRoomId } = useRooms();
   const { lecturers, setLecturers, addLecturer } = useLecturers();
-  const { breakTimes, setBreakTimes, addBreakTime } = useBreakTimes();
-  const { sksSettings, setSksSettings } = useSksSettings();
+  const { breakTimes, setBreakTimes, addBreakTime, deleteBreakTime, deletingBreakId } = useBreakTimes();
+  const { sksSettings, setSksSettings, saveSksSettings, isSavingSettings } = useSksSettings();
   const { scheduleSlots, setScheduleSlots } = useScheduleData();
   const { courses, setCourses } = useCourses();
   const { semesterPeriods, setSemesterPeriods } = useSemesterPeriods();
@@ -70,6 +70,12 @@ export default function App() {
                   setSksSettings={setSksSettings}
                   onOpenNewRecordModal={handleOpenNewRecordModal}
                   onExportData={() => setShowExportModal(true)}
+                  deleteRoom={deleteRoom}
+                  deletingRoomId={deletingRoomId}
+                  deleteBreakTime={deleteBreakTime}
+                  deletingBreakId={deletingBreakId}
+                  saveSksSettings={saveSksSettings}
+                  isSavingSettings={isSavingSettings}
                 />
               }
             />

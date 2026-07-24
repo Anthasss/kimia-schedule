@@ -183,7 +183,7 @@ export function LecturersPage({
                           title="Change color"
                         />
                         {colorPickerLecturerId === lect.id && (
-                          <div className="absolute top-8 left-0 z-40 bg-white border border-[#c4c6cf] rounded-lg p-2.5 shadow-lg w-[180px]">
+                          <div className="absolute top-8 left-0 z-40 bg-white border border-[#c4c6cf] rounded-lg p-2.5 shadow-lg w-45">
                             <div className="flex flex-wrap gap-1.5">
                               {LECTURER_COLORS.map((c) => {
                                 const isUpdating = updatingColorLecturerId === lect.id;
@@ -193,8 +193,8 @@ export function LecturersPage({
                                     onClick={() => handleUpdateLecturerColor(lect, c)}
                                     disabled={isUpdating}
                                     className={`w-5 h-5 rounded-full transition-all ${isUpdating
-                                        ? 'cursor-not-allowed opacity-40'
-                                        : 'cursor-pointer hover:scale-110'
+                                      ? 'cursor-not-allowed opacity-40'
+                                      : 'cursor-pointer hover:scale-110'
                                       } ${(lect.color || '#6366f1') === c
                                         ? 'ring-2 ring-offset-1 ring-[#002045]'
                                         : ''
