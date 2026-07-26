@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import {
   Room,
   Course,
@@ -11,12 +10,13 @@ import {
   Lecturer,
   SemesterPeriod,
 } from '../types';
-import { apiPost } from '../api';
 import { useScheduleTimeSlots } from '../hooks/useScheduleTimeSlots';
 import { useScheduleSlots } from '../hooks/useScheduleSlots';
 import { useUnscheduledCourses } from '../hooks/useUnscheduledCourses';
 import { ScheduleDayGrid } from '../components/SchedulePage/ScheduleDayGrid';
 import { UnscheduledCoursesSidebar } from '../components/SchedulePage/UnscheduledCoursesSidebar';
+import { ScheduleLayout } from '../components/SchedulePage/ScheduleLayout';
+import { AddPeriodModal } from '../components/SchedulePage/AddPeriodModal';
 import { exportScheduleToExcel } from '../utils/exportToExcel';
 
 interface SchedulePageProps {
@@ -35,6 +35,7 @@ interface SchedulePageProps {
   setPendingAdds: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
   pendingRemoves: string[];
   setPendingRemoves: React.Dispatch<React.SetStateAction<string[]>>;
+  onPeriodChange: (period: { year: string; semester: 1 | 2 } | null) => Promise<void>;
 }
 
 function getDefaultYearOptions() {
@@ -62,23 +63,12 @@ export function SchedulePage({
   setPendingAdds,
   pendingRemoves,
   setPendingRemoves,
+  onPeriodChange,
 }: SchedulePageProps) {
   const navigate = useNavigate();
-
-  const handleExport = useCallback(() => {
-    exportScheduleToExcel(scheduleSlots, rooms, sksSettings, breakTimes, lecturers);
-  }, [scheduleSlots, rooms, sksSettings, breakTimes, lecturers]);
-
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [assignDay, setAssignDay] = useState<DayOfWeek>('Monday');
-  const [assignTimeSlot, setAssignTimeSlot] = useState('');
-  const [assignRoomId, setAssignRoomId] = useState('r5');
+  const yearOptions = getDefaultYearOptions();
 
   const [showAddPeriodModal, setShowAddPeriodModal] = useState(false);
-  const [newPeriodYear, setNewPeriodYear] = useState('');
-  const [newPeriodSemester, setNewPeriodSemester] = useState<1 | 2>(1);
-
-  const yearOptions = getDefaultYearOptions();
 
   const currentPeriod: { year: string; semester: 1 | 2 } | null = React.useMemo(() => {
     if (!sksSettings.currentPeriodId) return null;
@@ -86,46 +76,9 @@ export function SchedulePage({
     return found ? { year: found.year, semester: found.semester as 1 | 2 } : null;
   }, [semesterPeriods, sksSettings.currentPeriodId]);
 
-  const handlePeriodChange = async (period: { year: string; semester: 1 | 2 } | null) => {
-    if (!period) {
-      setSksSettings({ ...sksSettings, currentPeriodId: null });
-      await apiPost('/api/sks-settings', { ...sksSettings, currentPeriodId: null });
-    } else {
-      const match = semesterPeriods.find((p) => p.year === period.year && p.semester === period.semester);
-      if (match) {
-        setSksSettings({ ...sksSettings, currentPeriodId: match.id });
-        await apiPost('/api/sks-settings', { ...sksSettings, currentPeriodId: match.id });
-      }
-    }
-  };
-
-  const handleAddPeriod = async () => {
-    if (!newPeriodYear) return;
-    const exists = semesterPeriods.some((p) => p.year === newPeriodYear && p.semester === newPeriodSemester);
-    if (!exists) {
-      try {
-        const created = await apiPost<SemesterPeriod>('/api/semester-periods', {
-          year: newPeriodYear,
-          semester: newPeriodSemester,
-        });
-        setSemesterPeriods((prev) => [...prev, created]);
-        setSksSettings({ ...sksSettings, currentPeriodId: created.id });
-        await apiPost('/api/sks-settings', { ...sksSettings, currentPeriodId: created.id });
-        toast.success('Period added');
-      } catch {
-        toast.error('Failed to add period');
-      }
-    } else {
-      const match = semesterPeriods.find((p) => p.year === newPeriodYear && p.semester === newPeriodSemester);
-      if (match) {
-        setSksSettings({ ...sksSettings, currentPeriodId: match.id });
-        await apiPost('/api/sks-settings', { ...sksSettings, currentPeriodId: match.id });
-      }
-    }
-    setShowAddPeriodModal(false);
-    setNewPeriodYear('');
-    setNewPeriodSemester(1);
-  };
+  const handleExport = useCallback(() => {
+    exportScheduleToExcel(scheduleSlots, rooms, sksSettings, breakTimes, lecturers);
+  }, [scheduleSlots, rooms, sksSettings, breakTimes, lecturers]);
 
   const { days, timeSlots, gridRows, slotRowLabels } = useScheduleTimeSlots(sksSettings, breakTimes);
 
@@ -139,28 +92,28 @@ export function SchedulePage({
     activeDraftItem,
   } = useUnscheduledCourses(courses, scheduleSlots, currentPeriod);
 
-  const { placeDraftOnGrid, removeSlotFromGrid, isDirty, isSaving, saveChanges } = useScheduleSlots({
+  const {
+    placeDraftOnGrid,
+    removeSlotFromGrid,
+    isDirty,
+    isSaving,
+    saveChanges,
+    setAssignDay,
+    setAssignTimeSlot,
+    setAssignRoomId,
+  } = useScheduleSlots({
     scheduleSlots,
     setScheduleSlots,
     rooms,
     sksSettings,
     days,
     timeSlots,
-    assignDay,
-    assignTimeSlot,
-    assignRoomId,
     setSelectedExpandedDraft,
     pendingAdds,
     setPendingAdds,
     pendingRemoves,
     setPendingRemoves,
   });
-
-  useEffect(() => {
-    if (timeSlots.length > 0 && !timeSlots.includes(assignTimeSlot)) {
-      setAssignTimeSlot(timeSlots[0]);
-    }
-  }, [timeSlots, assignTimeSlot]);
 
   const handleSelectEmpty = (day: DayOfWeek, timeSlot: string, roomId: string) => {
     setAssignDay(day);
@@ -170,14 +123,31 @@ export function SchedulePage({
   };
 
   return (
-    <div className="relative h-[calc(100vh-120px)]">
-      {/* Left / Main Workspace */}
+    <ScheduleLayout
+      sidebar={
+        <UnscheduledCoursesSidebar
+          unscheduledCourses={unscheduledCourses}
+          filteredDraftPool={filteredDraftPool}
+          lecturers={lecturers}
+          draftSearch={draftSearch}
+          coursesCount={courses.length}
+          isDirty={isDirty}
+          isSaving={isSaving}
+          selectedCourseId={selectedExpandedDraft}
+          currentPeriod={currentPeriod}
+          savedPeriods={semesterPeriods.map((p) => ({ year: p.year, semester: p.semester as 1 | 2 }))}
+          onSearchChange={setDraftSearch}
+          onSelectCourse={setSelectedExpandedDraft}
+          onNavigateToCourses={() => navigate('/courses')}
+          onSave={saveChanges}
+          onPeriodChange={onPeriodChange}
+          onOpenAddPeriod={() => setShowAddPeriodModal(true)}
+          onExport={handleExport}
+        />
+      }
+    >
       {currentPeriod ? (
-        <div
-          className={`space-y-6 overflow-y-auto overflow-x-auto custom-scrollbar pr-1 transition-all duration-300 ${
-            isSidebarOpen ? 'mr-80' : ''
-          }`}
-        >
+        <div className="space-y-6 overflow-y-auto overflow-x-auto custom-scrollbar pr-1">
           {days.map((day) => (
             <ScheduleDayGrid
               key={day}
@@ -198,7 +168,7 @@ export function SchedulePage({
           ))}
         </div>
       ) : (
-        <div className={`flex items-center justify-center h-full transition-all duration-300 ${isSidebarOpen ? 'mr-80' : ''}`}>
+        <div className="flex items-center justify-center h-full">
           <div className="text-center max-w-md">
             <span className="material-symbols-outlined text-[48px] text-[#c4c6cf] mb-4">calendar_month</span>
             <h2 className="font-headline-sm text-[18px] text-[#191c1e] mb-2">No Semester Period Selected</h2>
@@ -209,97 +179,15 @@ export function SchedulePage({
         </div>
       )}
 
-      {/* Toggle Button */}
-      <button
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className={`fixed z-50 bg-[#002045] border border-[#c4c6cf] shadow-md rounded-l-full w-8 h-8 flex items-center justify-center cursor-pointer hover:bg-[#404045] transition-all duration-300 ${
-          isSidebarOpen ? 'right-80 top-4' : 'right-0 top-4 rounded-r-none'
-        }`}
-        title={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-      >
-        <span className="material-symbols-outlined text-[17px] text-white">
-          {isSidebarOpen ? 'chevron_right' : 'chevron_left'}
-        </span>
-      </button>
-
-      {/* Right Side Drawer - Unscheduled Courses */}
-      <div
-        className={`fixed right-0 top-0 z-100 h-screen w-80 bg-white border-l border-[#c4c6cf] p-5 shadow-lg flex flex-col gap-4 transition-all duration-300 z-40 ${
-          isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        <UnscheduledCoursesSidebar
-          unscheduledCourses={unscheduledCourses}
-          filteredDraftPool={filteredDraftPool}
-          lecturers={lecturers}
-          draftSearch={draftSearch}
-          coursesCount={courses.length}
-          isDirty={isDirty}
-          isSaving={isSaving}
-          selectedCourseId={selectedExpandedDraft}
-          currentPeriod={currentPeriod}
-          savedPeriods={semesterPeriods.map((p) => ({ year: p.year, semester: p.semester as 1 | 2 }))}
-          onSearchChange={setDraftSearch}
-          onSelectCourse={setSelectedExpandedDraft}
-          onNavigateToCourses={() => navigate('/courses')}
-          onSave={saveChanges}
-          onPeriodChange={(p) => handlePeriodChange(p)}
-          onOpenAddPeriod={() => {
-            setNewPeriodYear(yearOptions[0] || '');
-            setNewPeriodSemester(1);
-            setShowAddPeriodModal(true);
-          }}
-          onExport={handleExport}
-        />
-      </div>
-
-      {/* Add Period Modal */}
-      {showAddPeriodModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-sm w-full p-6 border border-[#c4c6cf] shadow-xl space-y-4">
-            <h3 className="font-headline-sm text-[18px] text-[#191c1e]">Add Semester Period</h3>
-            <div className="space-y-3 text-[13px]">
-              <div>
-                <label className="block text-[#43474e] font-semibold mb-1">Year</label>
-                <select
-                  value={newPeriodYear}
-                  onChange={(e) => setNewPeriodYear(e.target.value)}
-                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
-                >
-                  {yearOptions.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-[#43474e] font-semibold mb-1">Semester</label>
-                <select
-                  value={newPeriodSemester}
-                  onChange={(e) => setNewPeriodSemester(parseInt(e.target.value) as 1 | 2)}
-                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
-                >
-                  <option value={1}>Ganjil</option>
-                  <option value={2}>Genap</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#c4c6cf]">
-              <button
-                onClick={() => setShowAddPeriodModal(false)}
-                className="px-4 py-2 rounded text-[13px] text-[#43474e] hover:bg-[#f2f4f6] cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddPeriod}
-                className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer"
-              >
-                Add Period
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <AddPeriodModal
+        isOpen={showAddPeriodModal}
+        onClose={() => setShowAddPeriodModal(false)}
+        yearOptions={yearOptions}
+        semesterPeriods={semesterPeriods}
+        setSemesterPeriods={setSemesterPeriods}
+        sksSettings={sksSettings}
+        setSksSettings={setSksSettings}
+      />
+    </ScheduleLayout>
   );
 }

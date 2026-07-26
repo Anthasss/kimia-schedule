@@ -24,7 +24,7 @@ export default function App() {
   const { rooms, setRooms, addRoom, deleteRoom, deletingRoomId } = useRooms();
   const { lecturers, setLecturers, addLecturer } = useLecturers();
   const { breakTimes, setBreakTimes, addBreakTime, deleteBreakTime, deletingBreakId } = useBreakTimes();
-  const { sksSettings, setSksSettings, saveSksSettings, isSavingSettings } = useSksSettings();
+  const { sksSettings, setSksSettings, saveSksSettings, isSavingSettings, handlePeriodChange } = useSksSettings();
   const { scheduleSlots, setScheduleSlots } = useScheduleData();
   const { courses, setCourses } = useCourses();
   const { semesterPeriods, setSemesterPeriods } = useSemesterPeriods();
@@ -112,6 +112,7 @@ export default function App() {
                   setPendingAdds={setPendingAdds}
                   pendingRemoves={pendingRemoves}
                   setPendingRemoves={setPendingRemoves}
+                  onPeriodChange={(period) => handlePeriodChange(period, semesterPeriods)}
                 />
               }
             />

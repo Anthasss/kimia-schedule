@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { apiPost, apiDelete } from '../api';
 import { Course, ScheduleSlot, SksSettings, DayOfWeek, Room } from '../types';
@@ -10,9 +10,6 @@ interface UseScheduleSlotsParams {
   sksSettings: SksSettings;
   days: DayOfWeek[];
   timeSlots: string[];
-  assignDay: DayOfWeek;
-  assignTimeSlot: string;
-  assignRoomId: string;
   setSelectedExpandedDraft: (id: string | null) => void;
   pendingAdds: ScheduleSlot[];
   setPendingAdds: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
@@ -27,9 +24,6 @@ export function useScheduleSlots({
   sksSettings,
   days,
   timeSlots,
-  assignDay,
-  assignTimeSlot,
-  assignRoomId,
   setSelectedExpandedDraft,
   pendingAdds,
   setPendingAdds,
@@ -37,6 +31,15 @@ export function useScheduleSlots({
   setPendingRemoves,
 }: UseScheduleSlotsParams) {
   const [isSaving, setIsSaving] = useState(false);
+  const [assignDay, setAssignDay] = useState<DayOfWeek>('Monday');
+  const [assignTimeSlot, setAssignTimeSlot] = useState('');
+  const [assignRoomId, setAssignRoomId] = useState('r5');
+
+  useEffect(() => {
+    if (timeSlots.length > 0 && !timeSlots.includes(assignTimeSlot)) {
+      setAssignTimeSlot(timeSlots[0]);
+    }
+  }, [timeSlots, assignTimeSlot]);
 
   const isDirty = pendingAdds.length > 0 || pendingRemoves.length > 0;
 
@@ -151,5 +154,17 @@ export function useScheduleSlots({
     }
   }, [isDirty, pendingAdds, pendingRemoves, setScheduleSlots]);
 
-  return { placeDraftOnGrid, removeSlotFromGrid, isDirty, isSaving, saveChanges };
+  return {
+    placeDraftOnGrid,
+    removeSlotFromGrid,
+    isDirty,
+    isSaving,
+    saveChanges,
+    assignDay,
+    setAssignDay,
+    assignTimeSlot,
+    setAssignTimeSlot,
+    assignRoomId,
+    setAssignRoomId,
+  };
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { apiPost } from '../api';
-import { SksSettings } from '../types';
+import { SksSettings, SemesterPeriod } from '../types';
 
 export function useSksSettings() {
   const [sksSettings, setSksSettings] = useState<SksSettings>({
@@ -26,5 +26,18 @@ export function useSksSettings() {
     }
   };
 
-  return { sksSettings, setSksSettings, saveSksSettings, isSavingSettings };
+  const handlePeriodChange = async (period: { year: string; semester: 1 | 2 } | null, semesterPeriods: SemesterPeriod[]) => {
+    if (!period) {
+      setSksSettings({ ...sksSettings, currentPeriodId: null });
+      await apiPost('/api/sks-settings', { ...sksSettings, currentPeriodId: null });
+    } else {
+      const match = semesterPeriods.find((p) => p.year === period.year && p.semester === period.semester);
+      if (match) {
+        setSksSettings({ ...sksSettings, currentPeriodId: match.id });
+        await apiPost('/api/sks-settings', { ...sksSettings, currentPeriodId: match.id });
+      }
+    }
+  };
+
+  return { sksSettings, setSksSettings, saveSksSettings, isSavingSettings, handlePeriodChange };
 }
