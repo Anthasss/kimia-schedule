@@ -121,7 +121,7 @@ export default function App() {
             />
             <Route
               path="/courses"
-              element={<CoursesPage courses={courses} setCourses={setCourses} courseClasses={courseClasses} setCourseClasses={setCourseClasses} lecturers={lecturers} />}
+              element={<CoursesPage courses={courses} setCourses={setCourses} courseClasses={courseClasses} setCourseClasses={setCourseClasses} lecturers={lecturers} setLecturers={setLecturers} />}
             />
             <Route path="*" element={<Navigate to="/management" replace />} />
           </Routes>

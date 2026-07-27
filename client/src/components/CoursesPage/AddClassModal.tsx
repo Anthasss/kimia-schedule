@@ -24,7 +24,7 @@ export const AddClassModal: React.FC<AddClassModalProps> = ({
   onAdd,
   onClose,
 }) => {
-  const [classLetter, setClassLetter] = useState(getNextLetter(existingLetters));
+  const nextLetter = getNextLetter(existingLetters);
   const [selectedLecturers, setSelectedLecturers] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -35,9 +35,8 @@ export const AddClassModal: React.FC<AddClassModalProps> = ({
   };
 
   const handleSave = async () => {
-    if (!classLetter) return;
     setIsSaving(true);
-    const success = await onAdd(classLetter, selectedLecturers);
+    const success = await onAdd(nextLetter, selectedLecturers);
     setIsSaving(false);
     if (success) onClose();
   };
@@ -49,19 +48,9 @@ export const AddClassModal: React.FC<AddClassModalProps> = ({
           Add Class to {courseCode}
         </h3>
         <div className="space-y-3 text-[13px]">
-          <div>
-            <label className="block text-[#43474e] font-semibold mb-1">Class Letter</label>
-            <select
-              value={classLetter}
-              onChange={(e) => setClassLetter(e.target.value)}
-              className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
-            >
-              {Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)).map((letter) => (
-                <option key={letter} value={letter} disabled={existingLetters.includes(letter)}>
-                  Class {letter} {existingLetters.includes(letter) ? '(exists)' : ''}
-                </option>
-              ))}
-            </select>
+          <div className="bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf]">
+            <span className="text-[#74777f] text-[12px] font-semibold uppercase tracking-wide">Class</span>
+            <p className="text-[18px] font-bold text-[#191c1e] font-headline-sm">Class {nextLetter}</p>
           </div>
           <div>
             <label className="block text-[#43474e] font-semibold mb-1">Lecturers</label>
@@ -96,7 +85,7 @@ export const AddClassModal: React.FC<AddClassModalProps> = ({
           </button>
           <button
             onClick={handleSave}
-            disabled={isSaving || !classLetter}
+            disabled={isSaving}
             className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
           >
             {isSaving ? (
