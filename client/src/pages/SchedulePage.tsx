@@ -22,6 +22,7 @@ import { ScheduleLayout } from '../components/SchedulePage/ScheduleLayout';
 import { AddPeriodModal } from '../components/SchedulePage/AddPeriodModal';
 import { ClearGridModal } from '../components/SchedulePage/ClearGridModal';
 import { exportScheduleToExcel } from '../utils/exportToExcel';
+import { exportScheduleToPdf } from '../utils/exportToPdf';
 import { apiDelete } from '../api';
 
 interface SchedulePageProps {
@@ -84,6 +85,10 @@ export function SchedulePage({
 
   const handleExport = useCallback(() => {
     exportScheduleToExcel(scheduleSlots, rooms, sksSettings, breakTimes, lecturers);
+  }, [scheduleSlots, rooms, sksSettings, breakTimes, lecturers]);
+
+  const handleExportPdf = useCallback(() => {
+    exportScheduleToPdf(scheduleSlots, rooms, sksSettings, breakTimes, lecturers);
   }, [scheduleSlots, rooms, sksSettings, breakTimes, lecturers]);
 
   const handleReset = useCallback(async () => {
@@ -163,6 +168,7 @@ export function SchedulePage({
           onPeriodChange={onPeriodChange}
           onOpenAddPeriod={() => setShowAddPeriodModal(true)}
           onExport={handleExport}
+          onExportPdf={handleExportPdf}
           onReset={() => setShowClearGridModal(true)}
         />
       }

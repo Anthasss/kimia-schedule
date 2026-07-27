@@ -20,6 +20,7 @@ interface UnscheduledCoursesSidebarProps {
   onPeriodChange: (period: { year: string; semester: 1 | 2 } | null) => void;
   onOpenAddPeriod: () => void;
   onExport: () => void;
+  onExportPdf: () => void;
   onReset: () => void;
 }
 
@@ -45,10 +46,13 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
   onPeriodChange,
   onOpenAddPeriod,
   onExport,
+  onExportPdf,
   onReset,
 }) => {
   const [showPeriodMenu, setShowPeriodMenu] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -61,6 +65,18 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showPeriodMenu]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false);
+      }
+    }
+    if (showExportMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showExportMenu]);
 
   return (
     <div className="flex flex-col h-full">
@@ -121,13 +137,33 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
         >
           <span className="material-symbols-outlined text-[17px]">delete_sweep</span>
         </button>
-        <button
-          onClick={onExport}
-          className="flex items-center justify-center bg-[#002045] text-white rounded-md p-1.5 hover:bg-[#002f5e] cursor-pointer shrink-0"
-          title="Export to Excel"
-        >
-          <span className="material-symbols-outlined text-[17px]">download</span>
-        </button>
+        <div className="relative" ref={exportMenuRef}>
+          <button
+            onClick={() => setShowExportMenu((v) => !v)}
+            className="flex items-center justify-center bg-[#002045] text-white rounded-md p-1.5 hover:bg-[#002f5e] cursor-pointer shrink-0"
+            title="Export"
+          >
+            <span className="material-symbols-outlined text-[17px]">download</span>
+          </button>
+          {showExportMenu && (
+            <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-[#c4c6cf] rounded-lg shadow-lg z-50 py-1 text-[13px]">
+              <button
+                onClick={() => { onExport(); setShowExportMenu(false); }}
+                className="w-full text-left px-3 py-2 hover:bg-[#f2f4f6] flex items-center gap-2 text-[#43474e]"
+              >
+                <span className="material-symbols-outlined text-[16px] w-4">table</span>
+                <span>Export to Excel</span>
+              </button>
+              <button
+                onClick={() => { onExportPdf(); setShowExportMenu(false); }}
+                className="w-full text-left px-3 py-2 hover:bg-[#f2f4f6] flex items-center gap-2 text-[#43474e]"
+              >
+                <span className="material-symbols-outlined text-[16px] w-4">picture_as_pdf</span>
+                <span>Export to PDF</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="relative shrink-0">
