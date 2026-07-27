@@ -1,7 +1,21 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Course, ScheduleSlot } from '../types';
+import { Course, CourseClass, ScheduleSlot, UnscheduledClass } from '../types';
+
+function buildUnscheduledClass(cc: CourseClass, course: Course): UnscheduledClass {
+  return {
+    id: cc.id,
+    courseId: course.id,
+    courseCode: course.code,
+    courseTitle: course.title,
+    classLetter: cc.classLetter,
+    sks: course.sks,
+    semester: course.semester,
+    lecturers: cc.lecturers,
+  };
+}
 
 export function useUnscheduledCourses(
+  courseClasses: CourseClass[],
   courses: Course[],
   scheduleSlots: ScheduleSlot[],
   currentPeriod: { year: string; semester: 1 | 2 } | null
@@ -9,30 +23,48 @@ export function useUnscheduledCourses(
   const [draftSearch, setDraftSearch] = useState('');
   const [selectedExpandedDraft, setSelectedExpandedDraft] = useState<string | null>(null);
 
-  const unscheduledCourses = useMemo(
-    () =>
-      courses
-        .filter((c) => !scheduleSlots.some((s) => s.courseId === c.id))
-        .filter((c) => c.assignedLecturerName)
-        .filter((c) => {
-          if (!currentPeriod) return true;
-          if (c.semester === 'Both') return true;
-          if (currentPeriod.semester === 1) return c.semester === 'Ganjil';
-          if (currentPeriod.semester === 2) return c.semester === 'Genap';
-          return false;
-        })
-        .sort((a, b) => a.title.localeCompare(b.title)),
-    [courses, scheduleSlots, currentPeriod]
+  const scheduledClassIds = useMemo(
+    () => new Set(scheduleSlots.map((s) => s.classId)),
+    [scheduleSlots]
   );
+
+  const unscheduledCourses = useMemo<UnscheduledClass[]>(() => {
+    const courseByCode = new Map<string, Course>();
+    for (const c of courses) {
+      courseByCode.set(c.code, c);
+    }
+
+    const result: UnscheduledClass[] = [];
+
+    for (const cc of courseClasses) {
+      if (scheduledClassIds.has(cc.id)) continue;
+
+      const course = courseByCode.get(cc.courseCode);
+      if (!course) continue;
+      if (!course.classId) continue;
+
+      if (currentPeriod) {
+        if (course.semester !== 'Both') {
+          if (currentPeriod.semester === 1 && course.semester !== 'Ganjil') continue;
+          if (currentPeriod.semester === 2 && course.semester !== 'Genap') continue;
+        }
+      }
+
+      result.push(buildUnscheduledClass(cc, course));
+    }
+
+    result.sort((a, b) => a.courseTitle.localeCompare(b.courseTitle));
+    return result;
+  }, [courseClasses, courses, scheduledClassIds, currentPeriod]);
 
   const filteredDraftPool = useMemo(
     () =>
       unscheduledCourses.filter(
         (item) =>
-          item.code.toLowerCase().includes(draftSearch.toLowerCase()) ||
-          item.title.toLowerCase().includes(draftSearch.toLowerCase()) ||
-          (item.assignedLecturerName &&
-            item.assignedLecturerName.toLowerCase().includes(draftSearch.toLowerCase()))
+          item.courseCode.toLowerCase().includes(draftSearch.toLowerCase()) ||
+          item.courseTitle.toLowerCase().includes(draftSearch.toLowerCase()) ||
+          item.classLetter.toLowerCase().includes(draftSearch.toLowerCase()) ||
+          item.lecturers.some((l) => l.toLowerCase().includes(draftSearch.toLowerCase()))
       ),
     [unscheduledCourses, draftSearch]
   );

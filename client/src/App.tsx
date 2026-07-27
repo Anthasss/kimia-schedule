@@ -104,7 +104,7 @@ export default function App() {
                   scheduleSlots={scheduleSlots}
                   setScheduleSlots={setScheduleSlots}
                   courses={courses}
-                  setCourses={setCourses}
+                  courseClasses={courseClasses}
                   lecturers={lecturers}
                   sksSettings={sksSettings}
                   setSksSettings={setSksSettings}

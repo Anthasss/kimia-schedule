@@ -35,6 +35,7 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
       <div className="flex justify-between items-start">
         <p className="font-semibold text-[13px] text-[#191c1e] leading-tight">
           {slot.courseTitle}
+          <span className="text-[11px] font-bold text-[#505f76] ml-1">({slot.classLetter})</span>
         </p>
         <button
           onClick={() => onRemove(slot.id)}

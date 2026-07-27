@@ -87,6 +87,8 @@ export const scheduleSlots = pgTable('schedule_slots', {
   roomName: text('room_name').notNull(),
   day: dayOfWeekEnum('day').notNull(),
   timeSlot: text('time_slot').notNull(),
+  classId: text('class_id').notNull(),
+  classLetter: text('class_letter').notNull(),
   hasConflict: boolean('has_conflict'),
   conflictReason: text('conflict_reason'),
 }, (table) => [

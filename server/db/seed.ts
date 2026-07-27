@@ -225,19 +225,25 @@ async function seed() {
   ]);
   console.log('✓ Courses seeded');
 
-  // await db.insert(scheduleSlots).values([
-  //   {
-  //     id: 's1', courseCode: 'KIM-201', courseTitle: 'Data Structures & Algorithms',
-  //     sks: 2, lecturerName: 'Prof. Dr. Febri O. Nitbani, S.Si, M.Si', roomId: 'r5', roomName: 'Lab 101',
-  //     day: 'Monday', timeSlot: '07:30 SKS 1',
-  //   },
-  //   {
-  //     id: 's2', courseCode: 'KIM-101', courseTitle: 'Calculus & Analytical Geometry',
-  //     sks: 1, lecturerName: 'Pius Dore Ola, S.Si, M.Si., Ph.D', roomId: 'r6', roomName: 'Hall A',
-  //     day: 'Tuesday', timeSlot: '07:30 SKS 1',
-  //   },
-  // ]);
-  // console.log('✓ Schedule slots seeded');
+  await db.insert(scheduleSlots).values([
+    // Monday
+    { id: 's1', courseId: 'cour2', courseCode: 'STKIM41201', courseTitle: 'Matematika Dasar', sks: 3, lecturerName: 'Dr. Theodore Y. K. Lulan, S.Si, M.Sc', classId: 'cc2', classLetter: 'A', roomId: 'r1', roomName: 'KIM A.1.3', day: 'Monday', timeSlot: '07:30 - 08:20 SKS 1' },
+    { id: 's2', courseId: 'cour3', courseCode: 'STKIM41202', courseTitle: 'Biologi Dasar', sks: 2, lecturerName: 'Prof. Dr.rer.nat. Antonius R. Basa Ola, S.Si., M.Sc', classId: 'cc3', classLetter: 'A', roomId: 'r2', roomName: 'KIM A.2.1', day: 'Monday', timeSlot: '09:10 - 10:00 SKS 3' },
+    { id: 's3', courseId: 'cour6', courseCode: 'STKIM41101', courseTitle: 'Praktikum Kimia Dasar I', sks: 1, lecturerName: 'Luther Kadang, S.TP, M.Si', classId: 'cc6', classLetter: 'A', roomId: 'r5', roomName: 'Biosains', day: 'Monday', timeSlot: '10:50 - 11:40 SKS 5' },
+    // Tuesday
+    { id: 's4', courseId: 'cour5', courseCode: 'STKIM41301', courseTitle: 'Kimia Dasar I', sks: 3, lecturerName: 'Prof. Dr. Febri O. Nitbani, S.Si, M.Si', classId: 'cc5', classLetter: 'A', roomId: 'r1', roomName: 'KIM A.1.3', day: 'Tuesday', timeSlot: '07:30 - 08:20 SKS 1' },
+    { id: 's5', courseId: 'cour1', courseCode: 'MKU122347201', courseTitle: 'Pendidikan Agama', sks: 2, lecturerName: 'Titus Lapailaka, S.Si., M.Si', classId: 'cc1', classLetter: 'A', roomId: 'r2', roomName: 'KIM A.2.1', day: 'Tuesday', timeSlot: '10:00 - 10:50 SKS 4' },
+    // Wednesday
+    { id: 's6', courseId: 'cour4', courseCode: 'STKIM41203', courseTitle: 'Pengantar Komputasi Kimia', sks: 2, lecturerName: 'Dr. Dodi Darmakusuma, S.Si, M.Si', classId: 'cc4', classLetter: 'A', roomId: 'r1', roomName: 'KIM A.1.3', day: 'Wednesday', timeSlot: '08:20 - 09:10 SKS 2' },
+    { id: 's7', courseId: 'cour7', courseCode: 'STKIM41204', courseTitle: 'Bahasa Inggris Untuk Kimia', sks: 2, lecturerName: 'Dr. Suwari, S.Pd, M.Si', classId: 'cc7', classLetter: 'A', roomId: 'r3', roomName: 'KIM B.2.1', day: 'Wednesday', timeSlot: '10:00 - 10:50 SKS 4' },
+    // Thursday
+    { id: 's8', courseId: 'cour8', courseCode: 'STKIM41205', courseTitle: 'Fisika untuk Kimia', sks: 2, lecturerName: 'David Tambaru, S.Si., M.Chem.Sc., Ph.D.', classId: 'cc8', classLetter: 'A', roomId: 'r1', roomName: 'KIM A.1.3', day: 'Thursday', timeSlot: '07:30 - 08:20 SKS 1' },
+    { id: 's9', courseId: 'cour9', courseCode: 'STKIM41206', courseTitle: 'Pengelolaan Lab', sks: 2, lecturerName: 'Since D. Baunsele, S.Si.,M.Ling', classId: 'cc9', classLetter: 'A', roomId: 'r4', roomName: 'KIM C.1.1', day: 'Thursday', timeSlot: '09:10 - 10:00 SKS 3' },
+    { id: 's10', courseId: 'cour10', courseCode: 'MKU112247201', courseTitle: 'Bahasa Indonesia', sks: 2, lecturerName: 'Marlon J.R. Benu.,S.Si.,M.Si', classId: 'cc10', classLetter: 'A', roomId: 'r2', roomName: 'KIM A.2.1', day: 'Thursday', timeSlot: '13:00 - 13:50 SKS 6' },
+    // Friday
+    { id: 's11', courseId: 'cour11', courseCode: 'MKU112447201', courseTitle: 'Pendidikan Pancasila', sks: 2, lecturerName: 'Mesakh T. W. Boikh, S.Pd, M.Sc', classId: 'cc11', classLetter: 'A', roomId: 'r1', roomName: 'KIM A.1.3', day: 'Friday', timeSlot: '08:20 - 09:10 SKS 2' },
+  ]);
+  console.log('✓ Schedule slots seeded');
 
   console.log('\nDatabase seeding complete!');
   process.exit(0);

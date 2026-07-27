@@ -113,6 +113,11 @@ export const deleteLecturer = createDeleteHandler(lecturers);
 export const deleteCourse = createDeleteHandler(courses);
 export const deleteScheduleSlot = createDeleteHandler(scheduleSlots);
 
+export const deleteAllScheduleSlots = async (_req: Request, res: Response) => {
+  await db.delete(scheduleSlots);
+  res.json({ success: true });
+};
+
 // UPSERT (singleton)
 export const upsertSksSettings = createUpsertHandler(sksSettings);
 
@@ -131,10 +136,7 @@ export const deleteCourseClass = async (req: Request, res: Response) => {
   const classRow = await db.select().from(courseClasses).where(eq(courseClasses.id, classId)).limit(1);
   if (!classRow[0]) return res.status(404).json({ error: "Not found" });
 
-  const linkedCourses = await db.select().from(courses).where(eq(courses.classId, classId));
-  for (const c of linkedCourses) {
-    await db.delete(scheduleSlots).where(eq(scheduleSlots.courseId, c.id));
-  }
+  await db.delete(scheduleSlots).where(eq(scheduleSlots.classId, classId));
   await db.delete(courses).where(eq(courses.classId, classId));
   await db.delete(courseClasses).where(eq(courseClasses.id, classId));
 

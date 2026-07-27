@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Room, ScheduleSlot, Lecturer, DayOfWeek, Course } from '../../types';
+import { Room, ScheduleSlot, Lecturer, DayOfWeek, UnscheduledClass } from '../../types';
 import { GridRow } from '../../hooks/useScheduleTimeSlots';
 import { SlottedCourseCard } from './SlottedCourseCard';
 import { EmptyCell } from './EmptyCell';
@@ -12,9 +12,9 @@ interface ScheduleDayGridProps {
   slotRowLabels: string[];
   scheduleSlots: ScheduleSlot[];
   lecturers: Lecturer[];
-  activeDraftItem: Course | null;
-  unscheduledCourses: Course[];
-  onPlaceDraft: (course: Course, day: DayOfWeek, timeSlot: string, roomId: string) => void;
+  activeDraftItem: UnscheduledClass | null;
+  unscheduledCourses: UnscheduledClass[];
+  onPlaceDraft: (item: UnscheduledClass, day: DayOfWeek, timeSlot: string, roomId: string) => void;
   onRemoveSlot: (slotId: string) => void;
   onSelectEmpty: (day: DayOfWeek, timeSlot: string, roomId: string) => void;
 }
@@ -64,7 +64,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
     const startIdx = slotRowIdx;
 
     if (startIdx + sks > slotRowLabels.length) {
-      return `Not enough time slots remaining for ${activeDraftItem.code} (${sks} SKS)`;
+      return `Not enough time slots remaining for ${activeDraftItem.courseCode} (${sks} SKS)`;
     }
 
     const firstGridPos = gridRows.findIndex(
@@ -83,18 +83,19 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
       }
     }
 
-    if (activeDraftItem.assignedLecturerName) {
+    const primaryLecturer = activeDraftItem.lecturers[0];
+    if (primaryLecturer) {
       const ourStart = startIdx;
       const ourEnd = startIdx + sks;
       const conflictingSlot = scheduleSlots.find((s) => {
-        if (s.day !== day || s.lecturerName !== activeDraftItem.assignedLecturerName) return false;
+        if (s.day !== day || s.lecturerName !== primaryLecturer) return false;
         const theirStart = slotRowLabels.indexOf(s.timeSlot);
         if (theirStart === -1) return false;
         const theirEnd = theirStart + s.sks;
         return ourStart < theirEnd && theirStart < ourEnd;
       });
       if (conflictingSlot) {
-        return `${activeDraftItem.assignedLecturerName} is already scheduled in ${conflictingSlot.roomName} at this time`;
+        return `${primaryLecturer} is already scheduled in ${conflictingSlot.roomName} at this time`;
       }
     }
 

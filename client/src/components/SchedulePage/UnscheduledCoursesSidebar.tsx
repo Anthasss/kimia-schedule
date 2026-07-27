@@ -1,10 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Course, Lecturer } from '../../types';
+import { UnscheduledClass, Lecturer } from '../../types';
 import { CourseDraftCard } from './CourseDraftCard';
 
 interface UnscheduledCoursesSidebarProps {
-  unscheduledCourses: Course[];
-  filteredDraftPool: Course[];
+  unscheduledCourses: UnscheduledClass[];
+  filteredDraftPool: UnscheduledClass[];
   lecturers: Lecturer[];
   draftSearch: string;
   coursesCount: number;
@@ -20,6 +20,7 @@ interface UnscheduledCoursesSidebarProps {
   onPeriodChange: (period: { year: string; semester: 1 | 2 } | null) => void;
   onOpenAddPeriod: () => void;
   onExport: () => void;
+  onReset: () => void;
 }
 
 function formatPeriodLabel(p: { year: string; semester: 1 | 2 }) {
@@ -44,6 +45,7 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
   onPeriodChange,
   onOpenAddPeriod,
   onExport,
+  onReset,
 }) => {
   const [showPeriodMenu, setShowPeriodMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -64,7 +66,7 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center border-b border-[#c4c6cf] pb-3 shrink-0">
         <h3 className="font-headline-sm text-[17px] text-[#191c1e] font-bold">
-          Unscheduled Courses
+          Unscheduled Classes
         </h3>
         <div className="flex items-center justify-center gap-2">
           <span className="text-[12px] font-bold bg-[#002045] text-white px-2.5 py-0.5">
@@ -113,6 +115,13 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
           )}
         </div>
         <button
+          onClick={onReset}
+          className="flex items-center justify-center bg-[#ba1a1a] text-white rounded-md p-1.5 hover:bg-[#93000a] cursor-pointer shrink-0"
+          title="Clear schedule grid"
+        >
+          <span className="material-symbols-outlined text-[17px]">delete_sweep</span>
+        </button>
+        <button
           onClick={onExport}
           className="flex items-center justify-center bg-[#002045] text-white rounded-md p-1.5 hover:bg-[#002f5e] cursor-pointer shrink-0"
           title="Export to Excel"
@@ -150,8 +159,8 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
             {coursesCount === 0
               ? 'No courses defined yet.'
               : unscheduledCourses.length === 0
-                ? 'All courses have been scheduled!'
-                : 'No matching courses found.'}
+                ? 'All classes have been scheduled!'
+                : 'No matching classes found.'}
           </div>
         )}
       </div>

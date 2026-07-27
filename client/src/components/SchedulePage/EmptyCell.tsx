@@ -1,8 +1,8 @@
 import React from 'react';
-import { Course } from '../../types';
+import { UnscheduledClass } from '../../types';
 
 interface EmptyCellProps {
-  activeDraftItem: Course | null;
+  activeDraftItem: UnscheduledClass | null;
   onPlace: () => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -36,14 +36,14 @@ export const EmptyCell: React.FC<EmptyCellProps> = ({
       }`}
       title={
         activeDraftItem
-          ? `Click to place ${activeDraftItem.code} (${activeDraftItem.sks} SKS) here`
+          ? `Click to place ${activeDraftItem.courseCode} (${activeDraftItem.sks} SKS) here`
           : 'Click to select slot'
       }
     >
       {activeDraftItem && isFirstInSpan && (
         <span className={`text-[11px] font-semibold flex items-center gap-1 ${hasError ? 'text-[#ba1a1a]' : 'text-[#002045]'}`}>
           <span className="material-symbols-outlined text-[15px]">add_circle</span>
-          <span>Place {activeDraftItem.code}</span>
+          <span>Place {activeDraftItem.courseCode} ({activeDraftItem.classLetter})</span>
         </span>
       )}
     </div>

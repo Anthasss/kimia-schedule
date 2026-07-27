@@ -1,14 +1,17 @@
 import React, { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import {
   Room,
   Course,
+  CourseClass,
   ScheduleSlot,
   SksSettings,
   DayOfWeek,
   BreakTime,
   Lecturer,
   SemesterPeriod,
+  UnscheduledClass,
 } from '../types';
 import { useScheduleTimeSlots } from '../hooks/useScheduleTimeSlots';
 import { useScheduleSlots } from '../hooks/useScheduleSlots';
@@ -17,14 +20,16 @@ import { ScheduleDayGrid } from '../components/SchedulePage/ScheduleDayGrid';
 import { UnscheduledCoursesSidebar } from '../components/SchedulePage/UnscheduledCoursesSidebar';
 import { ScheduleLayout } from '../components/SchedulePage/ScheduleLayout';
 import { AddPeriodModal } from '../components/SchedulePage/AddPeriodModal';
+import { ClearGridModal } from '../components/SchedulePage/ClearGridModal';
 import { exportScheduleToExcel } from '../utils/exportToExcel';
+import { apiDelete } from '../api';
 
 interface SchedulePageProps {
   rooms: Room[];
   scheduleSlots: ScheduleSlot[];
   setScheduleSlots: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
   courses: Course[];
-  setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
+  courseClasses: CourseClass[];
   lecturers: Lecturer[];
   sksSettings: SksSettings;
   setSksSettings: React.Dispatch<React.SetStateAction<SksSettings>>;
@@ -52,7 +57,7 @@ export function SchedulePage({
   scheduleSlots,
   setScheduleSlots,
   courses,
-  setCourses,
+  courseClasses,
   lecturers,
   sksSettings,
   setSksSettings,
@@ -69,6 +74,7 @@ export function SchedulePage({
   const yearOptions = getDefaultYearOptions();
 
   const [showAddPeriodModal, setShowAddPeriodModal] = useState(false);
+  const [showClearGridModal, setShowClearGridModal] = useState(false);
 
   const currentPeriod: { year: string; semester: 1 | 2 } | null = React.useMemo(() => {
     if (!sksSettings.currentPeriodId) return null;
@@ -80,6 +86,20 @@ export function SchedulePage({
     exportScheduleToExcel(scheduleSlots, rooms, sksSettings, breakTimes, lecturers);
   }, [scheduleSlots, rooms, sksSettings, breakTimes, lecturers]);
 
+  const handleReset = useCallback(async () => {
+    try {
+      await apiDelete('/api/schedule-slots/all');
+      setScheduleSlots([]);
+      setPendingAdds([]);
+      setPendingRemoves([]);
+      setShowClearGridModal(false);
+      toast.success('Schedule grid cleared');
+    } catch {
+      toast.error('Failed to clear schedule grid');
+      setShowClearGridModal(false);
+    }
+  }, [setScheduleSlots, setPendingAdds, setPendingRemoves]);
+
   const { days, timeSlots, gridRows, slotRowLabels } = useScheduleTimeSlots(sksSettings, breakTimes);
 
   const {
@@ -90,7 +110,7 @@ export function SchedulePage({
     unscheduledCourses,
     filteredDraftPool,
     activeDraftItem,
-  } = useUnscheduledCourses(courses, scheduleSlots, currentPeriod);
+  } = useUnscheduledCourses(courseClasses, courses, scheduleSlots, currentPeriod);
 
   const {
     placeDraftOnGrid,
@@ -143,6 +163,7 @@ export function SchedulePage({
           onPeriodChange={onPeriodChange}
           onOpenAddPeriod={() => setShowAddPeriodModal(true)}
           onExport={handleExport}
+          onReset={() => setShowClearGridModal(true)}
         />
       }
     >
@@ -159,8 +180,8 @@ export function SchedulePage({
               lecturers={lecturers}
               activeDraftItem={activeDraftItem}
               unscheduledCourses={unscheduledCourses}
-              onPlaceDraft={(course, day, timeSlot, roomId) =>
-                placeDraftOnGrid(course, unscheduledCourses, day, timeSlot, roomId)
+              onPlaceDraft={(item, day, timeSlot, roomId) =>
+                placeDraftOnGrid(item, unscheduledCourses, day, timeSlot, roomId)
               }
               onRemoveSlot={removeSlotFromGrid}
               onSelectEmpty={handleSelectEmpty}
@@ -187,6 +208,12 @@ export function SchedulePage({
         setSemesterPeriods={setSemesterPeriods}
         sksSettings={sksSettings}
         setSksSettings={setSksSettings}
+      />
+
+      <ClearGridModal
+        isOpen={showClearGridModal}
+        onClose={() => setShowClearGridModal(false)}
+        onConfirm={handleReset}
       />
     </ScheduleLayout>
   );

@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { apiPost, apiDelete } from '../api';
-import { Course, ScheduleSlot, SksSettings, DayOfWeek, Room } from '../types';
+import { UnscheduledClass, ScheduleSlot, SksSettings, DayOfWeek, Room } from '../types';
 
 interface UseScheduleSlotsParams {
   scheduleSlots: ScheduleSlot[];
@@ -45,8 +45,8 @@ export function useScheduleSlots({
 
   const placeDraftOnGrid = useCallback(
     async (
-      course: Course,
-      unscheduledCourses: Course[],
+      unscheduledClass: UnscheduledClass,
+      _allUnscheduled: UnscheduledClass[],
       targetDay?: DayOfWeek,
       targetTimeSlot?: string,
       targetRoomId?: string
@@ -55,6 +55,8 @@ export function useScheduleSlots({
       const timeSlot = targetTimeSlot || assignTimeSlot;
       const roomId = targetRoomId || assignRoomId;
       const selectedRoom = rooms.find((r) => r.id === roomId) || rooms[0];
+
+      const lecturerName = unscheduledClass.lecturers[0] || 'Unassigned';
 
       let hasConflict = false;
       let conflictReason = '';
@@ -72,11 +74,13 @@ export function useScheduleSlots({
 
       const slotData: ScheduleSlot = {
         id: tempId,
-        courseId: course.id,
-        courseCode: course.code,
-        courseTitle: course.title,
-        sks: course.sks,
-        lecturerName: course.assignedLecturerName || 'Unassigned',
+        courseId: unscheduledClass.courseId,
+        courseCode: unscheduledClass.courseCode,
+        courseTitle: unscheduledClass.courseTitle,
+        sks: unscheduledClass.sks,
+        lecturerName,
+        classId: unscheduledClass.id,
+        classLetter: unscheduledClass.classLetter,
         roomId: selectedRoom.id,
         roomName: selectedRoom.name,
         day,
@@ -88,7 +92,7 @@ export function useScheduleSlots({
       setScheduleSlots([...scheduleSlots, slotData]);
       setPendingAdds((prev) => [...prev, slotData]);
 
-      const remaining = unscheduledCourses.filter((c) => c.id !== course.id);
+      const remaining = _allUnscheduled.filter((c) => c.id !== unscheduledClass.id);
       if (remaining.length > 0) {
         setSelectedExpandedDraft(remaining[0].id);
       } else {

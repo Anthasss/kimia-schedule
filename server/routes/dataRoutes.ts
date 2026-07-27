@@ -26,6 +26,7 @@ import {
   deleteCourse,
   deleteCourseClass,
   deleteScheduleSlot,
+  deleteAllScheduleSlots,
   upsertSksSettings,
   getSemesterPeriods,
   createSemesterPeriod,
@@ -67,6 +68,7 @@ router.delete("/api/course-classes/:id", deleteCourseClass);
 router.get("/api/schedule-slots", getScheduleSlots);
 router.post("/api/schedule-slots", createScheduleSlot);
 router.put("/api/schedule-slots/:id", updateScheduleSlot);
+router.delete("/api/schedule-slots/all", deleteAllScheduleSlots);
 router.delete("/api/schedule-slots/:id", deleteScheduleSlot);
 
 router.get("/api/semester-periods", getSemesterPeriods);

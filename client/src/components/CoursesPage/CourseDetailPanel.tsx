@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Course, CourseClass, Lecturer } from '../../types';
 import { ClassCard } from './ClassCard';
 
@@ -13,12 +13,19 @@ interface EditableClass {
   lecturers: string[];
 }
 
+interface LocalClass {
+  tempId: string;
+  classLetter: string;
+  lecturers: string[];
+}
+
 interface CourseDetailPanelProps {
   course: Course;
   courseClasses: CourseClass[];
   lecturers: Lecturer[];
   allCourses: Course[];
-  onSave: (updatedCourse: Course, updatedClasses: { id: string; lecturers: string[] }[], deletedClassIds: string[]) => void;
+  isNewCourse?: boolean;
+  onSave: (updatedCourse: Course, updatedClasses: { id: string; classLetter?: string; lecturers: string[] }[], deletedClassIds: string[]) => void;
   onDeleteCourse: (courseId: string) => void;
   onAddClass: () => void;
 }
@@ -28,6 +35,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
   courseClasses,
   lecturers,
   allCourses,
+  isNewCourse = false,
   onSave,
   onDeleteCourse,
   onAddClass,
@@ -43,8 +51,22 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
       courseClasses.map((cc) => [cc.id, { lecturers: [...cc.lecturers] }])
     )
   );
+  const [localClasses, setLocalClasses] = useState<LocalClass[]>([]);
   const [deletedClassIds, setDeletedClassIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setEditClasses((prev) => {
+      let next = prev;
+      for (const cc of courseClasses) {
+        if (!next[cc.id]) {
+          if (next === prev) next = { ...prev };
+          next[cc.id] = { lecturers: [...cc.lecturers] };
+        }
+      }
+      return next;
+    });
+  }, [courseClasses]);
 
   const isDirty = useMemo(() => {
     if (editCourse.code !== course.code || editCourse.title !== course.title || editCourse.sks !== course.sks || editCourse.semester !== course.semester) return true;
@@ -64,11 +86,24 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
     return false;
   }, [editCourse, editClasses, deletedClassIds, course, courseClasses]);
 
+  const handleAddLocalClass = () => {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    const usedLetters = displayClasses.map((cc) => cc.classLetter);
+    const nextLetter = letters.find((l) => !usedLetters.includes(l)) || 'Z';
+    const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    setLocalClasses((prev) => [...prev, { tempId, classLetter: nextLetter, lecturers: [] }]);
+    setEditClasses((prev) => ({ ...prev, [tempId]: { lecturers: [] } }));
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     const updatedClasses = Object.entries(editClasses)
       .filter(([id]) => !deletedClassIds.includes(id))
-      .map(([id, c]) => ({ id, ...c }));
+      .map(([id, c]) => {
+        const local = localClasses.find((lc) => lc.tempId === id);
+        if (local) return { id, classLetter: local.classLetter, ...c };
+        return { id, ...c };
+      });
     onSave({ ...course, ...editCourse }, updatedClasses, deletedClassIds);
     setIsSaving(false);
   };
@@ -80,6 +115,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
         courseClasses.map((cc) => [cc.id, { lecturers: [...cc.lecturers] }])
       )
     );
+    setLocalClasses([]);
     setDeletedClassIds([]);
   };
 
@@ -99,10 +135,20 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
     });
   };
 
-  const activeClassCount = courseClasses.filter((cc) => !deletedClassIds.includes(cc.id)).length;
+  const displayClasses = useMemo(() => {
+    if (!isNewCourse) return courseClasses;
+    return localClasses.map((lc) => ({
+      id: lc.tempId,
+      courseCode: editCourse.code,
+      classLetter: lc.classLetter,
+      lecturers: lc.lecturers,
+    }));
+  }, [courseClasses, localClasses, isNewCourse, editCourse.code]);
+
+  const activeClassCount = displayClasses.filter((cc) => !deletedClassIds.includes(cc.id)).length;
 
   return (
-    <div className="h-full flex flex-col bg-white p-6">
+    <div className="flex flex-col bg-white p-6">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-[#c4c6cf]">
         <span className="bg-[#002045] text-white text-[13px] font-bold px-2.5 py-1 rounded-md">
@@ -134,17 +180,19 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
               </>
             )}
           </button>
-          <button
-            onClick={() => {
-              if (window.confirm(`Delete "${course.title}"? This will remove all classes and their schedule slots.`)) {
-                onDeleteCourse(course.id);
-              }
-            }}
-            className="p-1.5 text-[#43474e] hover:text-[#ba1a1a] transition-colors cursor-pointer"
-            title="Delete course"
-          >
-            <span className="material-symbols-outlined text-[18px]">delete</span>
-          </button>
+          {!isNewCourse && (
+            <button
+              onClick={() => {
+                if (window.confirm(`Delete "${course.title}"? This will remove all classes and their schedule slots.`)) {
+                  onDeleteCourse(course.id);
+                }
+              }}
+              className="p-1.5 text-[#43474e] hover:text-[#ba1a1a] transition-colors cursor-pointer"
+              title="Delete course"
+            >
+              <span className="material-symbols-outlined text-[18px]">delete</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -159,13 +207,24 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
             className="w-full text-[18px] font-semibold text-[#191c1e] bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none focus:ring-1 focus:ring-[#002045] font-headline-sm"
           />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="block text-[12px] text-[#74777f] font-semibold mb-1.5 uppercase tracking-wide">Course Code</label>
             <input
               type="text"
               value={editCourse.code}
               onChange={(e) => setEditCourse((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))}
+              className="w-full text-[14px] font-mono-code text-[#191c1e] bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none focus:ring-1 focus:ring-[#002045]"
+            />
+          </div>
+          <div>
+            <label className="block text-[12px] text-[#74777f] font-semibold mb-1.5 uppercase tracking-wide">SKS</label>
+            <input
+              type="number"
+              min={1}
+              max={24}
+              value={editCourse.sks}
+              onChange={(e) => setEditCourse((prev) => ({ ...prev, sks: Math.max(1, parseInt(e.target.value) || 0) }))}
               className="w-full text-[14px] font-mono-code text-[#191c1e] bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none focus:ring-1 focus:ring-[#002045]"
             />
           </div>
@@ -185,13 +244,13 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
       </div>
 
       {/* Classes */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+      <div className="px-6 py-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-[14px] font-semibold text-[#191c1e]">
             Classes ({activeClassCount})
           </h3>
           <button
-            onClick={onAddClass}
+            onClick={isNewCourse ? handleAddLocalClass : onAddClass}
             className="px-3 py-1 bg-[#f2f4f6] text-[#002045] text-[13px] font-semibold rounded border border-[#c4c6cf] hover:bg-[#e8ebef] transition-colors flex items-center gap-1 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[15px]">add</span>
@@ -200,7 +259,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
         </div>
 
         <div className="space-y-3">
-          {courseClasses
+          {displayClasses
             .filter((cc) => !deletedClassIds.includes(cc.id))
             .sort((a, b) => a.classLetter.localeCompare(b.classLetter))
             .map((cc) => {

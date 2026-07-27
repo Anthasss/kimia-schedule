@@ -4,7 +4,6 @@ import { Course, CourseClass, Lecturer } from '../types';
 import { apiPost, apiPut, apiDelete } from '../api';
 import { CoursesSidebar } from '../components/CoursesPage/CoursesSidebar';
 import { CourseDetailPanel } from '../components/CoursesPage/CourseDetailPanel';
-import { AddCourseModal } from '../components/CoursesPage/AddCourseModal';
 import { AddClassModal } from '../components/CoursesPage/AddClassModal';
 
 interface CoursesPageProps {
@@ -25,58 +24,77 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
   setLecturers,
 }) => {
   const [selectedCourseCode, setSelectedCourseCode] = useState<string | null>(null);
-  const [showAddCourseModal, setShowAddCourseModal] = useState(false);
+  const [isAddingNewCourse, setIsAddingNewCourse] = useState(false);
   const [showAddClassModal, setShowAddClassModal] = useState(false);
   const [search, setSearch] = useState('');
 
   React.useEffect(() => {
-    if (!selectedCourseCode && courses.length > 0) {
+    if (!selectedCourseCode && courses.length > 0 && !isAddingNewCourse) {
       setSelectedCourseCode(courses[0].code);
     }
-  }, [courses, selectedCourseCode]);
+  }, [courses, selectedCourseCode, isAddingNewCourse]);
 
   const selectedCourse = courses.find((c) => c.code === selectedCourseCode) || null;
   const selectedCourseClasses = selectedCourse
     ? courseClasses.filter((cc) => cc.courseCode === selectedCourse.code)
     : [];
+  const displayCourse: Course | null = isAddingNewCourse
+    ? { id: '', code: '', title: '', sks: 0, semester: 'Ganjil' }
+    : selectedCourse;
+  const displayCourseClasses = isAddingNewCourse ? [] : selectedCourseClasses;
 
-  const handleSelectCourse = (code: string | null) => {
+  const handleSelectCourse = (code: string) => {
+    setIsAddingNewCourse(false);
     setSelectedCourseCode(code);
   };
 
-  const handleAddCourse = async (
-    data: { code: string; title: string; sks: number; semester: string },
-    selectedLecturers: string[]
-  ) => {
-    try {
-      const newCourse = await apiPost<Course>('/api/courses', {
-        ...data,
-        assignedLecturerName: selectedLecturers[0] || null,
-        classId: null,
-      });
-
-      const newClass = await apiPost<CourseClass>('/api/course-classes', {
-        courseCode: data.code,
-        classLetter: 'A',
-        lecturers: selectedLecturers,
-      });
-
-      setCourses((prev) => [...prev, { ...newCourse, classId: newClass.id }]);
-      setCourseClasses((prev) => [...prev, newClass]);
-      setSelectedCourseCode(data.code);
-      toast.success(`Course "${data.code}" created with Class A`);
-      return true;
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create course');
-      return false;
-    }
+  const handleStartAddCourse = () => {
+    setIsAddingNewCourse(true);
+    setSelectedCourseCode(null);
   };
 
   const handleSaveCourse = async (
     updatedCourse: Course,
-    updatedClasses: { id: string; lecturers: string[] }[],
+    updatedClasses: { id: string; classLetter?: string; lecturers: string[] }[],
     deletedClassIds: string[]
   ) => {
+    const isNew = !updatedCourse.id;
+
+    if (isNew) {
+      if (!updatedCourse.code?.trim() || !updatedCourse.title?.trim() || !updatedCourse.sks || !updatedCourse.semester) {
+        toast.error('Please fill in all required fields (code, title, SKS, semester)');
+        return;
+      }
+      try {
+        const createdCourse = await apiPost<Course>('/api/courses', {
+          code: updatedCourse.code,
+          title: updatedCourse.title,
+          sks: updatedCourse.sks,
+          semester: updatedCourse.semester,
+        });
+
+        const newClasses = await Promise.all(
+          updatedClasses.map((c) =>
+            apiPost<CourseClass>('/api/course-classes', {
+              courseCode: createdCourse.code,
+              classLetter: c.classLetter || 'A',
+              lecturers: c.lecturers,
+            })
+          )
+        );
+
+        const firstClassId = newClasses[0]?.id;
+        setCourses((prev) => [...prev, { ...createdCourse, classId: firstClassId }]);
+        setCourseClasses((prev) => [...prev, ...newClasses]);
+        setIsAddingNewCourse(false);
+        setSelectedCourseCode(createdCourse.code);
+        toast.success(`Course "${createdCourse.code}" created`);
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to create course');
+      }
+      return;
+    }
+
     try {
       const results = await Promise.allSettled([
         apiPut<Course>(`/api/courses/${updatedCourse.id}`, {
@@ -116,7 +134,6 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
         }
       }
 
-      // Cascade code change to linked courseClasses
       const originalCourse = courses.find((c) => c.id === updatedCourse.id);
       if (originalCourse && updatedCourse.code !== originalCourse.code) {
         const linkedClasses = courseClasses.filter((cc) => cc.courseCode === originalCourse.code);
@@ -197,23 +214,27 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
   };
 
   return (
-    <div className="h-full pl-3 pt-3 pb-3">
-      <div className="h-full bg-white rounded-lg mr-80">
-        {selectedCourse ? (
-          <CourseDetailPanel
-            course={selectedCourse}
-            courseClasses={selectedCourseClasses}
-            lecturers={lecturers}
-            allCourses={courses}
-            onSave={handleSaveCourse}
-            onDeleteCourse={handleDeleteCourse}
-            onAddClass={() => setShowAddClassModal(true)}
-          />
-        ) : (
-          <div className="h-full flex items-center justify-center text-[#74777f] text-[14px]">
-            Select a course to view details
-          </div>
-        )}
+    <div className="relative min-h-[calc(100vh-120px)]">
+      <div className="mr-80 p-3">
+        <div className="bg-white rounded-lg">
+          {displayCourse ? (
+            <CourseDetailPanel
+              key={displayCourse.id || '__new__'}
+              isNewCourse={isAddingNewCourse}
+              course={displayCourse}
+              courseClasses={displayCourseClasses}
+              lecturers={lecturers}
+              allCourses={courses}
+              onSave={handleSaveCourse}
+              onDeleteCourse={handleDeleteCourse}
+              onAddClass={() => setShowAddClassModal(true)}
+            />
+          ) : (
+            <div className="min-h-[calc(100vh-180px)] flex items-center justify-center text-[#74777f] text-[14px]">
+              Select a course to view details
+            </div>
+          )}
+        </div>
       </div>
 
       <CoursesSidebar
@@ -224,16 +245,8 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
         search={search}
         onSearchChange={setSearch}
         onSelectCourse={handleSelectCourse}
-        onAddCourse={() => setShowAddCourseModal(true)}
+        onAddCourse={handleStartAddCourse}
       />
-
-      {showAddCourseModal && (
-        <AddCourseModal
-          lecturers={lecturers}
-          onAdd={handleAddCourse}
-          onClose={() => setShowAddCourseModal(false)}
-        />
-      )}
 
       {showAddClassModal && selectedCourse && (
         <AddClassModal

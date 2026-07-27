@@ -68,8 +68,21 @@ export interface ScheduleSlot {
   roomName: string;
   day: DayOfWeek;
   timeSlot: string;
+  classId: string;
+  classLetter: string;
   hasConflict?: boolean;
   conflictReason?: string;
+}
+
+export interface UnscheduledClass {
+  id: string;
+  courseId: string;
+  courseCode: string;
+  courseTitle: string;
+  classLetter: string;
+  sks: number;
+  semester: string;
+  lecturers: string[];
 }
 
 

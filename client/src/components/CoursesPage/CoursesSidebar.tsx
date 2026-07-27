@@ -36,7 +36,7 @@ export const CoursesSidebar: React.FC<CoursesSidebarProps> = ({
         entry.classes.push(cc);
       }
     }
-    return Array.from(map.values());
+    return Array.from(map.values()).sort((a, b) => a.course.title.localeCompare(b.course.title));
   }, [courses, courseClasses]);
 
   const filtered = React.useMemo(() => {
@@ -53,7 +53,7 @@ export const CoursesSidebar: React.FC<CoursesSidebarProps> = ({
   }, [grouped, search]);
 
   return (
-    <div className="flex flex-col h-full w-80 bg-white border-l border-[#c4c6cf] p-5 fixed right-0 top-0 z-40">
+    <div className="flex flex-col h-screen w-80 bg-white border-l border-[#c4c6cf] p-5 fixed right-0 top-0 z-40">
       <div className="flex justify-between items-center border-b border-[#c4c6cf] pb-3 shrink-0">
         <h3 className="font-headline-sm text-[17px] text-[#191c1e] font-bold">
           Courses
@@ -77,14 +77,21 @@ export const CoursesSidebar: React.FC<CoursesSidebarProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-2 custom-scrollbar pr-1 mt-2">
-        {filtered.map((g) => (
-          <CourseSidebarCard
-            key={g.course.code}
-            course={g.course}
-            isSelected={selectedCourseCode === g.course.code}
-            onSelect={() => onSelectCourse(g.course.code)}
-          />
-        ))}
+        {filtered.map((g) => {
+          const firstLecturerName = g.classes[0]?.lecturers[0];
+          const matchedLecturer = lecturers.find((l) => l.name === firstLecturerName);
+          const lecturerColor = matchedLecturer?.color || '#6366f1';
+          return (
+            <CourseSidebarCard
+              key={g.course.code}
+              course={g.course}
+              classesCount={g.classes.length}
+              lecturerColor={lecturerColor}
+              isSelected={selectedCourseCode === g.course.code}
+              onSelect={() => onSelectCourse(g.course.code)}
+            />
+          );
+        })}
 
         {filtered.length === 0 && (
           <div className="p-4 text-center text-[13px] text-[#74777f] italic bg-[#f7f9fb] rounded-lg border border-[#c4c6cf]">
