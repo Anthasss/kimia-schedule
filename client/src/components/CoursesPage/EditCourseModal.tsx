@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
-import { Course, Lecturer } from '../../types';
+import { Course } from '../../types';
 
 interface EditCourseModalProps {
   course: Course;
-  lecturers: Lecturer[];
   onSave: (updated: Course) => void;
   onClose: () => void;
 }
 
-export const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, lecturers, onSave, onClose }) => {
+export const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onSave, onClose }) => {
   const [title, setTitle] = useState(course.title);
   const [sks, setSks] = useState(course.sks);
   const [semester, setSemester] = useState(course.semester);
-  const [assignedLecturerName, setAssignedLecturerName] = useState(course.assignedLecturerName || '');
   const [isSaving, setIsSaving] = useState(false);
 
   return (
@@ -50,21 +48,6 @@ export const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, lectur
               <option value="Both">Both</option>
             </select>
           </div>
-          <div>
-            <label className="block text-[#43474e] font-semibold mb-1">Instructor</label>
-            <select
-              value={assignedLecturerName}
-              onChange={(e) => setAssignedLecturerName(e.target.value)}
-              className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
-            >
-              <option value="">Unassigned</option>
-              {lecturers.map((l) => (
-                <option key={l.id} value={l.name}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button
@@ -76,8 +59,7 @@ export const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, lectur
           <button
             onClick={async () => {
               setIsSaving(true);
-              const updated = { ...course, title, sks, semester, assignedLecturerName: assignedLecturerName || undefined };
-              onSave(updated);
+              onSave({ ...course, title, sks, semester });
               setIsSaving(false);
             }}
             disabled={isSaving}

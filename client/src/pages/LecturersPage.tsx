@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { apiDelete } from '../api';
-import { Lecturer, Course, ScheduleSlot } from '../types';
+import { Lecturer, Course, CourseClass, ScheduleSlot } from '../types';
 import { PageHeader } from '../components/Shared/PageHeader';
 import { LecturersTable } from '../components/LecturersPage/LecturersTable';
 import { EditLecturerModal } from '../components/LecturersPage/EditLecturerModal';
@@ -12,6 +12,8 @@ interface LecturersPageProps {
   setLecturers: React.Dispatch<React.SetStateAction<Lecturer[]>>;
   courses: Course[];
   setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
+  courseClasses: CourseClass[];
+  setCourseClasses: React.Dispatch<React.SetStateAction<CourseClass[]>>;
   scheduleSlots: ScheduleSlot[];
   setScheduleSlots: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
   onOpenNewRecordModal: (initialType?: string) => void;
@@ -22,6 +24,8 @@ export function LecturersPage({
   setLecturers,
   courses,
   setCourses,
+  courseClasses,
+  setCourseClasses,
   scheduleSlots,
   setScheduleSlots,
   onOpenNewRecordModal,
@@ -36,6 +40,21 @@ export function LecturersPage({
     l.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const removeLecturerFromState = (lecturerName: string) => {
+    setCourseClasses((prev) =>
+      prev.map((cc) => ({
+        ...cc,
+        lecturers: cc.lecturers.filter((name) => name !== lecturerName),
+      }))
+    );
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.assignedLecturerName === lecturerName ? { ...c, assignedLecturerName: undefined } : c
+      )
+    );
+    setScheduleSlots((prev) => prev.filter((s) => s.lecturerName !== lecturerName));
+  };
+
   const handleDeleteLecturer = async (lecturer: Lecturer) => {
     const isReferenced =
       courses.some((c) => c.assignedLecturerName === lecturer.name) ||
@@ -46,10 +65,7 @@ export function LecturersPage({
       try {
         await apiDelete(`/api/lecturers/${lecturer.id}`);
         setLecturers(lecturers.filter((l) => l.id !== lecturer.id));
-        setCourses(courses.map((c) =>
-          c.assignedLecturerName === lecturer.name ? { ...c, assignedLecturerName: undefined } : c
-        ));
-        setScheduleSlots(scheduleSlots.filter((s) => s.lecturerName !== lecturer.name));
+        removeLecturerFromState(lecturer.name);
         toast.success('Lecturer deleted');
       } catch (err) {
         console.error(err);
@@ -68,12 +84,7 @@ export function LecturersPage({
     try {
       await apiDelete(`/api/lecturers/${deleteLecturerTarget.id}`);
       setLecturers(lecturers.filter((l) => l.id !== deleteLecturerTarget.id));
-      setCourses(courses.map((c) =>
-        c.assignedLecturerName === deleteLecturerTarget.name
-          ? { ...c, assignedLecturerName: undefined }
-          : c
-      ));
-      setScheduleSlots(scheduleSlots.filter((s) => s.lecturerName !== deleteLecturerTarget.name));
+      removeLecturerFromState(deleteLecturerTarget.name);
       setDeleteLecturerTarget(null);
       toast.success('Lecturer deleted');
     } catch (err) {

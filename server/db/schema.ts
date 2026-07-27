@@ -46,6 +46,15 @@ export const lecturers = pgTable('lecturers', {
   unique('lecturers_name_unique').on(table.name),
 ]);
 
+export const courseClasses = pgTable('course_classes', {
+  id: text('id').primaryKey(),
+  courseCode: text('course_code').notNull(),
+  classLetter: text('class_letter').notNull(),
+  lecturers: jsonb('lecturers').$type<string[]>().notNull().default([]),
+}, (table) => [
+  unique('course_classes_code_letter_unique').on(table.courseCode, table.classLetter),
+]);
+
 export const courses = pgTable('courses', {
   id: text('id').primaryKey(),
   code: text('code').notNull(),
@@ -53,11 +62,17 @@ export const courses = pgTable('courses', {
   sks: integer('sks').notNull(),
   semester: text('semester').notNull().default('Both'),
   assignedLecturerName: text('assigned_lecturer_name'),
+  classId: text('class_id'),
 }, (table) => [
   foreignKey({
     columns: [table.assignedLecturerName],
     foreignColumns: [lecturers.name],
     name: 'courses_lecturer_fk',
+  }).onDelete('set null'),
+  foreignKey({
+    columns: [table.classId],
+    foreignColumns: [courseClasses.id],
+    name: 'courses_class_fk',
   }).onDelete('set null'),
 ]);
 

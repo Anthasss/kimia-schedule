@@ -6,6 +6,7 @@ import {
   breakTimes,
   sksSettings,
   lecturers,
+  courseClasses,
   courses,
   scheduleSlots,
   semesterPeriods,
@@ -119,3 +120,23 @@ export const upsertSksSettings = createUpsertHandler(sksSettings);
 export const getSemesterPeriods = createGetAllHandler(semesterPeriods);
 export const createSemesterPeriod = createInsertHandler(semesterPeriods);
 export const deleteSemesterPeriod = createDeleteHandler(semesterPeriods);
+
+// Course Classes
+export const getCourseClasses = createGetAllHandler(courseClasses);
+export const createCourseClass = createInsertHandler(courseClasses);
+export const updateCourseClass = createUpdateHandler(courseClasses);
+
+export const deleteCourseClass = async (req: Request, res: Response) => {
+  const classId = req.params.id;
+  const classRow = await db.select().from(courseClasses).where(eq(courseClasses.id, classId)).limit(1);
+  if (!classRow[0]) return res.status(404).json({ error: "Not found" });
+
+  const linkedCourses = await db.select().from(courses).where(eq(courses.classId, classId));
+  for (const c of linkedCourses) {
+    await db.delete(scheduleSlots).where(eq(scheduleSlots.courseId, c.id));
+  }
+  await db.delete(courses).where(eq(courses.classId, classId));
+  await db.delete(courseClasses).where(eq(courseClasses.id, classId));
+
+  res.json({ success: true });
+};

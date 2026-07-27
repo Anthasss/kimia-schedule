@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Course } from '../types';
+import { Course, CourseClass } from '../types';
 
 export function useCourses() {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [courseClasses, setCourseClasses] = useState<CourseClass[]>([]);
 
-  return { courses, setCourses };
+  return { courses, setCourses, courseClasses, setCourseClasses };
 }

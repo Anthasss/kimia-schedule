@@ -26,7 +26,7 @@ export default function App() {
   const { breakTimes, setBreakTimes, addBreakTime, deleteBreakTime, deletingBreakId } = useBreakTimes();
   const { sksSettings, setSksSettings, saveSksSettings, isSavingSettings, handlePeriodChange } = useSksSettings();
   const { scheduleSlots, setScheduleSlots } = useScheduleData();
-  const { courses, setCourses } = useCourses();
+  const { courses, setCourses, courseClasses, setCourseClasses } = useCourses();
   const { semesterPeriods, setSemesterPeriods } = useSemesterPeriods();
 
   useDataFetching({
@@ -35,6 +35,7 @@ export default function App() {
     setSksSettings,
     setLecturers,
     setCourses,
+    setCourseClasses,
     setScheduleSlots,
     setSemesterPeriods,
   });
@@ -87,6 +88,8 @@ export default function App() {
                   setLecturers={setLecturers}
                   courses={courses}
                   setCourses={setCourses}
+                  courseClasses={courseClasses}
+                  setCourseClasses={setCourseClasses}
                   scheduleSlots={scheduleSlots}
                   setScheduleSlots={setScheduleSlots}
                   onOpenNewRecordModal={handleOpenNewRecordModal}
@@ -118,7 +121,7 @@ export default function App() {
             />
             <Route
               path="/courses"
-              element={<CoursesPage courses={courses} setCourses={setCourses} lecturers={lecturers} />}
+              element={<CoursesPage courses={courses} setCourses={setCourses} courseClasses={courseClasses} setCourseClasses={setCourseClasses} lecturers={lecturers} />}
             />
             <Route path="*" element={<Navigate to="/management" replace />} />
           </Routes>

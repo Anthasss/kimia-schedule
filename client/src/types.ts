@@ -38,6 +38,14 @@ export interface Course {
   sks: number;
   semester: string;
   assignedLecturerName?: string;
+  classId?: string;
+}
+
+export interface CourseClass {
+  id: string;
+  courseCode: string;
+  classLetter: string;
+  lecturers: string[];
 }
 
 export type DayOfWeek =

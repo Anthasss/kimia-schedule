@@ -6,21 +6,25 @@ import {
   getSksSettings,
   getLecturers,
   getCourses,
+  getCourseClasses,
   getScheduleSlots,
   createRoom,
   createBreakTime,
   createLecturer,
   createCourse,
+  createCourseClass,
   createScheduleSlot,
   updateRoom,
   updateBreakTime,
   updateLecturer,
   updateCourse,
+  updateCourseClass,
   updateScheduleSlot,
   deleteRoom,
   deleteBreakTime,
   deleteLecturer,
   deleteCourse,
+  deleteCourseClass,
   deleteScheduleSlot,
   upsertSksSettings,
   getSemesterPeriods,
@@ -54,6 +58,11 @@ router.get("/api/courses", getCourses);
 router.post("/api/courses", createCourse);
 router.put("/api/courses/:id", updateCourse);
 router.delete("/api/courses/:id", deleteCourse);
+
+router.get("/api/course-classes", getCourseClasses);
+router.post("/api/course-classes", createCourseClass);
+router.put("/api/course-classes/:id", updateCourseClass);
+router.delete("/api/course-classes/:id", deleteCourseClass);
 
 router.get("/api/schedule-slots", getScheduleSlots);
 router.post("/api/schedule-slots", createScheduleSlot);
