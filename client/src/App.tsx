@@ -11,23 +11,21 @@ import { useRooms } from './hooks/useRooms';
 import { useLecturers } from './hooks/useLecturers';
 import { useBreakTimes } from './hooks/useBreakTimes';
 import { useSksSettings } from './hooks/useSksSettings';
-import { useScheduleData } from './hooks/useScheduleData';
-import { useCourses } from './hooks/useCourses';
-import { useSemesterPeriods } from './hooks/useSemesterPeriods';
 import { useDataFetching } from './hooks/useDataFetching';
-import { ScheduleSlot } from './types';
+import { ScheduleSlot, Course, CourseClass, SemesterPeriod } from './types';
 
 export default function App() {
   const [pendingAdds, setPendingAdds] = useState<ScheduleSlot[]>([]);
   const [pendingRemoves, setPendingRemoves] = useState<string[]>([]);
+  const [scheduleSlots, setScheduleSlots] = useState<ScheduleSlot[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [courseClasses, setCourseClasses] = useState<CourseClass[]>([]);
+  const [semesterPeriods, setSemesterPeriods] = useState<SemesterPeriod[]>([]);
 
   const { rooms, setRooms, addRoom, deleteRoom, deletingRoomId } = useRooms();
   const { lecturers, setLecturers, addLecturer } = useLecturers();
   const { breakTimes, setBreakTimes, addBreakTime, deleteBreakTime, deletingBreakId } = useBreakTimes();
   const { sksSettings, setSksSettings, saveSksSettings, isSavingSettings, handlePeriodChange } = useSksSettings();
-  const { scheduleSlots, setScheduleSlots } = useScheduleData();
-  const { courses, setCourses, courseClasses, setCourseClasses } = useCourses();
-  const { semesterPeriods, setSemesterPeriods } = useSemesterPeriods();
 
   useDataFetching({
     setRooms,
@@ -42,9 +40,6 @@ export default function App() {
 
   const [showNewRecordModal, setShowNewRecordModal] = useState(false);
   const [initialRecordType, setInitialRecordType] = useState('Room');
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const handleOpenNewRecordModal = (initialType: string = 'Room') => {
     setInitialRecordType(initialType);
@@ -70,7 +65,6 @@ export default function App() {
                   sksSettings={sksSettings}
                   setSksSettings={setSksSettings}
                   onOpenNewRecordModal={handleOpenNewRecordModal}
-                  onExportData={() => setShowExportModal(true)}
                   deleteRoom={deleteRoom}
                   deletingRoomId={deletingRoomId}
                   deleteBreakTime={deleteBreakTime}
@@ -135,14 +129,6 @@ export default function App() {
         onAddRoom={addRoom}
         onAddLecturer={addLecturer}
         onAddBreak={addBreakTime}
-        showReportModal={showReportModal}
-        setShowReportModal={setShowReportModal}
-        showExportModal={showExportModal}
-        setShowExportModal={setShowExportModal}
-        showSettingsModal={showSettingsModal}
-        setShowSettingsModal={setShowSettingsModal}
-        roomsCount={rooms.length}
-        lecturersCount={lecturers.length}
       />
     </div>
   );

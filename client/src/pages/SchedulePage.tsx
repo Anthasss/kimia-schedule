@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -13,7 +13,7 @@ import {
   SemesterPeriod,
   UnscheduledClass,
 } from '../types';
-import { useScheduleTimeSlots } from '../hooks/useScheduleTimeSlots';
+import { computeTimeSlots } from '../utils/scheduleTimeSlots';
 import { useScheduleSlots } from '../hooks/useScheduleSlots';
 import { useUnscheduledCourses } from '../hooks/useUnscheduledCourses';
 import { ScheduleDayGrid } from '../components/SchedulePage/ScheduleDayGrid';
@@ -105,7 +105,7 @@ export function SchedulePage({
     }
   }, [setScheduleSlots, setPendingAdds, setPendingRemoves]);
 
-  const { days, timeSlots, gridRows, slotRowLabels } = useScheduleTimeSlots(sksSettings, breakTimes);
+  const { days, timeSlots, gridRows, slotRowLabels } = useMemo(() => computeTimeSlots(sksSettings, breakTimes), [sksSettings, breakTimes]);
 
   const {
     draftSearch,
