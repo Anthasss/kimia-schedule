@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Room } from '../../types';
+import { ConfirmModal } from '../Shared/ConfirmModal';
 
 interface RoomsTableProps {
   rooms: Room[];
@@ -16,6 +17,7 @@ export const RoomsTable: React.FC<RoomsTableProps> = ({
   onDeleteRoom,
   deletingRoomId,
 }) => {
+  const [confirmDeleteRoomId, setConfirmDeleteRoomId] = useState<string | null>(null);
   return (
     <div className="bg-white border border-[#c4c6cf] rounded-xl overflow-hidden shadow-2xs flex flex-col">
       <div className="px-6 py-4 border-b border-[#c4c6cf] flex justify-between items-center bg-white">
@@ -66,7 +68,7 @@ export const RoomsTable: React.FC<RoomsTableProps> = ({
                       <span className="material-symbols-outlined text-[18px]">edit</span>
                     </button>
                     <button
-                      onClick={() => onDeleteRoom(room.id)}
+                      onClick={() => setConfirmDeleteRoomId(room.id)}
                       disabled={deletingRoomId === room.id}
                       className="p-1.5 text-[#43474e] hover:text-[#ba1a1a] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       title="Delete Room"
@@ -84,6 +86,19 @@ export const RoomsTable: React.FC<RoomsTableProps> = ({
           </tbody>
         </table>
       </div>
+
+      <ConfirmModal
+        open={confirmDeleteRoomId !== null}
+        message="Are you sure you want to delete this room?"
+        confirmLabel="Delete"
+        danger
+        loading={deletingRoomId === confirmDeleteRoomId && confirmDeleteRoomId !== null}
+        onConfirm={() => {
+          if (confirmDeleteRoomId) onDeleteRoom(confirmDeleteRoomId);
+          setConfirmDeleteRoomId(null);
+        }}
+        onCancel={() => setConfirmDeleteRoomId(null)}
+      />
     </div>
   );
 };

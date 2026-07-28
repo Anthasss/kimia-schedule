@@ -173,7 +173,8 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
 
       const classesToDelete = courseClasses.filter((cc) => cc.courseCode === course.code);
       await Promise.all(classesToDelete.map((cc) => apiDelete(`/api/course-classes/${cc.id}`)));
-      await apiDelete(`/api/courses/${courseId}`);
+      // ponytail: deleteCourseClass cascade-deletes the course via classId FK
+      if (!classesToDelete.length) await apiDelete(`/api/courses/${courseId}`);
 
       setCourses((prev) => prev.filter((c) => c.id !== courseId));
       setCourseClasses((prev) => prev.filter((cc) => cc.courseCode !== course.code));

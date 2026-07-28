@@ -5,11 +5,13 @@ import { PageHeader } from "../components/Shared/PageHeader";
 import { UsersTable } from "../components/AdminPage/UsersTable";
 import { CreateUserModal } from "../components/AdminPage/CreateUserModal";
 import { EditUserModal } from "../components/AdminPage/EditUserModal";
+import { ConfirmModal } from "../components/Shared/ConfirmModal";
 
 export function AdminPage() {
   const [users, setUsers] = useState<Array<{ id: string; name?: string; email?: string; role?: string }>>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<{ id: string; name?: string; email?: string; role?: string } | null>(null);
 
@@ -29,10 +31,12 @@ export function AdminPage() {
     fetchUsers();
   }, []);
 
-  const handleDelete = async (userId: string) => {
-    if (!confirm("Delete this user?")) return;
-    setDeletingUserId(userId);
-    const { error } = await authClient.admin.removeUser({ userId });
+  const handleDelete = (userId: string) => setConfirmDeleteUserId(userId);
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteUserId) return;
+    setDeletingUserId(confirmDeleteUserId);
+    const { error } = await authClient.admin.removeUser({ userId: confirmDeleteUserId });
     if (error) {
       toast.error(error.message || "Failed to delete user");
       setDeletingUserId(null);
@@ -40,6 +44,7 @@ export function AdminPage() {
     }
     toast.success("User deleted");
     setDeletingUserId(null);
+    setConfirmDeleteUserId(null);
     fetchUsers();
   };
 
@@ -84,6 +89,16 @@ export function AdminPage() {
           }}
         />
       )}
+
+      <ConfirmModal
+        open={confirmDeleteUserId !== null}
+        message="Delete this user?"
+        confirmLabel="Delete"
+        danger
+        loading={deletingUserId === confirmDeleteUserId && confirmDeleteUserId !== null}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDeleteUserId(null)}
+      />
     </div>
   );
 }

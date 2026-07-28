@@ -19,7 +19,6 @@ export function useRooms() {
   };
 
   const deleteRoom = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this room?')) return;
     setDeletingRoomId(id);
     try {
       await apiDelete(`/api/rooms/${id}`);
