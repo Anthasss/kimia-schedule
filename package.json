@@ -22,7 +22,6 @@
     "drizzle-orm": "^0.45.2",
     "express": "^4.21.2",
     "jspdf": "^4.2.1",
-    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.546.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",

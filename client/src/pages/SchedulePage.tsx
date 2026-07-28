@@ -62,9 +62,9 @@ export function SchedulePage({
     exportScheduleToExcel(scheduleSlots, rooms, sksSettings, breakTimes, lecturers);
   }, [scheduleSlots, rooms, sksSettings, breakTimes, lecturers]);
 
-  const handleExportPdf = useCallback(() => {
-    exportScheduleToPdf(scheduleSlots, rooms, sksSettings, breakTimes, lecturers);
-  }, [scheduleSlots, rooms, sksSettings, breakTimes, lecturers]);
+  const handleExportPdf = useCallback(async () => {
+    await exportScheduleToPdf();
+  }, []);
 
   const handleReset = useCallback(async () => {
     try {
