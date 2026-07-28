@@ -76,6 +76,7 @@ export function AdminPage() {
       {editingUser && (
         <EditUserModal
           user={editingUser}
+          allUsers={users}
           onClose={() => setEditingUser(null)}
           onSaved={() => {
             setEditingUser(null);

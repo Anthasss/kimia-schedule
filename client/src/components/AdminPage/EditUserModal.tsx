@@ -4,15 +4,21 @@ import { authClient } from '@/lib/auth-client';
 
 interface EditUserModalProps {
   user: { id: string; name?: string; email?: string; role?: string };
+  allUsers: { id: string; role?: string }[];
   onClose: () => void;
   onSaved: () => void;
 }
 
-export const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onSaved }) => {
+export const EditUserModal: React.FC<EditUserModalProps> = ({ user, allUsers, onClose, onSaved }) => {
   const [name, setName] = useState(user.name || '');
   const [email, setEmail] = useState(user.email || '');
+  const [role, setRole] = useState(user.role || 'user');
   const [newPassword, setNewPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // ponytail: block demoting the last admin
+  const adminCount = allUsers.filter((u) => u.role === 'admin').length;
+  const isOnlyAdmin = user.role === 'admin' && adminCount <= 1;
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -20,6 +26,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onS
     const data: Record<string, string> = {};
     if (name !== user.name) data.name = name;
     if (email !== user.email) data.email = email;
+    if (role !== user.role) data.role = role;
 
     if (Object.keys(data).length > 0) {
       const { error } = await authClient.admin.updateUser({
@@ -74,6 +81,21 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onS
             />
           </div>
           <div>
+            <label className="block text-[#43474e] font-semibold mb-1">Role</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              disabled={isOnlyAdmin}
+              className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none font-semibold text-[#191c1e] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+            {isOnlyAdmin && (
+              <p className="text-[11px] text-[#ba1a1a] mt-1">Cannot demote — this is the only admin.</p>
+            )}
+          </div>
+          <div>
             <label className="block text-[#43474e] font-semibold mb-1">New Password</label>
             <input
               type="text"
@@ -93,7 +115,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ user, onClose, onS
           </button>
           <button
             onClick={handleSave}
-            disabled={isSaving || (name === user.name && email === user.email)}
+            disabled={isSaving || (name === user.name && email === user.email && role === user.role)}
             className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
           >
             {isSaving ? (
