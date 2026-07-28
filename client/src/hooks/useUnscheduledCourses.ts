@@ -17,8 +17,7 @@ function buildUnscheduledClass(cc: CourseClass, course: Course): UnscheduledClas
 export function useUnscheduledCourses(
   courseClasses: CourseClass[],
   courses: Course[],
-  scheduleSlots: ScheduleSlot[],
-  currentPeriod: { year: string; semester: 1 | 2 } | null
+  scheduleSlots: ScheduleSlot[]
 ) {
   const [draftSearch, setDraftSearch] = useState('');
   const [selectedExpandedDraft, setSelectedExpandedDraft] = useState<string | null>(null);
@@ -43,19 +42,12 @@ export function useUnscheduledCourses(
       if (!course) continue;
       if (!course.classId) continue;
 
-      if (currentPeriod) {
-        if (course.semester !== 'Both') {
-          if (currentPeriod.semester === 1 && course.semester !== 'Ganjil') continue;
-          if (currentPeriod.semester === 2 && course.semester !== 'Genap') continue;
-        }
-      }
-
       result.push(buildUnscheduledClass(cc, course));
     }
 
     result.sort((a, b) => a.courseTitle.localeCompare(b.courseTitle));
     return result;
-  }, [courseClasses, courses, scheduledClassIds, currentPeriod]);
+  }, [courseClasses, courses, scheduledClassIds]);
 
   const filteredDraftPool = useMemo(
     () =>

@@ -41,9 +41,26 @@ export const TimeSettings: React.FC<TimeSettingsProps> = ({
   return (
     <div className="bg-white border border-[#c4c6cf] rounded-xl p-6 shadow-2xs flex-1 flex flex-col justify-between">
       <div>
-        <div className="flex items-center gap-2 mb-6">
-          <span className="material-symbols-outlined text-[#002045] text-[22px]">settings_applications</span>
-          <h3 className="font-headline-sm text-[18px] text-[#191c1e]">Time Settings</h3>
+        <div className="flex items-center justify-between gap-2 mb-6">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[#002045] text-[22px]">settings_applications</span>
+            <h3 className="font-headline-sm text-[18px] text-[#191c1e]">Time Settings</h3>
+          </div>
+
+          <button
+            onClick={onSave}
+            disabled={isSaving}
+            className=" py-2.5 px-4 bg-[#002045] text-white rounded-md font-semibold text-[13px] hover:bg-opacity-90 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+          >
+            {isSaving ? (
+              <>
+                <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
+                <span>Saving...</span>
+              </>
+            ) : (
+              <span>Save</span>
+            )}
+          </button>
         </div>
 
         <div className="space-y-5">
@@ -65,9 +82,6 @@ export const TimeSettings: React.FC<TimeSettingsProps> = ({
               />
               <span className="text-[13px] font-semibold text-[#191c1e] whitespace-nowrap">min / unit</span>
             </div>
-            <p className="text-[11px] text-[#43474e] mt-2 italic">
-              Standard academic duration is 50 minutes as per Faculty Policy.
-            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -118,38 +132,20 @@ export const TimeSettings: React.FC<TimeSettingsProps> = ({
                     key={day}
                     type="button"
                     onClick={() => handleToggleDay(day)}
-                    className={`px-3 py-1.5 rounded-md text-[12px] font-semibold transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#002045] text-white shadow-xs'
-                        : 'bg-[#eceef0] text-[#505f76] hover:bg-[#e0e3e5] border border-[#c4c6cf]'
-                    }`}
+                    className={`px-3 py-1.5 rounded-md text-[12px] font-semibold transition-all cursor-pointer ${isSelected
+                      ? 'bg-[#002045] text-white shadow-xs'
+                      : 'bg-[#eceef0] text-[#505f76] hover:bg-[#e0e3e5] border border-[#c4c6cf]'
+                      }`}
                   >
                     {day.slice(0, 3)}
                   </button>
                 );
               })}
             </div>
-            <p className="text-[11px] text-[#43474e] mt-2 italic">
-              Select the operational days of the week for scheduling.
-            </p>
           </div>
         </div>
       </div>
 
-      <button
-        onClick={onSave}
-        disabled={isSaving}
-        className="w-full mt-6 py-2.5 bg-[#002045] text-white rounded-md font-semibold text-[13px] hover:bg-opacity-90 active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-      >
-        {isSaving ? (
-          <>
-            <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
-            <span>Saving...</span>
-          </>
-        ) : (
-          <span>Save Global Parameters</span>
-        )}
-      </button>
     </div>
   );
 };

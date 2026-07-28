@@ -7,6 +7,7 @@ interface ClassCardProps {
   editLecturers: string[];
   onLecturersChange: (lecturers: string[]) => void;
   onDelete: () => void;
+  hasError?: boolean;
 }
 
 export const ClassCard: React.FC<ClassCardProps> = ({
@@ -15,6 +16,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
   editLecturers,
   onLecturersChange,
   onDelete,
+  hasError = false,
 }) => {
   const updateLecturer = (index: number, name: string) => {
     const next = [...editLecturers];
@@ -33,7 +35,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
   };
 
   return (
-    <div className="border border-[#c4c6cf] rounded-lg p-4 bg-[#f7f9fb]">
+    <div className={`rounded-lg p-4 bg-[#f7f9fb] ${hasError ? 'border-2 border-[#ba1a1a]' : 'border border-[#c4c6cf]'}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-bold px-2 py-0.5 bg-[#002045] text-white rounded">

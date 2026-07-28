@@ -26,17 +26,16 @@ export function useSksSettings() {
     }
   };
 
-  const handlePeriodChange = async (period: { year: string; semester: 1 | 2 } | null, semesterPeriods: SemesterPeriod[]) => {
-    if (!period) {
-      setSksSettings({ ...sksSettings, currentPeriodId: null });
-      await apiPost('/api/sks-settings', { ...sksSettings, currentPeriodId: null });
-    } else {
-      const match = semesterPeriods.find((p) => p.year === period.year && p.semester === period.semester);
-      if (match) {
-        setSksSettings({ ...sksSettings, currentPeriodId: match.id });
-        await apiPost('/api/sks-settings', { ...sksSettings, currentPeriodId: match.id });
-      }
-    }
+  const handlePeriodChange = async (
+    period: { year: string; semester: 1 | 2 } | null,
+    semesterPeriods: SemesterPeriod[]
+  ) => {
+    const match = period
+      ? semesterPeriods.find((p) => p.year === period.year && p.semester === period.semester)
+      : null;
+    const newSettings = { ...sksSettings, currentPeriodId: match?.id ?? null };
+    setSksSettings(newSettings);
+    await apiPost('/api/sks-settings', newSettings);
   };
 
   return { sksSettings, setSksSettings, saveSksSettings, isSavingSettings, handlePeriodChange };

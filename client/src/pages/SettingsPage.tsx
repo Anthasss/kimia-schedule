@@ -7,7 +7,7 @@ import { BreakTimesTable } from '../components/ManagementPage/BreakTimesTable';
 import { EditRoomModal } from '../components/ManagementPage/EditRoomModal';
 import { EditBreakModal } from '../components/ManagementPage/EditBreakModal';
 
-interface ManagementPageProps {
+interface SettingsPageProps {
   rooms: Room[];
   setRooms: Dispatch<SetStateAction<Room[]>>;
   breakTimes: BreakTime[];
@@ -15,7 +15,6 @@ interface ManagementPageProps {
   sksSettings: SksSettings;
   setSksSettings: Dispatch<SetStateAction<SksSettings>>;
   onOpenNewRecordModal: (initialType?: string) => void;
-  onExportData: () => void;
   deleteRoom: (id: string) => void;
   deletingRoomId: string | null;
   deleteBreakTime: (id: string) => void;
@@ -24,7 +23,7 @@ interface ManagementPageProps {
   isSavingSettings: boolean;
 }
 
-export function ManagementPage({
+export function SettingsPage({
   rooms,
   setRooms,
   breakTimes,
@@ -32,14 +31,13 @@ export function ManagementPage({
   sksSettings,
   setSksSettings,
   onOpenNewRecordModal,
-  onExportData,
   deleteRoom,
   deletingRoomId,
   deleteBreakTime,
   deletingBreakId,
   saveSksSettings,
   isSavingSettings,
-}: ManagementPageProps) {
+}: SettingsPageProps) {
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [editingBreak, setEditingBreak] = useState<BreakTime | null>(null);
 
@@ -49,22 +47,7 @@ export function ManagementPage({
         title="Basic Data Management"
         subtitle="Manage institutional resources and academic parameters."
         actions={
-          <>
-            <button
-              onClick={onExportData}
-              className="bg-white border border-[#c4c6cf] px-4 py-2 rounded-lg font-semibold text-[12px] text-[#191c1e] flex items-center gap-2 hover:bg-[#f2f4f6] transition-colors shadow-2xs cursor-pointer active:scale-95"
-            >
-              <span className="material-symbols-outlined text-[18px]">download</span>
-              <span>Export Data</span>
-            </button>
-            <button
-              onClick={() => onOpenNewRecordModal()}
-              className="bg-[#002045] text-white px-4 py-2 rounded-lg font-semibold text-[12px] flex items-center gap-2 hover:bg-opacity-90 active:scale-95 transition-all shadow-sm cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              <span>New Record</span>
-            </button>
-          </>
+          <div />
         }
       />
 
