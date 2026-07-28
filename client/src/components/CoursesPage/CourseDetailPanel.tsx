@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Course, CourseClass, Lecturer } from '../../types';
 import { toast } from 'sonner';
 import { ClassCard } from './ClassCard';
+import { ConfirmModal } from '../Shared/ConfirmModal';
 
 interface EditableCourseInfo {
   code: string;
@@ -68,6 +69,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
   const [deletedClassIds, setDeletedClassIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [errorFields, setErrorFields] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (isNewCourse) return;
@@ -236,11 +238,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
           </button>
           {!isNewCourse && (
             <button
-              onClick={() => {
-                if (window.confirm(`Delete "${course.title}"? This will remove all classes and their schedule slots.`)) {
-                  onDeleteCourse(course.id);
-                }
-              }}
+              onClick={() => setShowDeleteConfirm(true)}
               className="p-1.5 text-[#43474e] hover:text-[#ba1a1a] transition-colors cursor-pointer"
               title="Delete course"
             >
@@ -344,6 +342,18 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
             })}
         </div>
       </div>
+
+      <ConfirmModal
+        open={showDeleteConfirm}
+        message={`Delete "${course.title}"? This will remove all classes and their schedule slots.`}
+        confirmLabel="Delete"
+        danger
+        onConfirm={() => {
+          onDeleteCourse(course.id);
+          setShowDeleteConfirm(false);
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 };
