@@ -18,7 +18,6 @@ import { ScheduleDayGrid } from '../components/SchedulePage/ScheduleDayGrid';
 import { UnscheduledCoursesSidebar } from '../components/SchedulePage/UnscheduledCoursesSidebar';
 import { ScheduleLayout } from '../components/SchedulePage/ScheduleLayout';
 import { ClearGridModal } from '../components/SchedulePage/ClearGridModal';
-import { exportScheduleToExcel } from '../utils/exportToExcel';
 import { exportScheduleToPdf } from '../utils/exportToPdf';
 import { apiDelete } from '../api';
 
@@ -58,13 +57,9 @@ export function SchedulePage({
 
   const [showClearGridModal, setShowClearGridModal] = useState(false);
 
-  const handleExport = useCallback(() => {
-    exportScheduleToExcel(scheduleSlots, rooms, sksSettings, breakTimes, lecturers);
-  }, [scheduleSlots, rooms, sksSettings, breakTimes, lecturers]);
-
-  const handleExportPdf = useCallback(() => {
-    exportScheduleToPdf(scheduleSlots, rooms, sksSettings, breakTimes, lecturers);
-  }, [scheduleSlots, rooms, sksSettings, breakTimes, lecturers]);
+  const handleExportPdf = useCallback(async () => {
+    await exportScheduleToPdf();
+  }, []);
 
   const handleReset = useCallback(async () => {
     try {
@@ -137,7 +132,6 @@ export function SchedulePage({
           onSearchChange={setDraftSearch}
           onSelectCourse={setSelectedExpandedDraft}
           onSave={saveChanges}
-          onExport={handleExport}
           onExportPdf={handleExportPdf}
           onReset={() => setShowClearGridModal(true)}
         />

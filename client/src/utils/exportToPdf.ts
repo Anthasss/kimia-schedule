@@ -1,102 +1,45 @@
 import { jsPDF } from 'jspdf';
-import { autoTable, type CellInput } from 'jspdf-autotable';
-import { Room, ScheduleSlot, SksSettings, BreakTime, Lecturer, DayOfWeek } from '../types';
 import { computeTimeSlots } from './scheduleTimeSlots';
+import type { Room, ScheduleSlot, SksSettings, BreakTime, Lecturer, DayOfWeek } from '../types';
 
 function hexToRgb(hex: string): [number, number, number] {
-  const clean = hex.replace('#', '');
-  const r = parseInt(clean.substring(0, 2), 16);
-  const g = parseInt(clean.substring(2, 4), 16);
-  const b = parseInt(clean.substring(4, 6), 16);
-  return [r, g, b];
+  const c = parseInt(hex.replace('#', ''), 16);
+  return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
 }
 
 function luminance(r: number, g: number, b: number): number {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
-function isSpanningSlot(
-  day: DayOfWeek,
-  timeSlot: string,
-  roomId: string,
-  slotsByDay: Record<string, ScheduleSlot[]>,
-  slotRowLabels: string[]
-): boolean {
-  const daySlots = slotsByDay[day] || [];
-  return daySlots.some((s) => {
-    if (s.roomId !== roomId || s.day !== day) return false;
-    const startIdx = slotRowLabels.indexOf(s.timeSlot);
-    const currentIdx = slotRowLabels.indexOf(timeSlot);
-    return startIdx !== -1 && startIdx < currentIdx && currentIdx < startIdx + s.sks;
-  });
+function isSpanningSlot(day: DayOfWeek, ts: string, roomId: string, slotsByDay: Record<string, ScheduleSlot[]>, labels: string[]): boolean {
+  return (slotsByDay[day] || []).some(s =>
+    s.roomId === roomId && s.day === day &&
+    labels.indexOf(s.timeSlot) < labels.indexOf(ts) &&
+    labels.indexOf(ts) < labels.indexOf(s.timeSlot) + s.sks
+  );
 }
 
-function buildDayBody(
-  day: DayOfWeek,
-  gridRows: { type: string; label?: string; name?: string; startTime?: string; endTime?: string }[],
-  rooms: Room[],
-  slotsByDay: Record<string, ScheduleSlot[]>,
-  slotRowLabels: string[],
-  lecturers: Lecturer[],
-  slotMap: Record<string, ScheduleSlot>
-): CellInput[][] {
-  const body: CellInput[][] = [];
-  const spanCols = 1 + rooms.length;
-  const breakBg: [number, number, number] = [254, 243, 199];
-  const breakTextColor: [number, number, number] = [146, 64, 14];
+type GridRow = { type: string; label?: string; name?: string; startTime?: string; endTime?: string };
 
-  for (let rowIdx = 0; rowIdx < gridRows.length; rowIdx++) {
-    const row = gridRows[rowIdx];
-    if (row.type === 'break') {
-      body.push([
-        { content: 'Istirahat', colSpan: spanCols, styles: { fillColor: breakBg, textColor: breakTextColor, fontStyle: 'bold', halign: 'center' } },
-      ]);
-      continue;
-    }
+// ponytail: fixed layout constants, tune if measure fails
+const M = 10, PW = 210, PH = 297, BM = 15, RH = 12, TW = 30;
 
-    const rawTs = row.label!;
-    const displayTs = rawTs.replace(/ SKS \d+$/, '');
-    const rowCells: CellInput[] = [displayTs];
-
-    for (let colIdx = 0; colIdx < rooms.length; colIdx++) {
-      const room = rooms[colIdx];
-      if (isSpanningSlot(day, rawTs, room.id, slotsByDay, slotRowLabels)) {
-        rowCells.push(null);
-      } else {
-        const daySlots = slotsByDay[day] || [];
-        const slot = daySlots.find((s) => s.roomId === room.id && s.timeSlot === rawTs);
-        if (!slot) {
-          rowCells.push('');
-        } else {
-          const lecturer = lecturers.find((l) => l.name === slot.lecturerName);
-          const key = `${rowIdx}-${colIdx + 1}`;
-          slotMap[key] = slot;
-          const colorHex = lecturer?.color || '#6366f1';
-          const [r, g, b] = hexToRgb(colorHex);
-          const textColor = luminance(r, g, b) < 128 ? [255, 255, 255] as [number, number, number] : [25, 28, 30] as [number, number, number];
-          const styles = { fillColor: [r, g, b] as [number, number, number], textColor };
-          if (slot.sks > 1) {
-            rowCells.push({ content: '', rowSpan: slot.sks, styles });
-          } else {
-            rowCells.push({ content: '', styles });
-          }
-        }
-      }
-    }
-
-    body.push(rowCells);
-  }
-
-  return body;
+function pageBreak(pdf: jsPDF, y: number, need: number): number {
+  if (y + need > PH - BM) { pdf.addPage(); return M; }
+  return y;
 }
 
-export function exportScheduleToPdf(
-  scheduleSlots: ScheduleSlot[],
-  rooms: Room[],
-  sksSettings: SksSettings,
-  breakTimes: BreakTime[],
-  lecturers: Lecturer[]
-) {
+export async function exportScheduleToPdf() {
+  const [rooms, scheduleSlots, sksSettings, breakTimes, lecturers] = await Promise.all([
+    fetch('/api/rooms').then(r => r.json()),
+    fetch('/api/schedule-slots').then(r => r.json()),
+    fetch('/api/sks-settings').then(r => r.json()),
+    fetch('/api/break-times').then(r => r.json()),
+    fetch('/api/lecturers').then(r => r.json()),
+  ]) as [Room[], ScheduleSlot[], SksSettings, BreakTime[], Lecturer[]];
+
+  if (!rooms.length) return;
+
   const pdf = new jsPDF('p', 'mm', 'a4');
   const { days, gridRows, slotRowLabels } = computeTimeSlots(sksSettings, breakTimes);
 
@@ -106,62 +49,78 @@ export function exportScheduleToPdf(
     slotsByDay[slot.day].push(slot);
   }
 
-  const head = [['Jam', ...rooms.map((r) => r.name)]];
-  const margin = 10;
-  let currentY = margin;
+  const RW = (PW - 2 * M - TW) / rooms.length;
+  let y = M;
 
-  for (let i = 0; i < days.length; i++) {
-    const day = days[i];
+  for (const day of days) {
+    y = pageBreak(pdf, y, 32);
 
+    // day header
     pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
-    pdf.text(day, margin, currentY + 4);
+    pdf.setTextColor(25, 28, 30);
+    pdf.text(day, M, y + 4);
+    y += 8;
 
-    const slotMap: Record<string, ScheduleSlot> = {};
-    const body = buildDayBody(day, gridRows, rooms, slotsByDay, slotRowLabels, lecturers, slotMap);
+    // col headers
+    pdf.setFillColor(0, 32, 69);
+    pdf.setTextColor(255);
+    pdf.setFontSize(6);
+    pdf.setFont('helvetica', 'bold');
+    pdf.rect(M, y, TW, 8, 'F');
+    pdf.text('Jam', M + 1, y + 5);
+    for (let ci = 0; ci < rooms.length; ci++) {
+      const x = M + TW + ci * RW;
+      pdf.rect(x, y, RW, 8, 'F');
+      pdf.text(rooms[ci].name, x + 1, y + 5);
+    }
+    y += 8;
 
-    autoTable(pdf, {
-      head,
-      body,
-      startY: currentY + 6,
-      showHead: i === 0 ? 'firstPage' : 'never',
-      styles: { fontSize: 6, cellPadding: 1.5, overflow: 'linebreak', minCellHeight: 12 },
-      headStyles: { fillColor: [0, 32, 69], textColor: 255, fontStyle: 'bold' },
-      tableWidth: 'auto',
-      margin: { top: margin, right: margin, bottom: margin, left: margin },
-      willDrawCell: (data) => {
-        if (data.section !== 'body' || data.column.index === 0) return;
-        const key = `${data.row.index}-${data.column.index}`;
-        if (slotMap[key]) {
-          data.cell.text = [];
-        }
-      },
-      didDrawCell: (data) => {
-        if (data.section !== 'body' || data.column.index === 0) return;
-        const key = `${data.row.index}-${data.column.index}`;
-        const slot = slotMap[key];
-        if (!slot) return;
+    for (let ri = 0; ri < gridRows.length; ri++) {
+      const row = gridRows[ri];
+      y = pageBreak(pdf, y, RH);
 
-        const cell = data.cell;
-        const x = cell.x;
-        const y = cell.y;
-        const w = cell.width;
-        const h = cell.height;
-        const pad = 1;
-        const maxW = w - pad * 2;
+      if (row.type === 'break') {
+        pdf.setFillColor(254, 243, 199);
+        pdf.rect(M, y, PW - 2 * M, RH, 'F');
+        pdf.setTextColor(146, 64, 14);
+        pdf.setFontSize(6);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Istirahat', M + 1, y + RH / 2 + 1.5);
+        y += RH;
+        continue;
+      }
 
-        const lec = lecturers.find((l) => l.name === slot.lecturerName);
-        const colorHex = lec?.color || '#6366f1';
-        const [fr, fg, fb] = hexToRgb(colorHex);
+      const rawTs = row.label!;
+      const displayTs = rawTs.replace(/ SKS \d+$/, '');
 
-        pdf.setFillColor(fr, fg, fb);
-        pdf.rect(x, y, w, h, 'F');
+      // ponytail: no grid lines, colored cells provide visual structure
+      pdf.setFontSize(5);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(25, 28, 30);
+      pdf.text(displayTs, M + 1, y + RH / 2 + 1.5);
 
-        const tc = luminance(fr, fg, fb) < 128 ? [255, 255, 255] : [25, 28, 30];
+      for (let ci = 0; ci < rooms.length; ci++) {
+        const room = rooms[ci];
+        const x = M + TW + ci * RW;
+
+        if (isSpanningSlot(day, rawTs, room.id, slotsByDay, slotRowLabels)) continue;
+
+        const slot = (slotsByDay[day] || []).find(s => s.roomId === room.id && s.timeSlot === rawTs);
+        if (!slot) continue;
+
+        const h = slot.sks * RH;
+        const lec = lecturers.find(l => l.name === slot.lecturerName);
+        const [r, g, b] = hexToRgb(lec?.color || '#6366f1');
+        pdf.setFillColor(r, g, b);
+        pdf.rect(x, y, RW, h, 'F');
+
+        const tc = luminance(r, g, b) < 128 ? [255, 255, 255] : [25, 28, 30];
         pdf.setTextColor(tc[0], tc[1], tc[2]);
+        const pad = 1;
 
         pdf.setFontSize(6);
-        const titleLines = pdf.splitTextToSize(slot.courseTitle, maxW);
+        const titleLines = pdf.splitTextToSize(slot.courseTitle, RW - pad * 2);
         let cursor = y + pad + 1.8;
         for (const line of titleLines) {
           pdf.text(line, x + pad, cursor);
@@ -169,24 +128,23 @@ export function exportScheduleToPdf(
         }
 
         pdf.setFontSize(5);
-        const lecturerLines = pdf.splitTextToSize(slot.lecturerName.split(',')[0], maxW);
+        const lecturerLines = pdf.splitTextToSize(slot.lecturerName.split(',')[0], RW - pad * 2);
         for (const line of lecturerLines) {
           pdf.text(line, x + pad, cursor);
           cursor += 1.8;
         }
 
-        const bottomY = y + h - pad - 0.5;
-        pdf.text(`${slot.sks} SKS`, x + pad, bottomY);
-
+        pdf.text(`${slot.sks} SKS`, x + pad, y + h - pad - 0.5);
         pdf.setFont('helvetica', 'bold');
         const letter = `(${slot.classLetter})`;
-        const letterWidth = pdf.getTextWidth(letter);
-        pdf.text(letter, x + w - pad - letterWidth, bottomY);
+        pdf.text(letter, x + RW - pad - pdf.getTextWidth(letter), y + h - pad - 0.5);
         pdf.setFont('helvetica', 'normal');
-      },
-    });
+      }
 
-    currentY = (pdf as any).lastAutoTable.finalY + 3;
+      y += RH;
+    }
+
+    y += 3;
   }
 
   pdf.save('jadwal-perkuliahan.pdf');
