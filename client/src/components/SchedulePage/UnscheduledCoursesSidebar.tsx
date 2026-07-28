@@ -163,7 +163,7 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
         <button
           onClick={onSave}
           disabled={isSaving}
-          className="w-full py-2 bg-[#002045] text-white rounded-lg text-[13px] font-semibold hover:bg-[#002f5e] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shrink-0 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-2 bg-[#002045] text-white rounded-lg text-[13px] font-semibold hover:bg-[#002f5e] transition-colors flex items-center justify-center gap-1.5 enabled:cursor-pointer shrink-0 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? (
             <>

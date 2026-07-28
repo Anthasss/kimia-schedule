@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 const NAV_TABS = [
   { label: 'Schedule', path: '/schedule' },
-  { label: 'Management', path: '/management' },
+  { label: 'Settings', path: '/settings' },
   { label: 'Lecturers', path: '/lecturers' },
   { label: 'Courses', path: '/courses' },
 ] as const;

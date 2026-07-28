@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { Header } from './components/Shared/Header';
 import { Modals } from './components/Shared/Modals';
-import { ManagementPage } from './pages/ManagementPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { SchedulePage } from './pages/SchedulePage';
 import { LecturersPage } from './pages/LecturersPage';
 import { CoursesPage } from './pages/CoursesPage';
@@ -55,9 +55,9 @@ export default function App() {
         <main className="p-8 max-w-7xl mx-auto w-full flex-1 flex flex-col min-h-0 overflow-auto">
           <Routes>
             <Route
-              path="/management"
+              path="/settings"
               element={
-                <ManagementPage
+                <SettingsPage
                   rooms={rooms}
                   setRooms={setRooms}
                   breakTimes={breakTimes}

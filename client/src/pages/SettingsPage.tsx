@@ -7,7 +7,7 @@ import { BreakTimesTable } from '../components/ManagementPage/BreakTimesTable';
 import { EditRoomModal } from '../components/ManagementPage/EditRoomModal';
 import { EditBreakModal } from '../components/ManagementPage/EditBreakModal';
 
-interface ManagementPageProps {
+interface SettingsPageProps {
   rooms: Room[];
   setRooms: Dispatch<SetStateAction<Room[]>>;
   breakTimes: BreakTime[];
@@ -23,7 +23,7 @@ interface ManagementPageProps {
   isSavingSettings: boolean;
 }
 
-export function ManagementPage({
+export function SettingsPage({
   rooms,
   setRooms,
   breakTimes,
@@ -37,7 +37,7 @@ export function ManagementPage({
   deletingBreakId,
   saveSksSettings,
   isSavingSettings,
-}: ManagementPageProps) {
+}: SettingsPageProps) {
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [editingBreak, setEditingBreak] = useState<BreakTime | null>(null);
 
