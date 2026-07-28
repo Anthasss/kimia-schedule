@@ -1,4 +1,4 @@
-import { useEffect, Dispatch, SetStateAction } from 'react';
+import { useEffect, useState, Dispatch, SetStateAction } from 'react';
 import {
   Room,
   BreakTime,
@@ -22,6 +22,8 @@ interface DataFetchingSetters {
 }
 
 export function useDataFetching(setters: DataFetchingSetters) {
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     async function fetchData() {
       const [
@@ -52,7 +54,10 @@ export function useDataFetching(setters: DataFetchingSetters) {
       setters.setCourseClasses(courseClassesRes);
       setters.setScheduleSlots(scheduleSlotsRes);
       setters.setSemesterPeriods(semesterPeriodsRes);
+      setLoading(false);
     }
     fetchData();
   }, []);
+
+  return { loading };
 }

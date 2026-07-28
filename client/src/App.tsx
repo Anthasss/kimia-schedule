@@ -27,7 +27,7 @@ export default function App() {
   const { breakTimes, setBreakTimes, addBreakTime, deleteBreakTime, deletingBreakId } = useBreakTimes();
   const { sksSettings, setSksSettings, saveSksSettings, isSavingSettings, handlePeriodChange } = useSksSettings();
 
-  useDataFetching({
+  const { loading } = useDataFetching({
     setRooms,
     setBreakTimes,
     setSksSettings,
@@ -49,87 +49,95 @@ export default function App() {
   return (
     <div className="h-screen bg-[#f7f9fb] text-[#191c1e] font-sans antialiased flex flex-col">
       <Toaster position="top-right" richColors />
-      <Header />
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#c4c6cf] border-t-[#374151]" />
+        </div>
+      ) : (
+        <>
+          <Header />
 
-      <div className="flex-1 flex flex-col min-h-0">
-        <main className="p-8 max-w-7xl mx-auto w-full flex-1 flex flex-col min-h-0 overflow-auto">
-          <Routes>
-            <Route
-              path="/settings"
-              element={
-                <SettingsPage
-                  rooms={rooms}
-                  setRooms={setRooms}
-                  breakTimes={breakTimes}
-                  setBreakTimes={setBreakTimes}
-                  sksSettings={sksSettings}
-                  setSksSettings={setSksSettings}
-                  onOpenNewRecordModal={handleOpenNewRecordModal}
-                  deleteRoom={deleteRoom}
-                  deletingRoomId={deletingRoomId}
-                  deleteBreakTime={deleteBreakTime}
-                  deletingBreakId={deletingBreakId}
-                  saveSksSettings={saveSksSettings}
-                  isSavingSettings={isSavingSettings}
+          <div className="flex-1 flex flex-col min-h-0">
+            <main className="p-8 max-w-7xl mx-auto w-full flex-1 flex flex-col min-h-0 overflow-auto">
+              <Routes>
+                <Route
+                  path="/settings"
+                  element={
+                    <SettingsPage
+                      rooms={rooms}
+                      setRooms={setRooms}
+                      breakTimes={breakTimes}
+                      setBreakTimes={setBreakTimes}
+                      sksSettings={sksSettings}
+                      setSksSettings={setSksSettings}
+                      onOpenNewRecordModal={handleOpenNewRecordModal}
+                      deleteRoom={deleteRoom}
+                      deletingRoomId={deletingRoomId}
+                      deleteBreakTime={deleteBreakTime}
+                      deletingBreakId={deletingBreakId}
+                      saveSksSettings={saveSksSettings}
+                      isSavingSettings={isSavingSettings}
+                    />
+                  }
                 />
-              }
-            />
-            <Route
-              path="/lecturers"
-              element={
-                <LecturersPage
-                  lecturers={lecturers}
-                  setLecturers={setLecturers}
-                  courses={courses}
-                  setCourses={setCourses}
-                  courseClasses={courseClasses}
-                  setCourseClasses={setCourseClasses}
-                  scheduleSlots={scheduleSlots}
-                  setScheduleSlots={setScheduleSlots}
-                  onOpenNewRecordModal={handleOpenNewRecordModal}
+                <Route
+                  path="/lecturers"
+                  element={
+                    <LecturersPage
+                      lecturers={lecturers}
+                      setLecturers={setLecturers}
+                      courses={courses}
+                      setCourses={setCourses}
+                      courseClasses={courseClasses}
+                      setCourseClasses={setCourseClasses}
+                      scheduleSlots={scheduleSlots}
+                      setScheduleSlots={setScheduleSlots}
+                      onOpenNewRecordModal={handleOpenNewRecordModal}
+                    />
+                  }
                 />
-              }
-            />
-            <Route
-              path="/schedule"
-              element={
-                <SchedulePage
-                  rooms={rooms}
-                  scheduleSlots={scheduleSlots}
-                  setScheduleSlots={setScheduleSlots}
-                  courses={courses}
-                  courseClasses={courseClasses}
-                  lecturers={lecturers}
-                  sksSettings={sksSettings}
-                  setSksSettings={setSksSettings}
-                  breakTimes={breakTimes}
-                  semesterPeriods={semesterPeriods}
-                  setSemesterPeriods={setSemesterPeriods}
-                  pendingAdds={pendingAdds}
-                  setPendingAdds={setPendingAdds}
-                  pendingRemoves={pendingRemoves}
-                  setPendingRemoves={setPendingRemoves}
-                  onPeriodChange={(period) => handlePeriodChange(period, semesterPeriods)}
+                <Route
+                  path="/schedule"
+                  element={
+                    <SchedulePage
+                      rooms={rooms}
+                      scheduleSlots={scheduleSlots}
+                      setScheduleSlots={setScheduleSlots}
+                      courses={courses}
+                      courseClasses={courseClasses}
+                      lecturers={lecturers}
+                      sksSettings={sksSettings}
+                      setSksSettings={setSksSettings}
+                      breakTimes={breakTimes}
+                      semesterPeriods={semesterPeriods}
+                      setSemesterPeriods={setSemesterPeriods}
+                      pendingAdds={pendingAdds}
+                      setPendingAdds={setPendingAdds}
+                      pendingRemoves={pendingRemoves}
+                      setPendingRemoves={setPendingRemoves}
+                      onPeriodChange={(period) => handlePeriodChange(period, semesterPeriods)}
+                    />
+                  }
                 />
-              }
-            />
-            <Route
-              path="/courses"
-              element={<CoursesPage courses={courses} setCourses={setCourses} courseClasses={courseClasses} setCourseClasses={setCourseClasses} lecturers={lecturers} setLecturers={setLecturers} />}
-            />
-            <Route path="*" element={<Navigate to="/schedule" replace />} />
-          </Routes>
-        </main>
-      </div>
+                <Route
+                  path="/courses"
+                  element={<CoursesPage courses={courses} setCourses={setCourses} courseClasses={courseClasses} setCourseClasses={setCourseClasses} lecturers={lecturers} setLecturers={setLecturers} />}
+                />
+                <Route path="*" element={<Navigate to="/schedule" replace />} />
+              </Routes>
+            </main>
+          </div>
 
-      <Modals
-        showNewRecordModal={showNewRecordModal}
-        setShowNewRecordModal={setShowNewRecordModal}
-        initialRecordType={initialRecordType}
-        onAddRoom={addRoom}
-        onAddLecturer={addLecturer}
-        onAddBreak={addBreakTime}
-      />
+          <Modals
+            showNewRecordModal={showNewRecordModal}
+            setShowNewRecordModal={setShowNewRecordModal}
+            initialRecordType={initialRecordType}
+            onAddRoom={addRoom}
+            onAddLecturer={addLecturer}
+            onAddBreak={addBreakTime}
+          />
+        </>
+      )}
     </div>
   );
 }

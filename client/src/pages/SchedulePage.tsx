@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
 import {
   Room,
   Course,
@@ -11,7 +10,6 @@ import {
   BreakTime,
   Lecturer,
   SemesterPeriod,
-  UnscheduledClass,
 } from '../types';
 import { computeTimeSlots } from '../utils/scheduleTimeSlots';
 import { useScheduleSlots } from '../hooks/useScheduleSlots';
@@ -19,7 +17,6 @@ import { useUnscheduledCourses } from '../hooks/useUnscheduledCourses';
 import { ScheduleDayGrid } from '../components/SchedulePage/ScheduleDayGrid';
 import { UnscheduledCoursesSidebar } from '../components/SchedulePage/UnscheduledCoursesSidebar';
 import { ScheduleLayout } from '../components/SchedulePage/ScheduleLayout';
-import { AddPeriodModal } from '../components/SchedulePage/AddPeriodModal';
 import { ClearGridModal } from '../components/SchedulePage/ClearGridModal';
 import { exportScheduleToExcel } from '../utils/exportToExcel';
 import { exportScheduleToPdf } from '../utils/exportToPdf';
@@ -44,15 +41,6 @@ interface SchedulePageProps {
   onPeriodChange: (period: { year: string; semester: 1 | 2 } | null) => Promise<void>;
 }
 
-function getDefaultYearOptions() {
-  const current = new Date().getFullYear();
-  const years: string[] = [];
-  for (let i = -1; i <= 3; i++) {
-    years.push(String(current + i));
-  }
-  return years;
-}
-
 export function SchedulePage({
   rooms,
   scheduleSlots,
@@ -61,27 +49,14 @@ export function SchedulePage({
   courseClasses,
   lecturers,
   sksSettings,
-  setSksSettings,
   breakTimes,
-  semesterPeriods,
-  setSemesterPeriods,
   pendingAdds,
   setPendingAdds,
   pendingRemoves,
   setPendingRemoves,
-  onPeriodChange,
 }: SchedulePageProps) {
-  const navigate = useNavigate();
-  const yearOptions = getDefaultYearOptions();
 
-  const [showAddPeriodModal, setShowAddPeriodModal] = useState(false);
   const [showClearGridModal, setShowClearGridModal] = useState(false);
-
-  const currentPeriod: { year: string; semester: 1 | 2 } | null = React.useMemo(() => {
-    if (!sksSettings.currentPeriodId) return null;
-    const found = semesterPeriods.find((p) => p.id === sksSettings.currentPeriodId);
-    return found ? { year: found.year, semester: found.semester as 1 | 2 } : null;
-  }, [semesterPeriods, sksSettings.currentPeriodId]);
 
   const handleExport = useCallback(() => {
     exportScheduleToExcel(scheduleSlots, rooms, sksSettings, breakTimes, lecturers);
@@ -115,7 +90,7 @@ export function SchedulePage({
     unscheduledCourses,
     filteredDraftPool,
     activeDraftItem,
-  } = useUnscheduledCourses(courseClasses, courses, scheduleSlots, currentPeriod);
+  } = useUnscheduledCourses(courseClasses, courses, scheduleSlots);
 
   const {
     placeDraftOnGrid,
@@ -168,8 +143,7 @@ export function SchedulePage({
         />
       }
     >
-      {currentPeriod ? (
-        <div className="space-y-6 overflow-y-auto overflow-x-auto custom-scrollbar pr-1">
+      <div className="space-y-6 overflow-y-auto overflow-x-auto custom-scrollbar pr-1">
           {days.map((day) => (
             <ScheduleDayGrid
               key={day}
@@ -189,27 +163,6 @@ export function SchedulePage({
             />
           ))}
         </div>
-      ) : (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center max-w-md">
-            <span className="material-symbols-outlined text-[48px] text-[#c4c6cf] mb-4">calendar_month</span>
-            <h2 className="font-headline-sm text-[18px] text-[#191c1e] mb-2">No Semester Period Selected</h2>
-            <p className="text-[13px] text-[#74777f]">
-              Use the settings icon in the sidebar to add or select a semester period.
-            </p>
-          </div>
-        </div>
-      )}
-
-      <AddPeriodModal
-        isOpen={showAddPeriodModal}
-        onClose={() => setShowAddPeriodModal(false)}
-        yearOptions={yearOptions}
-        semesterPeriods={semesterPeriods}
-        setSemesterPeriods={setSemesterPeriods}
-        sksSettings={sksSettings}
-        setSksSettings={setSksSettings}
-      />
 
       <ClearGridModal
         isOpen={showClearGridModal}
