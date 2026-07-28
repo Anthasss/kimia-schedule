@@ -16,6 +16,7 @@ export const Header: React.FC = () => {
   const isAdmin = session?.user?.role === 'admin';
 
   const handleSignOut = async () => {
+    setIsSigningOut(true);
     await signOut({
       fetchOptions: {
         onSuccess: () => navigate('/login'),
@@ -24,6 +25,7 @@ export const Header: React.FC = () => {
   };
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,9 +99,14 @@ export const Header: React.FC = () => {
             </button>
             <button
               onClick={handleSignOut}
-              className="w-full text-left px-3 py-2 hover:bg-[#f2f4f6] flex items-center gap-2 text-red-600"
+              disabled={isSigningOut}
+              className="w-full text-left px-3 py-2 hover:bg-[#f2f4f6] flex items-center gap-2 text-red-600 disabled:opacity-50"
             >
-              <span className="material-symbols-outlined text-[16px] w-4">logout</span>
+              {isSigningOut ? (
+                <span className="material-symbols-outlined text-[16px] w-4 animate-spin">progress_activity</span>
+              ) : (
+                <span className="material-symbols-outlined text-[16px] w-4">logout</span>
+              )}
               <span>Logout</span>
             </button>
           </div>

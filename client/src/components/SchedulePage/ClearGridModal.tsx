@@ -4,12 +4,14 @@ interface ClearGridModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  loading?: boolean;
 }
 
 export const ClearGridModal: React.FC<ClearGridModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
+  loading,
 }) => {
   if (!isOpen) return null;
 
@@ -32,9 +34,17 @@ export const ClearGridModal: React.FC<ClearGridModalProps> = ({
           </button>
           <button
             onClick={onConfirm}
-            className="px-4 py-2 bg-[#ba1a1a] text-white rounded text-[13px] font-semibold hover:bg-[#93000a] cursor-pointer"
+            disabled={loading}
+            className="px-4 py-2 bg-[#ba1a1a] text-white rounded text-[13px] font-semibold hover:bg-[#93000a] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
           >
-            Clear Grid
+            {loading ? (
+              <>
+                <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
+                <span>Clearing...</span>
+              </>
+            ) : (
+              'Clear Grid'
+            )}
           </button>
         </div>
       </div>

@@ -68,6 +68,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
   );
   const [deletedClassIds, setDeletedClassIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [errorFields, setErrorFields] = useState<Set<string>>(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -348,8 +349,11 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
         message={`Delete "${course.title}"? This will remove all classes and their schedule slots.`}
         confirmLabel="Delete"
         danger
-        onConfirm={() => {
-          onDeleteCourse(course.id);
+        loading={isDeleting}
+        onConfirm={async () => {
+          setIsDeleting(true);
+          await onDeleteCourse(course.id);
+          setIsDeleting(false);
           setShowDeleteConfirm(false);
         }}
         onCancel={() => setShowDeleteConfirm(false)}

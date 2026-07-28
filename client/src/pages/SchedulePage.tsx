@@ -56,12 +56,14 @@ export function SchedulePage({
 }: SchedulePageProps) {
 
   const [showClearGridModal, setShowClearGridModal] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   const handleExportPdf = useCallback(async () => {
     await exportScheduleToPdf();
   }, []);
 
   const handleReset = useCallback(async () => {
+    setIsClearing(true);
     try {
       await apiDelete('/api/schedule-slots/all');
       setScheduleSlots([]);
@@ -72,6 +74,8 @@ export function SchedulePage({
     } catch {
       toast.error('Failed to clear schedule grid');
       setShowClearGridModal(false);
+    } finally {
+      setIsClearing(false);
     }
   }, [setScheduleSlots, setPendingAdds, setPendingRemoves]);
 
@@ -162,6 +166,7 @@ export function SchedulePage({
         isOpen={showClearGridModal}
         onClose={() => setShowClearGridModal(false)}
         onConfirm={handleReset}
+        loading={isClearing}
       />
     </ScheduleLayout>
   );
