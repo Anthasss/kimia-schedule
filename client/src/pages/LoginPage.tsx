@@ -42,7 +42,7 @@ export function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 border border-[#c4c6cf] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6366f1] focus:border-transparent"
-              placeholder="admin@kimia.com"
+              placeholder="account@kimia.com"
             />
           </div>
           <div>
@@ -63,7 +63,7 @@ export function LoginPage() {
             disabled={loading}
             className="w-full py-2 bg-[#6366f1] text-white rounded-lg text-sm font-medium hover:bg-[#4f46e5] transition-colors disabled:opacity-50 cursor-pointer"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "Logging in..." : "Log In"}
           </button>
         </form>
       </div>

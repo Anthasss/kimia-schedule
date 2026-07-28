@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSession, signOut } from '@/lib/auth-client';
 
@@ -22,6 +22,22 @@ export const Header: React.FC = () => {
       },
     });
   };
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    if (menuOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
+
+  // ponytail: first char of email as avatar, add name field when backend provides it
+  const avatarLetter = (session?.user?.email ?? '?')[0].toUpperCase();
 
   return (
     <header className="flex justify-between items-center px-8 w-full sticky top-0 z-50 bg-[#ffffff] border-b border-[#c4c6cf] h-16 shadow-xs">
@@ -63,19 +79,31 @@ export const Header: React.FC = () => {
         </nav>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="relative" ref={menuRef}>
         <button
-          onClick={() => navigate('/change-password')}
-          className="text-xs text-[#6b7280] hover:text-[#374151] cursor-pointer"
+          onClick={() => setMenuOpen((v) => !v)}
+          className="w-9 h-9 rounded-full bg-[#002045] text-white flex items-center justify-center text-sm font-bold cursor-pointer hover:bg-[#002f5e] transition-colors"
         >
-          {session?.user?.email}
+          {avatarLetter}
         </button>
-        <button
-          onClick={handleSignOut}
-          className="text-xs text-[#6b7280] hover:text-red-600 cursor-pointer"
-        >
-          Sign Out
-        </button>
+        {menuOpen && (
+          <div className="absolute right-0 top-full mt-2 w-44 bg-white border border-[#c4c6cf] rounded-lg shadow-lg z-50 py-1 text-[13px]">
+            <button
+              onClick={() => { navigate('/change-password'); setMenuOpen(false); }}
+              className="w-full text-left px-3 py-2 hover:bg-[#f2f4f6] flex items-center gap-2 text-[#43474e]"
+            >
+              <span className="material-symbols-outlined text-[16px] w-4">person</span>
+              <span>Edit Account</span>
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="w-full text-left px-3 py-2 hover:bg-[#f2f4f6] flex items-center gap-2 text-red-600"
+            >
+              <span className="material-symbols-outlined text-[16px] w-4">logout</span>
+              <span>Logout</span>
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );
