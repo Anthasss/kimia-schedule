@@ -47,13 +47,7 @@ export function ManagementPage({
         title="Basic Data Management"
         subtitle="Manage institutional resources and academic parameters."
         actions={
-          <button
-            onClick={() => onOpenNewRecordModal()}
-            className="bg-[#002045] text-white px-4 py-2 rounded-lg font-semibold text-[12px] flex items-center gap-2 hover:bg-opacity-90 active:scale-95 transition-all shadow-sm cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            <span>New Record</span>
-          </button>
+          <div />
         }
       />
 

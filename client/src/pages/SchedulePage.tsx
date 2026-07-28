@@ -159,14 +159,10 @@ export function SchedulePage({
           isDirty={isDirty}
           isSaving={isSaving}
           selectedCourseId={selectedExpandedDraft}
-          currentPeriod={currentPeriod}
-          savedPeriods={semesterPeriods.map((p) => ({ year: p.year, semester: p.semester as 1 | 2 }))}
           onSearchChange={setDraftSearch}
           onSelectCourse={setSelectedExpandedDraft}
           onNavigateToCourses={() => navigate('/courses')}
           onSave={saveChanges}
-          onPeriodChange={onPeriodChange}
-          onOpenAddPeriod={() => setShowAddPeriodModal(true)}
           onExport={handleExport}
           onExportPdf={handleExportPdf}
           onReset={() => setShowClearGridModal(true)}

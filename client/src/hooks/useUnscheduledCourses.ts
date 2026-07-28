@@ -43,13 +43,6 @@ export function useUnscheduledCourses(
       if (!course) continue;
       if (!course.classId) continue;
 
-      if (currentPeriod) {
-        if (course.semester !== 'Both') {
-          if (currentPeriod.semester === 1 && course.semester !== 'Ganjil') continue;
-          if (currentPeriod.semester === 2 && course.semester !== 'Genap') continue;
-        }
-      }
-
       result.push(buildUnscheduledClass(cc, course));
     }
 
