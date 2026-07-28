@@ -5,6 +5,8 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
+import { toNodeHandler } from "better-auth/node";
+import { auth } from "./auth";
 import dataRouter from "./routes/dataRoutes";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -13,6 +15,7 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  app.all("/api/auth/*", toNodeHandler(auth));
   app.use(express.json());
   app.use(dataRouter);
 
