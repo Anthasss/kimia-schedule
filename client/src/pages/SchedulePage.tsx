@@ -161,7 +161,6 @@ export function SchedulePage({
           selectedCourseId={selectedExpandedDraft}
           onSearchChange={setDraftSearch}
           onSelectCourse={setSelectedExpandedDraft}
-          onNavigateToCourses={() => navigate('/courses')}
           onSave={saveChanges}
           onExport={handleExport}
           onExportPdf={handleExportPdf}

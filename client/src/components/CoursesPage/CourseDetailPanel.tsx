@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Course, CourseClass, Lecturer } from '../../types';
+import { toast } from 'sonner';
 import { ClassCard } from './ClassCard';
 
 interface EditableCourseInfo {
@@ -30,6 +31,14 @@ interface CourseDetailPanelProps {
   onAddClass: () => void;
 }
 
+function makeInitialClasses(firstLecturer: string): LocalClass[] {
+  return ['A', 'B', 'C', 'D'].map((letter, i) => ({
+    tempId: `tmp_${Date.now()}_${i}`,
+    classLetter: letter,
+    lecturers: firstLecturer ? [firstLecturer] : [],
+  }));
+}
+
 export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
   course,
   courseClasses,
@@ -46,16 +55,22 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
     sks: course.sks,
     semester: course.semester,
   });
+  const [initialLocalClasses] = useState<LocalClass[]>(() => isNewCourse ? makeInitialClasses(lecturers[0]?.name || '') : []);
+  const [localClasses, setLocalClasses] = useState<LocalClass[]>(initialLocalClasses);
   const [editClasses, setEditClasses] = useState<Record<string, EditableClass>>(
-    () => Object.fromEntries(
-      courseClasses.map((cc) => [cc.id, { lecturers: [...cc.lecturers] }])
-    )
+    () => {
+      const entries: [string, EditableClass][] = isNewCourse
+        ? initialLocalClasses.map((lc) => [lc.tempId, { lecturers: lc.lecturers }])
+        : courseClasses.map((cc) => [cc.id, { lecturers: [...cc.lecturers] }]);
+      return Object.fromEntries(entries);
+    }
   );
-  const [localClasses, setLocalClasses] = useState<LocalClass[]>([]);
   const [deletedClassIds, setDeletedClassIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [errorFields, setErrorFields] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    if (isNewCourse) return;
     setEditClasses((prev) => {
       let next = prev;
       for (const cc of courseClasses) {
@@ -66,9 +81,10 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
       }
       return next;
     });
-  }, [courseClasses]);
+  }, [courseClasses, isNewCourse]);
 
   const isDirty = useMemo(() => {
+    if (isNewCourse) return true;
     if (editCourse.code !== course.code || editCourse.title !== course.title || editCourse.sks !== course.sks || editCourse.semester !== course.semester) return true;
     if (deletedClassIds.length > 0) return true;
     for (const cc of courseClasses) {
@@ -84,7 +100,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
       if (!currentIds.has(id)) return true;
     }
     return false;
-  }, [editCourse, editClasses, deletedClassIds, course, courseClasses]);
+  }, [isNewCourse, editCourse, editClasses, deletedClassIds, course, courseClasses]);
 
   const handleAddLocalClass = () => {
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -96,6 +112,33 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
   };
 
   const handleSave = async () => {
+    setErrorFields(new Set());
+
+    if (isNewCourse) {
+      const errors = new Set<string>();
+      if (!editCourse.code?.trim()) errors.add('code');
+      if (!editCourse.title?.trim()) errors.add('title');
+      if (!editCourse.sks || editCourse.sks < 1) errors.add('sks');
+
+      const activeClasses = localClasses.filter((lc) => !deletedClassIds.includes(lc.tempId));
+      if (activeClasses.length === 0) {
+        toast.error('At least one class is required');
+        return;
+      }
+      for (const lc of activeClasses) {
+        const edit = editClasses[lc.tempId];
+        if (!edit || edit.lecturers.filter(Boolean).length === 0) {
+          errors.add(`class_${lc.tempId}`);
+        }
+      }
+
+      if (errors.size > 0) {
+        setErrorFields(errors);
+        toast.error('Please fill in all fields including at least one lecturer per class');
+        return;
+      }
+    }
+
     setIsSaving(true);
     const updatedClasses = Object.entries(editClasses)
       .filter(([id]) => !deletedClassIds.includes(id))
@@ -117,6 +160,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
     );
     setLocalClasses([]);
     setDeletedClassIds([]);
+    setErrorFields(new Set());
   };
 
   const updateClass = (id: string, patch: Partial<EditableClass>) => {
@@ -124,6 +168,11 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
       ...prev,
       [id]: { ...prev[id], ...patch },
     }));
+    setErrorFields((prev) => {
+      const next = new Set(prev);
+      next.delete(`class_${id}`);
+      return next;
+    });
   };
 
   const deleteClass = (id: string) => {
@@ -147,15 +196,20 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
 
   const activeClassCount = displayClasses.filter((cc) => !deletedClassIds.includes(cc.id)).length;
 
+  const inputClass = (field: string) =>
+    `w-full text-[14px] bg-[#f2f4f6] px-3 py-2 rounded outline-none focus:ring-1 focus:ring-[#002045] font-mono-code text-[#191c1e] ${
+      errorFields.has(field) ? 'border-2 border-[#ba1a1a]' : 'border border-[#c4c6cf]'
+    }`;
+
   return (
     <div className="flex flex-col bg-white p-6">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-[#c4c6cf]">
         <span className="bg-[#002045] text-white text-[13px] font-bold px-2.5 py-1 rounded-md">
-          {editCourse.code}
+          {editCourse.code || 'NEW'}
         </span>
         <div className="flex items-center gap-2">
-          {isDirty && (
+          {!isNewCourse && isDirty && (
             <button
               onClick={handleDiscard}
               className="px-3 py-1.5 rounded text-[13px] text-[#43474e] hover:bg-[#f2f4f6] transition-colors cursor-pointer"
@@ -176,7 +230,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
             ) : (
               <>
                 <span className="material-symbols-outlined text-[17px]">check</span>
-                <span>Save Changes</span>
+                <span>{isNewCourse ? 'Create Course' : 'Save Changes'}</span>
               </>
             )}
           </button>
@@ -203,8 +257,13 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
           <input
             type="text"
             value={editCourse.title}
-            onChange={(e) => setEditCourse((prev) => ({ ...prev, title: e.target.value }))}
-            className="w-full text-[18px] font-semibold text-[#191c1e] bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none focus:ring-1 focus:ring-[#002045] font-headline-sm"
+            onChange={(e) => {
+              setEditCourse((prev) => ({ ...prev, title: e.target.value }));
+              setErrorFields((prev) => { const next = new Set(prev); next.delete('title'); return next; });
+            }}
+            className={`w-full text-[18px] font-semibold text-[#191c1e] bg-[#f2f4f6] px-3 py-2 rounded outline-none focus:ring-1 focus:ring-[#002045] font-headline-sm ${
+              errorFields.has('title') ? 'border-2 border-[#ba1a1a]' : 'border border-[#c4c6cf]'
+            }`}
           />
         </div>
         <div className="grid grid-cols-3 gap-3">
@@ -213,8 +272,11 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
             <input
               type="text"
               value={editCourse.code}
-              onChange={(e) => setEditCourse((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))}
-              className="w-full text-[14px] font-mono-code text-[#191c1e] bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none focus:ring-1 focus:ring-[#002045]"
+              onChange={(e) => {
+                setEditCourse((prev) => ({ ...prev, code: e.target.value.toUpperCase() }));
+                setErrorFields((prev) => { const next = new Set(prev); next.delete('code'); return next; });
+              }}
+              className={inputClass('code')}
             />
           </div>
           <div>
@@ -223,9 +285,12 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
               type="number"
               min={1}
               max={24}
-              value={editCourse.sks}
-              onChange={(e) => setEditCourse((prev) => ({ ...prev, sks: Math.max(1, parseInt(e.target.value) || 0) }))}
-              className="w-full text-[14px] font-mono-code text-[#191c1e] bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none focus:ring-1 focus:ring-[#002045]"
+              value={editCourse.sks || ''}
+              onChange={(e) => {
+                setEditCourse((prev) => ({ ...prev, sks: Math.max(1, parseInt(e.target.value) || 0) }));
+                setErrorFields((prev) => { const next = new Set(prev); next.delete('sks'); return next; });
+              }}
+              className={inputClass('sks')}
             />
           </div>
           <div>
@@ -273,6 +338,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
                   editLecturers={edit.lecturers}
                   onLecturersChange={(l) => updateClass(cc.id, { lecturers: l })}
                   onDelete={() => deleteClass(cc.id)}
+                  hasError={errorFields.has(`class_${cc.id}`)}
                 />
               );
             })}

@@ -24,6 +24,7 @@ import {
   deleteBreakTime,
   deleteLecturer,
   deleteCourse,
+  createCourseWithClasses,
   deleteCourseClass,
   deleteScheduleSlot,
   deleteAllScheduleSlots,
@@ -57,6 +58,7 @@ router.delete("/api/lecturers/:id", deleteLecturer);
 
 router.get("/api/courses", getCourses);
 router.post("/api/courses", createCourse);
+router.post("/api/courses-with-classes", createCourseWithClasses);
 router.put("/api/courses/:id", updateCourse);
 router.delete("/api/courses/:id", deleteCourse);
 

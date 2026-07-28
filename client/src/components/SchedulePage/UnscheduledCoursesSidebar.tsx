@@ -13,7 +13,6 @@ interface UnscheduledCoursesSidebarProps {
   selectedCourseId: string | null;
   onSearchChange: (value: string) => void;
   onSelectCourse: (id: string) => void;
-  onNavigateToCourses: () => void;
   onSave: () => void;
   onExport: () => void;
   onExportPdf: () => void;
@@ -31,7 +30,6 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
   selectedCourseId,
   onSearchChange,
   onSelectCourse,
-  onNavigateToCourses,
   onSave,
   onExport,
   onExportPdf,
@@ -81,7 +79,7 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
             <button
               key={s}
               onClick={() => setSemesterFilter(s)}
-              className={`px-3 py-1 text-[12px] font-semibold transition-colors cursor-pointer ${semesterFilter === s
+              className={`h-8 px-3 py-1 text-[12px] font-semibold transition-colors cursor-pointer ${semesterFilter === s
                 ? 'bg-[#002045] text-white'
                 : 'bg-[#f2f4f6] text-[#505f76] hover:bg-[#e8eaec]'
                 }`}
@@ -92,7 +90,7 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
         </div>
         <button
           onClick={onReset}
-          className="flex items-center justify-center bg-[#ba1a1a] text-white rounded-md p-1.5 hover:bg-[#93000a] cursor-pointer shrink-0"
+          className="h-8 w-8 flex items-center justify-center bg-[#ba1a1a] text-white rounded-md p-1.5 hover:bg-[#93000a] cursor-pointer shrink-0"
           title="Clear schedule grid"
         >
           <span className="material-symbols-outlined text-[17px]">delete_sweep</span>
@@ -100,7 +98,7 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
         <div className="relative" ref={exportMenuRef}>
           <button
             onClick={() => setShowExportMenu((v) => !v)}
-            className="flex items-center justify-center bg-[#002045] text-white rounded-md p-1.5 hover:bg-[#002f5e] cursor-pointer shrink-0"
+            className="h-8 w-8 flex items-center justify-center bg-[#002045] text-white rounded-md p-1.5 hover:bg-[#002f5e] cursor-pointer shrink-0"
             title="Export"
           >
             <span className="material-symbols-outlined text-[17px]">download</span>
@@ -160,14 +158,6 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
           </div>
         )}
       </div>
-
-      <button
-        onClick={onNavigateToCourses}
-        className="w-full py-2 border border-dashed border-[#c4c6cf] rounded-lg text-[13px] text-[#43474e] font-semibold hover:bg-[#f2f4f6] transition-colors flex items-center justify-center gap-1 cursor-pointer shrink-0 mt-4"
-      >
-        <span className="material-symbols-outlined text-[17px]">menu_book</span>
-        <span>Go to Courses to Define Block</span>
-      </button>
 
       {isDirty && (
         <button

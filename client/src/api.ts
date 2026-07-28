@@ -1,5 +1,11 @@
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
+export async function apiGet<T>(path: string): Promise<T> {
+  const res = await fetch(path, { headers: JSON_HEADERS });
+  if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
+  return res.json();
+}
+
 export async function apiPost<T>(path: string, data: unknown): Promise<T> {
   const res = await fetch(path, {
     method: "POST",

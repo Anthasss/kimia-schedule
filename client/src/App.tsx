@@ -117,7 +117,7 @@ export default function App() {
               path="/courses"
               element={<CoursesPage courses={courses} setCourses={setCourses} courseClasses={courseClasses} setCourseClasses={setCourseClasses} lecturers={lecturers} setLecturers={setLecturers} />}
             />
-            <Route path="*" element={<Navigate to="/management" replace />} />
+            <Route path="*" element={<Navigate to="/schedule" replace />} />
           </Routes>
         </main>
       </div>

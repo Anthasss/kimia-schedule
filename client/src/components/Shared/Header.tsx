@@ -2,10 +2,10 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const NAV_TABS = [
+  { label: 'Schedule', path: '/schedule' },
   { label: 'Management', path: '/management' },
   { label: 'Lecturers', path: '/lecturers' },
   { label: 'Courses', path: '/courses' },
-  { label: 'Schedule', path: '/schedule' },
 ] as const;
 
 export const Header: React.FC = () => {
@@ -16,7 +16,7 @@ export const Header: React.FC = () => {
     <header className="flex justify-between items-center px-8 w-full sticky top-0 z-50 bg-[#ffffff] border-b border-[#c4c6cf] h-16 shadow-xs">
       <div className="flex items-center gap-8">
         <button
-          onClick={() => navigate('/management')}
+          onClick={() => navigate('/schedule')}
           className="font-headline-sm text-[20px] font-bold text-[#002045] hover:opacity-90 text-left cursor-pointer"
         >
           Kimia Schedule Maker

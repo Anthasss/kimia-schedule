@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { Course, CourseClass, Lecturer } from '../types';
-import { apiPost, apiPut, apiDelete } from '../api';
+import { apiPost, apiGet, apiPut, apiDelete } from '../api';
 import { CoursesSidebar } from '../components/CoursesPage/CoursesSidebar';
 import { CourseDetailPanel } from '../components/CoursesPage/CourseDetailPanel';
 import { AddClassModal } from '../components/CoursesPage/AddClassModal';
@@ -66,26 +66,20 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
         return;
       }
       try {
-        const createdCourse = await apiPost<Course>('/api/courses', {
+        const createdCourse = await apiPost<Course>('/api/courses-with-classes', {
           code: updatedCourse.code,
           title: updatedCourse.title,
           sks: updatedCourse.sks,
           semester: updatedCourse.semester,
+          classes: updatedClasses.map((c) => ({
+            classLetter: c.classLetter || 'A',
+            lecturers: c.lecturers,
+          })),
         });
 
-        const newClasses = await Promise.all(
-          updatedClasses.map((c) =>
-            apiPost<CourseClass>('/api/course-classes', {
-              courseCode: createdCourse.code,
-              classLetter: c.classLetter || 'A',
-              lecturers: c.lecturers,
-            })
-          )
-        );
-
-        const firstClassId = newClasses[0]?.id;
-        setCourses((prev) => [...prev, { ...createdCourse, classId: firstClassId }]);
-        setCourseClasses((prev) => [...prev, ...newClasses]);
+        setCourses((prev) => [...prev, createdCourse]);
+        const allClasses = await apiGet<CourseClass[]>('/api/course-classes');
+        setCourseClasses(allClasses);
         setIsAddingNewCourse(false);
         setSelectedCourseCode(createdCourse.code);
         toast.success(`Course "${createdCourse.code}" created`);
@@ -201,6 +195,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
 
       setCourseClasses((prev) => [...prev, newClass]);
       if (!selectedCourse.classId) {
+        await apiPut(`/api/courses/${selectedCourse.id}`, { classId: newClass.id });
         setCourses((prev) =>
           prev.map((c) => (c.id === selectedCourse.id ? { ...c, classId: newClass.id } : c))
         );

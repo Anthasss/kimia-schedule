@@ -131,6 +131,38 @@ export const getCourseClasses = createGetAllHandler(courseClasses);
 export const createCourseClass = createInsertHandler(courseClasses);
 export const updateCourseClass = createUpdateHandler(courseClasses);
 
+// Create course with classes in one call
+export const createCourseWithClasses = async (req: Request, res: Response) => {
+  const { code, title, sks, semester, classes } = req.body;
+  const courseId = crypto.randomUUID();
+
+  const [course] = await db.insert(courses)
+    .values({ id: courseId, code, title, sks, semester })
+    .returning();
+
+  const createdClasses = await Promise.all(
+    classes.map((c: { classLetter: string; lecturers: string[] }) => {
+      const classId = crypto.randomUUID();
+      return db.insert(courseClasses)
+        .values({ id: classId, courseCode: code, classLetter: c.classLetter, lecturers: c.lecturers })
+        .returning()
+        .then(([row]) => row);
+    })
+  );
+
+  if (createdClasses.length > 0) {
+    const firstClassId = createdClasses[0].id;
+    const primaryLecturer = createdClasses[0].lecturers.filter(Boolean)[0] || null;
+    const [updated] = await db.update(courses)
+      .set({ classId: firstClassId, assignedLecturerName: primaryLecturer })
+      .where(eq(courses.id, courseId))
+      .returning();
+    return res.status(201).json(updated);
+  }
+
+  res.status(201).json(course);
+};
+
 export const deleteCourseClass = async (req: Request, res: Response) => {
   const classId = req.params.id;
   const classRow = await db.select().from(courseClasses).where(eq(courseClasses.id, classId)).limit(1);
