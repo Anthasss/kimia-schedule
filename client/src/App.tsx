@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import { useSession } from '@/lib/auth-client';
 import { Header } from './components/Shared/Header';
 import { Modals } from './components/Shared/Modals';
+import { LoginPage } from './pages/LoginPage';
+import { AdminPage } from './pages/AdminPage';
+import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SchedulePage } from './pages/SchedulePage';
 import { LecturersPage } from './pages/LecturersPage';
@@ -15,6 +19,7 @@ import { useDataFetching } from './hooks/useDataFetching';
 import { ScheduleSlot, Course, CourseClass, SemesterPeriod } from './types';
 
 export default function App() {
+  const { data: session, isPending } = useSession();
   const [pendingAdds, setPendingAdds] = useState<ScheduleSlot[]>([]);
   const [pendingRemoves, setPendingRemoves] = useState<string[]>([]);
   const [scheduleSlots, setScheduleSlots] = useState<ScheduleSlot[]>([]);
@@ -45,6 +50,23 @@ export default function App() {
     setInitialRecordType(initialType);
     setShowNewRecordModal(true);
   };
+
+  if (isPending) {
+    return (
+      <div className="h-screen bg-[#f7f9fb] flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#c4c6cf] border-t-[#374151]" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
 
   return (
     <div className="h-screen bg-[#f7f9fb] text-[#191c1e] font-sans antialiased flex flex-col">
@@ -123,6 +145,9 @@ export default function App() {
                   path="/courses"
                   element={<CoursesPage courses={courses} setCourses={setCourses} courseClasses={courseClasses} setCourseClasses={setCourseClasses} lecturers={lecturers} setLecturers={setLecturers} />}
                 />
+                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/change-password" element={<ChangePasswordPage />} />
+                <Route path="/login" element={<Navigate to="/schedule" replace />} />
                 <Route path="*" element={<Navigate to="/schedule" replace />} />
               </Routes>
             </main>
