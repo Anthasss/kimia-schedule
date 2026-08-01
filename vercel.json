@@ -1,0 +1,8 @@
+{
+  "buildCommand": "vite build --config client/vite.config.ts",
+  "outputDirectory": "client/dist",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/((?!assets/).*)", "destination": "/" }
+  ]
+}

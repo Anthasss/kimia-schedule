@@ -3,24 +3,20 @@ config();
 
 import express from "express";
 import path from "path";
-import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./auth";
 import dataRouter from "./routes/dataRoutes";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-async function startServer() {
+export async function createApp() {
   const app = express();
-  const PORT = 3000;
 
   app.all("/api/auth/*", toNodeHandler(auth));
   app.use(express.json());
   app.use(dataRouter);
 
   if (process.env.NODE_ENV !== "production") {
-    const clientRoot = path.join(__dirname, "../client");
+    const clientRoot = path.join(process.cwd(), "client");
     const vite = await createViteServer({
       root: clientRoot,
       server: { middlewareMode: true },
@@ -28,16 +24,21 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(__dirname, "../client/dist");
+    const distPath = path.join(process.cwd(), "client/dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Admin server running on http://localhost:${PORT}`);
-  });
+  return app;
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  const PORT = 3000;
+  createApp().then((app) => {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Admin server running on http://localhost:${PORT}`);
+    });
+  });
+}

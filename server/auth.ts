@@ -8,6 +8,10 @@ import { db } from "./db";
 import { authUser, authSession, authAccount, authVerification } from "./db/schema";
 
 export const auth = betterAuth({
+  baseURL: {
+    allowedHosts: ["localhost:3000", "*.vercel.app"],
+    protocol: process.env.NODE_ENV === "development" ? "http" : "https",
+  },
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
