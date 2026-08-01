@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { eq } from "drizzle-orm";
-import { db } from "../db/index";
+import { db } from "../db/index.js";
 import {
   rooms,
   breakTimes,
@@ -10,7 +10,7 @@ import {
   courses,
   scheduleSlots,
   semesterPeriods,
-} from "../db/schema";
+} from "../db/schema.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createGetAllHandler(table: any) {

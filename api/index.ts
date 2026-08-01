@@ -1,7 +1,7 @@
 import { config } from "dotenv";
 config();
 
-import { createApp } from "../server/index";
+import { createApp } from "../server/index.js";
 
 let app: any;
 

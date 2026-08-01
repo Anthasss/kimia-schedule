@@ -32,7 +32,7 @@ import {
   getSemesterPeriods,
   createSemesterPeriod,
   deleteSemesterPeriod,
-} from "../controllers/dataController";
+} from "../controllers/dataController.js";
 
 const router = Router();
 

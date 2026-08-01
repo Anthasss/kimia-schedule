@@ -5,8 +5,8 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { toNodeHandler } from "better-auth/node";
-import { auth } from "./auth";
-import dataRouter from "./routes/dataRoutes";
+import { auth } from "./auth.js";
+import dataRouter from "./routes/dataRoutes.js";
 
 export async function createApp() {
   const app = express();
