@@ -3,7 +3,6 @@ config();
 
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./auth.js";
 import dataRouter from "./routes/dataRoutes.js";
@@ -16,6 +15,7 @@ export async function createApp() {
   app.use(dataRouter);
 
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const clientRoot = path.join(process.cwd(), "client");
     const vite = await createViteServer({
       root: clientRoot,
