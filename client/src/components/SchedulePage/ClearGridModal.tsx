@@ -5,6 +5,8 @@ interface ClearGridModalProps {
   onClose: () => void;
   onConfirm: () => void;
   loading?: boolean;
+  title?: string;
+  message?: string;
 }
 
 export const ClearGridModal: React.FC<ClearGridModalProps> = ({
@@ -12,6 +14,8 @@ export const ClearGridModal: React.FC<ClearGridModalProps> = ({
   onClose,
   onConfirm,
   loading,
+  title,
+  message,
 }) => {
   if (!isOpen) return null;
 
@@ -20,10 +24,10 @@ export const ClearGridModal: React.FC<ClearGridModalProps> = ({
       <div className="bg-white rounded-xl max-w-sm w-full p-6 border border-[#c4c6cf] shadow-xl space-y-4">
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined text-[28px] text-[#ba1a1a]">warning</span>
-          <h3 className="font-headline-sm text-[18px] text-[#191c1e]">Clear Schedule Grid</h3>
+          <h3 className="font-headline-sm text-[18px] text-[#191c1e]">{title ?? 'Clear Schedule Grid'}</h3>
         </div>
         <p className="text-[13px] text-[#43474e] leading-relaxed">
-          This will remove all scheduled classes from the grid. This action cannot be undone.
+          {message ?? 'This will remove all scheduled classes from the grid. This action cannot be undone.'}
         </p>
         <div className="flex justify-end gap-2 pt-2 border-t border-[#c4c6cf]">
           <button
