@@ -80,6 +80,11 @@ export function SchedulePage({
 
   const { days, timeSlots, gridRows, slotRowLabels } = useMemo(() => computeTimeSlots(sksSettings, breakTimes), [sksSettings, breakTimes]);
 
+  const classById = useMemo(
+    () => new Map(courseClasses.map((cc) => [cc.id, cc])),
+    [courseClasses]
+  );
+
   const {
     draftSearch,
     setDraftSearch,
@@ -176,6 +181,7 @@ export function SchedulePage({
               slotRowLabels={slotRowLabels}
               scheduleSlots={scheduleSlots}
               lecturers={lecturers}
+              classById={classById}
               activeDraftItem={activeDraftItem}
               unscheduledCourses={unscheduledCourses}
               onPlaceDraft={(item, day, timeSlot, roomId) =>

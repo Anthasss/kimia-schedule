@@ -1,19 +1,22 @@
 import React from 'react';
-import { ScheduleSlot, Lecturer } from '../../types';
+import { ScheduleSlot, Lecturer, CourseClass } from '../../types';
 
 interface SlottedCourseCardProps {
   slot: ScheduleSlot;
   lecturers: Lecturer[];
+  classById: Map<string, CourseClass>;
   onRemove: (slotId: string) => void;
 }
 
 export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
   slot,
   lecturers,
+  classById,
   onRemove,
 }) => {
   const lecturer = lecturers.find((l) => l.name === slot.lecturerName);
   const lecturerColor = lecturer?.color || '#6366f1';
+  const classLecturers = classById.get(slot.classId)?.lecturers ?? [slot.lecturerName];
 
   return (
     <div
@@ -45,7 +48,7 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
           ✕
         </button>
       </div>
-      <p className="text-[12px] text-[#374151] mt-1">{slot.lecturerName}</p>
+      <p className="text-[12px] text-[#374151] mt-1">{classLecturers.join(', ')}</p>
     </div>
   );
 };
