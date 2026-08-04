@@ -1,35 +1,40 @@
 import React from 'react';
-import { ScheduleSlot, Lecturer } from '../../types';
+import { ScheduleSlot, Lecturer, CourseClass } from '../../types';
+import { cleanLecturerName } from '../../utils/rotationSolver';
 
 interface SlottedCourseCardProps {
   slot: ScheduleSlot;
   lecturers: Lecturer[];
+  classById: Map<string, CourseClass>;
+  turns?: string;
   onRemove: (slotId: string) => void;
 }
 
 export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
   slot,
   lecturers,
+  classById,
+  turns,
   onRemove,
 }) => {
   const lecturer = lecturers.find((l) => l.name === slot.lecturerName);
   const lecturerColor = lecturer?.color || '#6366f1';
+  const classLecturers = classById.get(slot.classId)?.lecturers ?? [slot.lecturerName];
 
   return (
     <div
-      className={`p-2 rounded border transition-all text-left relative group h-full ${
-        slot.hasConflict
-          ? 'bg-[#ffdad6] border-[#ba1a1a] text-[#93000a]'
-          : 'text-[#191c1e] hover:border-[#002045]'
-      }`}
+      className={`p-2 rounded border transition-all text-left relative group h-full ${slot.hasConflict
+        ? 'bg-[#ffdad6] border-[#ba1a1a] text-[#93000a]'
+        : 'text-[#191c1e] hover:border-[#002045]'
+        }`}
       style={
         slot.hasConflict
           ? undefined
           : {
-              borderLeftWidth: '3px',
-              borderLeftColor: lecturerColor,
-              backgroundColor: `${lecturerColor}0D`,
-            }
+            borderLeftWidth: '3px',
+            borderLeftColor: lecturerColor,
+            backgroundColor: `${lecturerColor}0D`,
+          }
       }
     >
       <div className="flex justify-between items-start">
@@ -45,7 +50,7 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
           ✕
         </button>
       </div>
-      <p className="text-[12px] text-[#374151] mt-1">{slot.lecturerName}</p>
+      <p className="text-[12px] text-[#374151] mt-1 whitespace-pre-line">{turns || classLecturers.map(cleanLecturerName).join('\n')}</p>
     </div>
   );
 };

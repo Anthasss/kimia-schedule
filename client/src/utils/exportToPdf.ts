@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { computeTimeSlots } from './scheduleTimeSlots';
-import type { Room, ScheduleSlot, SksSettings, BreakTime, Lecturer, DayOfWeek } from '../types';
+import type { Room, ScheduleSlot, SksSettings, BreakTime, Lecturer, DayOfWeek, CourseClass } from '../types';
+import { getWeeklyTurnsForSlots, cleanLecturerName } from './rotationSolver';
 
 const DAY_NAMES_ID: Record<DayOfWeek, string> = {
   Monday: 'Senin',
@@ -40,18 +41,22 @@ function pageBreak(pdf: jsPDF, y: number, need: number): number {
 }
 
 export async function exportScheduleToPdf() {
-  const [rooms, scheduleSlots, sksSettings, breakTimes, lecturers] = await Promise.all([
+  const [rooms, scheduleSlots, sksSettings, breakTimes, lecturers, courseClasses] = await Promise.all([
     fetch('/api/rooms').then(r => r.json()),
     fetch('/api/schedule-slots').then(r => r.json()),
     fetch('/api/sks-settings').then(r => r.json()),
     fetch('/api/break-times').then(r => r.json()),
     fetch('/api/lecturers').then(r => r.json()),
-  ]) as [Room[], ScheduleSlot[], SksSettings, BreakTime[], Lecturer[]];
+    fetch('/api/course-classes').then(r => r.json()),
+  ]) as [Room[], ScheduleSlot[], SksSettings, BreakTime[], Lecturer[], CourseClass[]];
 
   if (!rooms.length) return;
 
+  const classById = new Map(courseClasses.map((cc) => [cc.id, cc]));
+
   const pdf = new jsPDF('p', 'mm', 'a4');
   const { days, gridRows, slotRowLabels } = computeTimeSlots(sksSettings, breakTimes);
+  const turnsByClassId = getWeeklyTurnsForSlots(scheduleSlots, slotRowLabels, classById, 'M');
 
   const slotsByDay: Record<string, ScheduleSlot[]> = {};
   for (const slot of scheduleSlots) {
@@ -138,7 +143,8 @@ export async function exportScheduleToPdf() {
         }
 
         pdf.setFontSize(5);
-        const lecturerLines = pdf.splitTextToSize(slot.lecturerName.split(',')[0], RW - pad * 2);
+        const turnsText = turnsByClassId.get(slot.classId) || cleanLecturerName(slot.lecturerName);
+        const lecturerLines = pdf.splitTextToSize(turnsText, RW - pad * 2);
         for (const line of lecturerLines) {
           pdf.text(line, x + pad, cursor);
           cursor += 1.8;

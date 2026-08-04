@@ -1,7 +1,8 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Room, ScheduleSlot, Lecturer, DayOfWeek, UnscheduledClass } from '../../types';
+import { Room, ScheduleSlot, Lecturer, DayOfWeek, UnscheduledClass, CourseClass } from '../../types';
 import { GridRow } from '../../utils/scheduleTimeSlots';
+import { solveRotation, getWeeklyTurnsForSlots } from '../../utils/rotationSolver';
 import { SlottedCourseCard } from './SlottedCourseCard';
 import { EmptyCell } from './EmptyCell';
 
@@ -12,6 +13,7 @@ interface ScheduleDayGridProps {
   slotRowLabels: string[];
   scheduleSlots: ScheduleSlot[];
   lecturers: Lecturer[];
+  classById: Map<string, CourseClass>;
   activeDraftItem: UnscheduledClass | null;
   unscheduledCourses: UnscheduledClass[];
   onPlaceDraft: (item: UnscheduledClass, day: DayOfWeek, timeSlot: string, roomId: string) => void;
@@ -26,12 +28,18 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
   slotRowLabels,
   scheduleSlots,
   lecturers,
+  classById,
   activeDraftItem,
   unscheduledCourses,
   onPlaceDraft,
   onRemoveSlot,
   onSelectEmpty,
 }) => {
+  const daySlots = useMemo(() => scheduleSlots.filter((s) => s.day === day), [scheduleSlots, day]);
+  const turnsByClassId = useMemo(() => {
+    return getWeeklyTurnsForSlots(daySlots, slotRowLabels, classById);
+  }, [daySlots, slotRowLabels, classById]);
+
   const [hoveredCell, setHoveredCell] = useState<{ slotRowIdx: number; roomId: string } | null>(null);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -83,20 +91,42 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
       }
     }
 
-    const primaryLecturer = activeDraftItem.lecturers[0];
-    if (primaryLecturer) {
-      const ourStart = startIdx;
-      const ourEnd = startIdx + sks;
-      const conflictingSlot = scheduleSlots.find((s) => {
-        if (s.day !== day || s.lecturerName !== primaryLecturer) return false;
-        const theirStart = slotRowLabels.indexOf(s.timeSlot);
-        if (theirStart === -1) return false;
-        const theirEnd = theirStart + s.sks;
-        return ourStart < theirEnd && theirStart < ourEnd;
-      });
-      if (conflictingSlot) {
-        return `${primaryLecturer} is already scheduled in ${conflictingSlot.roomName} at this time`;
+    const overlappingSlots = scheduleSlots.filter((s) => {
+      if (s.day !== day) return false;
+      const theirStart = slotRowLabels.indexOf(s.timeSlot);
+      if (theirStart === -1) return false;
+      const theirEnd = theirStart + s.sks;
+      return startIdx < theirEnd && theirStart < startIdx + sks;
+    });
+
+    const rotationClasses = [
+      { id: activeDraftItem.id, lecturers: activeDraftItem.lecturers },
+      ...overlappingSlots.map((s) => ({
+        id: s.classId,
+        lecturers: classById.get(s.classId)?.lecturers ?? [s.lecturerName],
+      })),
+    ];
+
+    if (solveRotation(rotationClasses) === null) {
+      const lecturerLoads = new Map<string, number>();
+      for (const rc of rotationClasses) {
+        const weight = 1 / rc.lecturers.length;
+        for (const lecturer of rc.lecturers) {
+          if (lecturer) {
+            lecturerLoads.set(lecturer, (lecturerLoads.get(lecturer) || 0) + weight);
+          }
+        }
       }
+
+      const overbooked = Array.from(lecturerLoads.entries())
+        .filter(([_, load]) => load > 1.0001)
+        .map(([name, load]) => `${name} (${Math.round(load * 100)}%)`);
+
+      if (overbooked.length > 0) {
+        return `Lecturer(s) overbooked at this time: ${overbooked.join(', ')}`;
+      }
+
+      return `No valid teaching rotation exists with ${activeDraftItem.courseCode} and the ${overlappingSlots.length} class${overlappingSlots.length !== 1 ? 'es' : ''} already at this time`;
     }
 
     const roomConflictingSlot = scheduleSlots.find((s) => {
@@ -111,7 +141,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
     }
 
     return null;
-  }, [activeDraftItem, scheduleSlots, gridRows, slotRowLabels, day]);
+  }, [activeDraftItem, scheduleSlots, gridRows, slotRowLabels, day, classById]);
 
   const hoverValidationError = useMemo(() => {
     if (!hoveredCell || !activeDraftItem) return null;
@@ -217,6 +247,8 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                           <SlottedCourseCard
                             slot={startSlot}
                             lecturers={lecturers}
+                            classById={classById}
+                            turns={turnsByClassId.get(startSlot.classId)}
                             onRemove={onRemoveSlot}
                           />
                         </div>
