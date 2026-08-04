@@ -28,7 +28,10 @@ export const ClassCard: React.FC<ClassCardProps> = ({
     onLecturersChange(editLecturers.filter((_, i) => i !== index));
   };
 
+  const MAX_LECTURERS = 3;
+
   const addLecturer = () => {
+    if (editLecturers.length >= MAX_LECTURERS) return;
     const usedNames = editLecturers;
     const available = lecturers.find((l) => !usedNames.includes(l.name));
     onLecturersChange([...editLecturers, available?.name || '']);
@@ -86,7 +89,8 @@ export const ClassCard: React.FC<ClassCardProps> = ({
 
       <button
         onClick={addLecturer}
-        className="mt-2 text-[12px] text-[#002045] font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+        disabled={editLecturers.length >= MAX_LECTURERS}
+        className="mt-2 text-[12px] text-[#002045] font-semibold hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
       >
         <span className="material-symbols-outlined text-[14px]">add</span>
         <span>Add Lecturer</span>

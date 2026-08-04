@@ -128,13 +128,39 @@ export const deleteSemesterPeriod = createDeleteHandler(semesterPeriods);
 
 // Course Classes
 export const getCourseClasses = createGetAllHandler(courseClasses);
-export const createCourseClass = createInsertHandler(courseClasses);
-export const updateCourseClass = createUpdateHandler(courseClasses);
+
+const MAX_LECTURERS = 3;
+
+function courseClassLecturersTooMany(body: unknown): boolean {
+  return Array.isArray((body as { lecturers?: unknown })?.lecturers)
+    && (body as { lecturers: unknown[] }).lecturers.length > MAX_LECTURERS;
+}
+
+export const createCourseClass = (req: Request, res: Response) => {
+  if (courseClassLecturersTooMany(req.body)) {
+    return res.status(400).json({ error: `A class can have at most ${MAX_LECTURERS} lecturers` });
+  }
+  return createInsertHandler(courseClasses)(req, res);
+};
+
+export const updateCourseClass = (req: Request, res: Response) => {
+  if (courseClassLecturersTooMany(req.body)) {
+    return res.status(400).json({ error: `A class can have at most ${MAX_LECTURERS} lecturers` });
+  }
+  return createUpdateHandler(courseClasses)(req, res);
+};
 
 // Create course with classes in one call
 export const createCourseWithClasses = async (req: Request, res: Response) => {
   const { code, title, sks, semester, classes } = req.body;
   const courseId = crypto.randomUUID();
+
+  const tooMany = classes.find(
+    (c: { lecturers: string[] }) => c.lecturers.length > MAX_LECTURERS
+  );
+  if (tooMany) {
+    return res.status(400).json({ error: `A class can have at most ${MAX_LECTURERS} lecturers` });
+  }
 
   const [course] = await db.insert(courses)
     .values({ id: courseId, code, title, sks, semester })
