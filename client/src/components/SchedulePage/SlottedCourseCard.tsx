@@ -1,5 +1,6 @@
 import React from 'react';
 import { ScheduleSlot, Lecturer, CourseClass } from '../../types';
+import { cleanLecturerName } from '../../utils/rotationSolver';
 
 interface SlottedCourseCardProps {
   slot: ScheduleSlot;
@@ -23,8 +24,8 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
   return (
     <div
       className={`p-2 rounded border transition-all text-left relative group h-full ${slot.hasConflict
-          ? 'bg-[#ffdad6] border-[#ba1a1a] text-[#93000a]'
-          : 'text-[#191c1e] hover:border-[#002045]'
+        ? 'bg-[#ffdad6] border-[#ba1a1a] text-[#93000a]'
+        : 'text-[#191c1e] hover:border-[#002045]'
         }`}
       style={
         slot.hasConflict
@@ -49,7 +50,7 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
           ✕
         </button>
       </div>
-      <p className="text-[12px] text-[#374151] mt-1">{turns || classLecturers.join('\n')}</p>
+      <p className="text-[12px] text-[#374151] mt-1 whitespace-pre-line">{turns || classLecturers.map(cleanLecturerName).join('\n')}</p>
     </div>
   );
 };

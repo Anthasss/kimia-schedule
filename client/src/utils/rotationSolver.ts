@@ -97,26 +97,28 @@ export function solveRotation(classes: RotationClass[]): Assignment | null {
 
 import type { CourseClass, ScheduleSlot } from '../types';
 
-export function getWeekRangeText(chunkIdx: number, totalChunks: number): string {
-  if (totalChunks === 1) return 'W1-W16';
+export function getWeekRangeText(chunkIdx: number, totalChunks: number, weekPrefix = 'W'): string {
+  const p = weekPrefix;
+  if (totalChunks === 1) return `${p}1-${p}16`;
   if (totalChunks === 2) {
-    return chunkIdx === 0 ? 'W1-W8' : 'W9-W16';
+    return chunkIdx === 0 ? `${p}1-${p}8` : `${p}9-${p}16`;
   }
   if (totalChunks === 3) {
-    if (chunkIdx === 0) return 'W1-W5';
-    if (chunkIdx === 1) return 'W6-W10';
-    return 'W11-W16';
+    if (chunkIdx === 0) return `${p}1-${p}5`;
+    if (chunkIdx === 1) return `${p}6-${p}10`;
+    return `${p}11-${p}16`;
   }
   const step = 16 / totalChunks;
   const start = Math.round(chunkIdx * step) + 1;
   const end = Math.round((chunkIdx + 1) * step);
-  return `W${start}-W${end}`;
+  return `${p}${start}-${p}${end}`;
 }
 
 export function getWeeklyTurnsForSlots(
   slots: ScheduleSlot[],
   slotRowLabels: string[],
-  classById: Map<string, CourseClass>
+  classById: Map<string, CourseClass>,
+  weekPrefix = 'W'
 ): Map<string, string> {
   const results = new Map<string, string>();
   if (slots.length === 0) return results;
@@ -188,7 +190,7 @@ export function getWeeklyTurnsForSlots(
         const defaultLecturers = cc?.lecturers ?? (slotForClass ? [slotForClass.lecturerName] : []);
 
         if (defaultLecturers.length <= 1) {
-          results.set(classId, defaultLecturers.join(', ') || 'Unassigned');
+          results.set(classId, defaultLecturers.map(cleanLecturerName).join(', ') || 'Unassigned');
           continue;
         }
 
@@ -196,21 +198,30 @@ export function getWeeklyTurnsForSlots(
         if (solvedPerm) {
           const turnTexts = solvedPerm.map((name, idx) => {
             if (!name) return 'Unassigned';
-            const weeks = getWeekRangeText(idx, solvedPerm.length);
-            return `${name} (${weeks})`;
+            const weeks = getWeekRangeText(idx, solvedPerm.length, weekPrefix);
+            return `${cleanLecturerName(name)} (${weeks})`;
           });
-          results.set(classId, turnTexts.join(', '));
+          results.set(classId, turnTexts.join('\n'));
         } else {
           const turnTexts = defaultLecturers.map((name, idx) => {
             if (!name) return 'Unassigned';
-            const weeks = getWeekRangeText(idx, defaultLecturers.length);
-            return `${name} (${weeks})`;
+            const weeks = getWeekRangeText(idx, defaultLecturers.length, weekPrefix);
+            return `${cleanLecturerName(name)} (${weeks})`;
           });
-          results.set(classId, turnTexts.join(', '));
+          results.set(classId, turnTexts.join('\n'));
         }
       }
     }
   }
 
   return results;
+}
+
+export function cleanLecturerName(name: string): string {
+  if (!name) return '';
+  const withoutDegrees = name.split(',')[0].trim();
+  const cleanedName = withoutDegrees.replace(/[.,\s]+$/, '');
+  const words = cleanedName.split(/\s+/);
+  const cleanedWords = words.filter(word => !word.endsWith('.'));
+  return cleanedWords.join(' ');
 }

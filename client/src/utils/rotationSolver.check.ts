@@ -1,4 +1,4 @@
-import { solveRotation } from './rotationSolver';
+import { solveRotation, cleanLecturerName } from './rotationSolver';
 
 function check(name: string, classes: [string, string[]][], expected: boolean) {
   const result = solveRotation(classes.map(([id, lecturers]) => ({ id, lecturers })));
@@ -72,5 +72,20 @@ check('mixed counts shared infeasible (1 + 0.5 = 1.5)', [
   ['X', ['L1']],
   ['Y', ['L1', 'L2']],
 ], false);
+
+function checkCleanName(input: string, expected: string) {
+  const actual = cleanLecturerName(input);
+  if (actual !== expected) {
+    throw new Error(`cleanLecturerName("${input}"): expected "${expected}" but got "${actual}"`);
+  }
+  console.log(`PASS cleanLecturerName: "${input}" -> "${actual}"`);
+}
+
+checkCleanName('Prof. Dr. Febri O. Nitbani, S.Si, M.Si', 'Febri Nitbani');
+checkCleanName('Pius Dore Ola, S.Si, M.Si., Ph.D', 'Pius Dore Ola');
+checkCleanName('Sherly M. F. Ledoh, S.Si.,M.Sc', 'Sherly Ledoh');
+checkCleanName('Prof. Philiphi de Rozari, S.Si, M.Si.,M.Sc.,Ph.D', 'Philiphi de Rozari');
+checkCleanName('Marlon J.R. Benu.,S.Si.,M.Si', 'Marlon Benu');
+checkCleanName('Yunita E.Damaledo.,S.H', 'Yunita E.Damaledo');
 
 console.log('All rotation solver checks passed');
