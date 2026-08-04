@@ -18,6 +18,7 @@ import { ScheduleDayGrid } from '../components/SchedulePage/ScheduleDayGrid';
 import { UnscheduledCoursesSidebar } from '../components/SchedulePage/UnscheduledCoursesSidebar';
 import { ScheduleLayout } from '../components/SchedulePage/ScheduleLayout';
 import { ClearGridModal } from '../components/SchedulePage/ClearGridModal';
+import { SaveAndExportModal } from '../components/SchedulePage/SaveAndExportModal';
 import { exportScheduleToPdf } from '../utils/exportToPdf';
 import { apiDelete } from '../api';
 
@@ -57,10 +58,7 @@ export function SchedulePage({
 
   const [showClearGridModal, setShowClearGridModal] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
-
-  const handleExportPdf = useCallback(async () => {
-    await exportScheduleToPdf();
-  }, []);
+  const [showSaveExportModal, setShowSaveExportModal] = useState(false);
 
   const handleReset = useCallback(async () => {
     setIsClearing(true);
@@ -121,6 +119,20 @@ export function SchedulePage({
     setSelectedExpandedDraft(unscheduledCourses[0]?.id || null);
   };
 
+  const handleExportPdf = useCallback(async () => {
+    if (isDirty) {
+      setShowSaveExportModal(true);
+      return;
+    }
+    await exportScheduleToPdf();
+  }, [isDirty]);
+
+  const handleConfirmSaveExport = useCallback(async () => {
+    setShowSaveExportModal(false);
+    await saveChanges();
+    await exportScheduleToPdf();
+  }, [saveChanges]);
+
   return (
     <ScheduleLayout
       sidebar={
@@ -167,6 +179,13 @@ export function SchedulePage({
         onClose={() => setShowClearGridModal(false)}
         onConfirm={handleReset}
         loading={isClearing}
+      />
+
+      <SaveAndExportModal
+        isOpen={showSaveExportModal}
+        onClose={() => setShowSaveExportModal(false)}
+        onConfirm={handleConfirmSaveExport}
+        saving={isSaving}
       />
     </ScheduleLayout>
   );
