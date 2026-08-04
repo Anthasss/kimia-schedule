@@ -57,7 +57,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
     return Array.from({ length: endIdx - startIdx }, (_, i) => startIdx + i);
   }, [hoveredCell, activeDraftItem, slotRowLabels.length]);
 
-  const getPlacementError = useCallback((slotRowIdx: number): string | null => {
+  const getPlacementError = useCallback((slotRowIdx: number, roomId: string): string | null => {
     if (!activeDraftItem) return null;
 
     const sks = activeDraftItem.sks;
@@ -99,12 +99,23 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
       }
     }
 
+    const roomConflictingSlot = scheduleSlots.find((s) => {
+      if (s.day !== day || s.roomId !== roomId) return false;
+      const theirStart = slotRowLabels.indexOf(s.timeSlot);
+      if (theirStart === -1) return false;
+      const theirEnd = theirStart + s.sks;
+      return startIdx < theirEnd && theirStart < startIdx + sks;
+    });
+    if (roomConflictingSlot) {
+      return `Cannot place here: ${roomConflictingSlot.courseCode} already occupies ${roomConflictingSlot.roomName} at this time`;
+    }
+
     return null;
   }, [activeDraftItem, scheduleSlots, gridRows, slotRowLabels, day]);
 
   const hoverValidationError = useMemo(() => {
     if (!hoveredCell || !activeDraftItem) return null;
-    return getPlacementError(hoveredCell.slotRowIdx);
+    return getPlacementError(hoveredCell.slotRowIdx, hoveredCell.roomId);
   }, [hoveredCell, activeDraftItem, getPlacementError]);
 
   useEffect(() => {
@@ -235,7 +246,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                           activeDraftItem={activeDraftItem}
                           onPlace={() => {
                             if (activeDraftItem) {
-                              const error = getPlacementError(slotRowIdx);
+                              const error = getPlacementError(slotRowIdx, room.id);
                               if (error) {
                                 toast.error(error);
                                 return;
