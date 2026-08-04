@@ -133,6 +133,9 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
         if (!edit || edit.lecturers.filter(Boolean).length === 0) {
           errors.add(`class_${lc.tempId}`);
         }
+        if (edit && edit.lecturers.filter(Boolean).length > 3) {
+          errors.add(`class_${lc.tempId}`);
+        }
       }
 
       if (errors.size > 0) {

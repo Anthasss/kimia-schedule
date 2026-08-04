@@ -30,7 +30,11 @@ export const AddClassModal: React.FC<AddClassModalProps> = ({
 
   const toggleLecturer = (name: string) => {
     setSelectedLecturers((prev) =>
-      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
+      prev.includes(name)
+        ? prev.filter((n) => n !== name)
+        : prev.length >= 3
+          ? prev
+          : [...prev, name]
     );
   };
 
