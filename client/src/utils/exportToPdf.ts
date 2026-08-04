@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { computeTimeSlots } from './scheduleTimeSlots';
 import type { Room, ScheduleSlot, SksSettings, BreakTime, Lecturer, DayOfWeek, CourseClass } from '../types';
+import { getWeeklyTurnsForSlots } from './rotationSolver';
 
 const DAY_NAMES_ID: Record<DayOfWeek, string> = {
   Monday: 'Senin',
@@ -55,6 +56,7 @@ export async function exportScheduleToPdf() {
 
   const pdf = new jsPDF('p', 'mm', 'a4');
   const { days, gridRows, slotRowLabels } = computeTimeSlots(sksSettings, breakTimes);
+  const turnsByClassId = getWeeklyTurnsForSlots(scheduleSlots, slotRowLabels, classById);
 
   const slotsByDay: Record<string, ScheduleSlot[]> = {};
   for (const slot of scheduleSlots) {
@@ -141,8 +143,8 @@ export async function exportScheduleToPdf() {
         }
 
         pdf.setFontSize(5);
-        const classLecturers = classById.get(slot.classId)?.lecturers ?? [slot.lecturerName];
-        const lecturerLines = pdf.splitTextToSize(classLecturers.join(', '), RW - pad * 2);
+        const turnsText = turnsByClassId.get(slot.classId) || slot.lecturerName;
+        const lecturerLines = pdf.splitTextToSize(turnsText, RW - pad * 2);
         for (const line of lecturerLines) {
           pdf.text(line, x + pad, cursor);
           cursor += 1.8;

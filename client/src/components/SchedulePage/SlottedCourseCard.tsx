@@ -5,6 +5,7 @@ interface SlottedCourseCardProps {
   slot: ScheduleSlot;
   lecturers: Lecturer[];
   classById: Map<string, CourseClass>;
+  turns?: string;
   onRemove: (slotId: string) => void;
 }
 
@@ -12,6 +13,7 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
   slot,
   lecturers,
   classById,
+  turns,
   onRemove,
 }) => {
   const lecturer = lecturers.find((l) => l.name === slot.lecturerName);
@@ -20,19 +22,18 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
 
   return (
     <div
-      className={`p-2 rounded border transition-all text-left relative group h-full ${
-        slot.hasConflict
+      className={`p-2 rounded border transition-all text-left relative group h-full ${slot.hasConflict
           ? 'bg-[#ffdad6] border-[#ba1a1a] text-[#93000a]'
           : 'text-[#191c1e] hover:border-[#002045]'
-      }`}
+        }`}
       style={
         slot.hasConflict
           ? undefined
           : {
-              borderLeftWidth: '3px',
-              borderLeftColor: lecturerColor,
-              backgroundColor: `${lecturerColor}0D`,
-            }
+            borderLeftWidth: '3px',
+            borderLeftColor: lecturerColor,
+            backgroundColor: `${lecturerColor}0D`,
+          }
       }
     >
       <div className="flex justify-between items-start">
@@ -48,7 +49,7 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
           ✕
         </button>
       </div>
-      <p className="text-[12px] text-[#374151] mt-1">{classLecturers.join(', ')}</p>
+      <p className="text-[12px] text-[#374151] mt-1">{turns || classLecturers.join('\n')}</p>
     </div>
   );
 };

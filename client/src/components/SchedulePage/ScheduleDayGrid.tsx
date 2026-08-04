@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import { toast } from 'sonner';
 import { Room, ScheduleSlot, Lecturer, DayOfWeek, UnscheduledClass, CourseClass } from '../../types';
 import { GridRow } from '../../utils/scheduleTimeSlots';
-import { solveRotation } from '../../utils/rotationSolver';
+import { solveRotation, getWeeklyTurnsForSlots } from '../../utils/rotationSolver';
 import { SlottedCourseCard } from './SlottedCourseCard';
 import { EmptyCell } from './EmptyCell';
 
@@ -35,6 +35,11 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
   onRemoveSlot,
   onSelectEmpty,
 }) => {
+  const daySlots = useMemo(() => scheduleSlots.filter((s) => s.day === day), [scheduleSlots, day]);
+  const turnsByClassId = useMemo(() => {
+    return getWeeklyTurnsForSlots(daySlots, slotRowLabels, classById);
+  }, [daySlots, slotRowLabels, classById]);
+
   const [hoveredCell, setHoveredCell] = useState<{ slotRowIdx: number; roomId: string } | null>(null);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -243,6 +248,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                             slot={startSlot}
                             lecturers={lecturers}
                             classById={classById}
+                            turns={turnsByClassId.get(startSlot.classId)}
                             onRemove={onRemoveSlot}
                           />
                         </div>

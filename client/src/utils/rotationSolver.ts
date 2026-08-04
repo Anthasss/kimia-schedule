@@ -94,3 +94,123 @@ export function solveRotation(classes: RotationClass[]): Assignment | null {
 
   return backtrack(0) ? assignment : null;
 }
+
+import type { CourseClass, ScheduleSlot } from '../types';
+
+export function getWeekRangeText(chunkIdx: number, totalChunks: number): string {
+  if (totalChunks === 1) return 'W1-W16';
+  if (totalChunks === 2) {
+    return chunkIdx === 0 ? 'W1-W8' : 'W9-W16';
+  }
+  if (totalChunks === 3) {
+    if (chunkIdx === 0) return 'W1-W5';
+    if (chunkIdx === 1) return 'W6-W10';
+    return 'W11-W16';
+  }
+  const step = 16 / totalChunks;
+  const start = Math.round(chunkIdx * step) + 1;
+  const end = Math.round((chunkIdx + 1) * step);
+  return `W${start}-W${end}`;
+}
+
+export function getWeeklyTurnsForSlots(
+  slots: ScheduleSlot[],
+  slotRowLabels: string[],
+  classById: Map<string, CourseClass>
+): Map<string, string> {
+  const results = new Map<string, string>();
+  if (slots.length === 0) return results;
+
+  // Group slots by day
+  const slotsByDay = new Map<string, ScheduleSlot[]>();
+  for (const s of slots) {
+    if (!slotsByDay.has(s.day)) {
+      slotsByDay.set(s.day, []);
+    }
+    slotsByDay.get(s.day)!.push(s);
+  }
+
+  // Process day by day to isolate connected components per day
+  for (const [_, daySlots] of slotsByDay.entries()) {
+    const adj = new Map<string, string[]>();
+    for (let i = 0; i < daySlots.length; i++) {
+      const s1 = daySlots[i];
+      const start1 = slotRowLabels.indexOf(s1.timeSlot);
+      const end1 = start1 + s1.sks;
+
+      for (let j = i + 1; j < daySlots.length; j++) {
+        const s2 = daySlots[j];
+        const start2 = slotRowLabels.indexOf(s2.timeSlot);
+        const end2 = start2 + s2.sks;
+
+        const overlap = start1 < end2 && start2 < end1;
+        if (overlap) {
+          if (!adj.has(s1.classId)) adj.set(s1.classId, []);
+          if (!adj.has(s2.classId)) adj.set(s2.classId, []);
+          adj.get(s1.classId)!.push(s2.classId);
+          adj.get(s2.classId)!.push(s1.classId);
+        }
+      }
+    }
+
+    const visited = new Set<string>();
+    for (const slot of daySlots) {
+      if (visited.has(slot.classId)) continue;
+
+      const componentClassIds: string[] = [];
+      const queue = [slot.classId];
+      visited.add(slot.classId);
+
+      while (queue.length > 0) {
+        const curr = queue.shift()!;
+        componentClassIds.push(curr);
+        const neighbors = adj.get(curr) || [];
+        for (const neighbor of neighbors) {
+          if (!visited.has(neighbor)) {
+            visited.add(neighbor);
+            queue.push(neighbor);
+          }
+        }
+      }
+
+      const rotationClasses = componentClassIds.map((classId) => {
+        const cc = classById.get(classId);
+        const slotForClass = daySlots.find((s) => s.classId === classId);
+        const lecturers = cc?.lecturers ?? (slotForClass ? [slotForClass.lecturerName] : []);
+        return { id: classId, lecturers };
+      });
+
+      const assignment = solveRotation(rotationClasses);
+
+      for (const classId of componentClassIds) {
+        const cc = classById.get(classId);
+        const slotForClass = daySlots.find((s) => s.classId === classId);
+        const defaultLecturers = cc?.lecturers ?? (slotForClass ? [slotForClass.lecturerName] : []);
+
+        if (defaultLecturers.length <= 1) {
+          results.set(classId, defaultLecturers.join(', ') || 'Unassigned');
+          continue;
+        }
+
+        const solvedPerm = assignment?.get(classId);
+        if (solvedPerm) {
+          const turnTexts = solvedPerm.map((name, idx) => {
+            if (!name) return 'Unassigned';
+            const weeks = getWeekRangeText(idx, solvedPerm.length);
+            return `${name} (${weeks})`;
+          });
+          results.set(classId, turnTexts.join(', '));
+        } else {
+          const turnTexts = defaultLecturers.map((name, idx) => {
+            if (!name) return 'Unassigned';
+            const weeks = getWeekRangeText(idx, defaultLecturers.length);
+            return `${name} (${weeks})`;
+          });
+          results.set(classId, turnTexts.join(', '));
+        }
+      }
+    }
+  }
+
+  return results;
+}
