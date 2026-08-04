@@ -2,6 +2,16 @@ import { jsPDF } from 'jspdf';
 import { computeTimeSlots } from './scheduleTimeSlots';
 import type { Room, ScheduleSlot, SksSettings, BreakTime, Lecturer, DayOfWeek } from '../types';
 
+const DAY_NAMES_ID: Record<DayOfWeek, string> = {
+  Monday: 'Senin',
+  Tuesday: 'Selasa',
+  Wednesday: 'Rabu',
+  Thursday: 'Kamis',
+  Friday: 'Jumat',
+  Saturday: 'Sabtu',
+  Sunday: 'Minggu',
+};
+
 function hexToRgb(hex: string): [number, number, number] {
   const c = parseInt(hex.replace('#', ''), 16);
   return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
@@ -59,7 +69,7 @@ export async function exportScheduleToPdf() {
     pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(25, 28, 30);
-    pdf.text(day, M, y + 4);
+    pdf.text(DAY_NAMES_ID[day] || day, M, y + 4);
     y += 8;
 
     // col headers

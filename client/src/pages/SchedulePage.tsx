@@ -59,6 +59,7 @@ export function SchedulePage({
   const [showClearGridModal, setShowClearGridModal] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [showSaveExportModal, setShowSaveExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleReset = useCallback(async () => {
     setIsClearing(true);
@@ -124,13 +125,23 @@ export function SchedulePage({
       setShowSaveExportModal(true);
       return;
     }
-    await exportScheduleToPdf();
+    setIsExporting(true);
+    try {
+      await exportScheduleToPdf();
+    } finally {
+      setIsExporting(false);
+    }
   }, [isDirty]);
 
   const handleConfirmSaveExport = useCallback(async () => {
     setShowSaveExportModal(false);
-    await saveChanges();
-    await exportScheduleToPdf();
+    setIsExporting(true);
+    try {
+      await saveChanges();
+      await exportScheduleToPdf();
+    } finally {
+      setIsExporting(false);
+    }
   }, [saveChanges]);
 
   return (
@@ -144,6 +155,8 @@ export function SchedulePage({
           coursesCount={courses.length}
           isDirty={isDirty}
           isSaving={isSaving}
+          isClearing={isClearing}
+          isExporting={isExporting}
           selectedCourseId={selectedExpandedDraft}
           onSearchChange={setDraftSearch}
           onSelectCourse={setSelectedExpandedDraft}
