@@ -10,6 +10,8 @@ interface UnscheduledCoursesSidebarProps {
   coursesCount: number;
   isDirty: boolean;
   isSaving: boolean;
+  isClearing: boolean;
+  isExporting: boolean;
   selectedCourseId: string | null;
   onSearchChange: (value: string) => void;
   onSelectCourse: (id: string) => void;
@@ -26,6 +28,8 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
   coursesCount,
   isDirty,
   isSaving,
+  isClearing,
+  isExporting,
   selectedCourseId,
   onSearchChange,
   onSelectCourse,
@@ -74,17 +78,27 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
         </div>
         <button
           onClick={onReset}
-          className="h-8 w-8 flex items-center justify-center bg-[#ba1a1a] text-white rounded-md p-1.5 hover:bg-[#93000a] cursor-pointer shrink-0"
+          disabled={isClearing}
+          className="h-8 w-8 flex items-center justify-center bg-[#ba1a1a] text-white rounded-md p-1.5 hover:bg-[#93000a] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           title="Clear schedule grid"
         >
-          <span className="material-symbols-outlined text-[17px]">delete_sweep</span>
+          {isClearing ? (
+            <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
+          ) : (
+            <span className="material-symbols-outlined text-[17px]">delete_sweep</span>
+          )}
         </button>
         <button
           onClick={onExportPdf}
-          className="h-8 w-8 flex items-center justify-center bg-[#002045] text-white rounded-md p-1.5 hover:bg-[#002f5e] cursor-pointer shrink-0"
+          disabled={isExporting}
+          className="h-8 w-8 flex items-center justify-center bg-[#002045] text-white rounded-md p-1.5 hover:bg-[#002f5e] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           title="Export to PDF"
         >
-          <span className="material-symbols-outlined text-[17px]">picture_as_pdf</span>
+          {isExporting ? (
+            <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
+          ) : (
+            <span className="material-symbols-outlined text-[17px]">picture_as_pdf</span>
+          )}
         </button>
       </div>
 

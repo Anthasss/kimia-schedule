@@ -43,11 +43,14 @@ export function computeTimeSlots(
     const overlappingBreak = breakRanges.find(
       (b) => currentMinutes < b.end && slotEnd > b.start
     );
-    const actualEnd = overlappingBreak ? overlappingBreak.end : slotEnd;
-    const hh = String(Math.floor(currentMinutes / 60)).padStart(2, '0');
-    const mm = String(currentMinutes % 60).padStart(2, '0');
-    const eh = String(Math.floor(slotEnd / 60)).padStart(2, '0');
-    const em = String(slotEnd % 60).padStart(2, '0');
+    // ponytail: shift slot past the break instead of labeling it mid-break
+    const slotStart = overlappingBreak ? overlappingBreak.end : currentMinutes;
+    const actualEnd = slotStart + duration;
+    if (actualEnd > endMinutes) break;
+    const hh = String(Math.floor(slotStart / 60)).padStart(2, '0');
+    const mm = String(slotStart % 60).padStart(2, '0');
+    const eh = String(Math.floor(actualEnd / 60)).padStart(2, '0');
+    const em = String(actualEnd % 60).padStart(2, '0');
     timeSlots.push(`${hh}:${mm} - ${eh}:${em} SKS ${sksNum}`);
     currentMinutes = actualEnd;
     sksNum++;

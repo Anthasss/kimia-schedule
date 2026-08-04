@@ -18,6 +18,7 @@ import { ScheduleDayGrid } from '../components/SchedulePage/ScheduleDayGrid';
 import { UnscheduledCoursesSidebar } from '../components/SchedulePage/UnscheduledCoursesSidebar';
 import { ScheduleLayout } from '../components/SchedulePage/ScheduleLayout';
 import { ClearGridModal } from '../components/SchedulePage/ClearGridModal';
+import { SaveAndExportModal } from '../components/SchedulePage/SaveAndExportModal';
 import { exportScheduleToPdf } from '../utils/exportToPdf';
 import { apiDelete } from '../api';
 
@@ -57,10 +58,8 @@ export function SchedulePage({
 
   const [showClearGridModal, setShowClearGridModal] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
-
-  const handleExportPdf = useCallback(async () => {
-    await exportScheduleToPdf();
-  }, []);
+  const [showSaveExportModal, setShowSaveExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleReset = useCallback(async () => {
     setIsClearing(true);
@@ -121,6 +120,30 @@ export function SchedulePage({
     setSelectedExpandedDraft(unscheduledCourses[0]?.id || null);
   };
 
+  const handleExportPdf = useCallback(async () => {
+    if (isDirty) {
+      setShowSaveExportModal(true);
+      return;
+    }
+    setIsExporting(true);
+    try {
+      await exportScheduleToPdf();
+    } finally {
+      setIsExporting(false);
+    }
+  }, [isDirty]);
+
+  const handleConfirmSaveExport = useCallback(async () => {
+    setShowSaveExportModal(false);
+    setIsExporting(true);
+    try {
+      await saveChanges();
+      await exportScheduleToPdf();
+    } finally {
+      setIsExporting(false);
+    }
+  }, [saveChanges]);
+
   return (
     <ScheduleLayout
       sidebar={
@@ -132,6 +155,8 @@ export function SchedulePage({
           coursesCount={courses.length}
           isDirty={isDirty}
           isSaving={isSaving}
+          isClearing={isClearing}
+          isExporting={isExporting}
           selectedCourseId={selectedExpandedDraft}
           onSearchChange={setDraftSearch}
           onSelectCourse={setSelectedExpandedDraft}
@@ -167,6 +192,13 @@ export function SchedulePage({
         onClose={() => setShowClearGridModal(false)}
         onConfirm={handleReset}
         loading={isClearing}
+      />
+
+      <SaveAndExportModal
+        isOpen={showSaveExportModal}
+        onClose={() => setShowSaveExportModal(false)}
+        onConfirm={handleConfirmSaveExport}
+        saving={isSaving}
       />
     </ScheduleLayout>
   );
