@@ -28,9 +28,11 @@ export function useUnscheduledCourses(
   );
 
   const unscheduledCourses = useMemo<UnscheduledClass[]>(() => {
+    const courseByClassId = new Map<string, Course>();
     const courseByCode = new Map<string, Course>();
     for (const c of courses) {
-      courseByCode.set(c.code, c);
+      if (c.classId) courseByClassId.set(c.classId, c);
+      if (!courseByCode.has(c.code)) courseByCode.set(c.code, c);
     }
 
     const result: UnscheduledClass[] = [];
@@ -38,9 +40,8 @@ export function useUnscheduledCourses(
     for (const cc of courseClasses) {
       if (scheduledClassIds.has(cc.id)) continue;
 
-      const course = courseByCode.get(cc.courseCode);
+      const course = courseByClassId.get(cc.id) || courseByCode.get(cc.courseCode);
       if (!course) continue;
-      if (!course.classId) continue;
 
       result.push(buildUnscheduledClass(cc, course));
     }

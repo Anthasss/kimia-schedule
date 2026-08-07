@@ -1,19 +1,21 @@
 import React from 'react';
-import { CourseClass, Lecturer } from '../../types';
+import { Lecturer } from '../../types';
 
 interface ClassCardProps {
-  courseClass: CourseClass;
   lecturers: Lecturer[];
+  editClassLetter: string;
   editLecturers: string[];
+  onClassLetterChange: (letter: string) => void;
   onLecturersChange: (lecturers: string[]) => void;
   onDelete: () => void;
   hasError?: boolean;
 }
 
 export const ClassCard: React.FC<ClassCardProps> = ({
-  courseClass,
   lecturers,
+  editClassLetter,
   editLecturers,
+  onClassLetterChange,
   onLecturersChange,
   onDelete,
   hasError = false,
@@ -41,9 +43,14 @@ export const ClassCard: React.FC<ClassCardProps> = ({
     <div className={`rounded-lg p-4 bg-[#f7f9fb] ${hasError ? 'border-2 border-[#ba1a1a]' : 'border border-[#c4c6cf]'}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-[13px] font-bold px-2 py-0.5 bg-[#002045] text-white rounded">
-            Class {courseClass.classLetter}
-          </span>
+          <input
+            type="text"
+            value={editClassLetter}
+            onChange={(e) => onClassLetterChange(e.target.value.toUpperCase().replace(/[^A-Z ]/g, '').slice(0, 32))}
+            maxLength={32}
+            className="min-w-10 text-[13px] font-bold px-2 py-0.5 bg-[#002045] text-white rounded text-start outline-none focus:ring-1 focus:ring-white"
+            title="Edit class letter"
+          />
           <span className="text-[12px] text-[#74777f]">
             {editLecturers.filter(Boolean).length} lecturer{editLecturers.filter(Boolean).length !== 1 ? 's' : ''}
           </span>
