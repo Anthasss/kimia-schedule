@@ -166,15 +166,22 @@ export const createCourseWithClasses = async (req: Request, res: Response) => {
     .values({ id: courseId, code, title, sks, semester })
     .returning();
 
-  const createdClasses = await Promise.all(
-    classes.map((c: { classLetter: string; lecturers: string[] }) => {
-      const classId = crypto.randomUUID();
-      return db.insert(courseClasses)
-        .values({ id: classId, courseCode: code, classLetter: c.classLetter, lecturers: c.lecturers })
-        .returning()
-        .then(([row]) => row);
-    })
-  );
+  let createdClasses: typeof courseClasses.$inferSelect[] = [];
+  try {
+    createdClasses = await Promise.all(
+      classes.map((c: { classLetter: string; lecturers: string[] }) => {
+        const classId = crypto.randomUUID();
+        return db.insert(courseClasses)
+          .values({ id: classId, courseCode: code, classLetter: c.classLetter, lecturers: c.lecturers })
+          .returning()
+          .then(([row]) => row);
+      })
+    );
+  } catch (err) {
+    // ponytail: no interactive txn on the neon-http driver, compensate manually
+    await db.delete(courses).where(eq(courses.id, courseId)).catch(() => undefined);
+    throw err;
+  }
 
   if (createdClasses.length > 0) {
     const firstClassId = createdClasses[0].id;
