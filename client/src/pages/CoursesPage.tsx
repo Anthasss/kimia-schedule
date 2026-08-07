@@ -99,6 +99,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
         }),
         ...updatedClasses.map((c) =>
           apiPut<CourseClass>(`/api/course-classes/${c.id}`, {
+            classLetter: c.classLetter,
             lecturers: c.lecturers,
           })
         ),
@@ -151,7 +152,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
       setCourseClasses((prev) => {
         const updated = prev.map((cc) => {
           const patch = updatedClasses.find((c) => c.id === cc.id);
-          if (patch) return { ...cc, lecturers: patch.lecturers };
+          if (patch) return { ...cc, classLetter: patch.classLetter, lecturers: patch.lecturers };
           if (cc.courseCode === (originalCourse?.code || '') && updatedCourse.code !== (originalCourse?.code || '')) {
             return { ...cc, courseCode: updatedCourse.code };
           }

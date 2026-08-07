@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { Lecturer } from '../../types';
 
 interface AddClassModalProps {
@@ -25,6 +26,7 @@ export const AddClassModal: React.FC<AddClassModalProps> = ({
   onClose,
 }) => {
   const nextLetter = getNextLetter(existingLetters);
+  const [classLetter, setClassLetter] = useState<string>(nextLetter);
   const [selectedLecturers, setSelectedLecturers] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -39,8 +41,17 @@ export const AddClassModal: React.FC<AddClassModalProps> = ({
   };
 
   const handleSave = async () => {
+    const letter = classLetter.trim().toUpperCase();
+    if (!letter) {
+      toast.error('Class letter cannot be empty');
+      return;
+    }
+    if (existingLetters.some((l) => l.toUpperCase() === letter)) {
+      toast.error(`Class ${letter} already exists`);
+      return;
+    }
     setIsSaving(true);
-    const success = await onAdd(nextLetter, selectedLecturers);
+    const success = await onAdd(letter, selectedLecturers);
     setIsSaving(false);
     if (success) onClose();
   };
@@ -52,9 +63,15 @@ export const AddClassModal: React.FC<AddClassModalProps> = ({
           Add Class to {courseCode}
         </h3>
         <div className="space-y-3 text-[13px]">
-          <div className="bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf]">
-            <span className="text-[#74777f] text-[12px] font-semibold uppercase tracking-wide">Class</span>
-            <p className="text-[18px] font-bold text-[#191c1e] font-headline-sm">Class {nextLetter}</p>
+          <div>
+            <label className="block text-[#74777f] text-[12px] font-semibold uppercase tracking-wide mb-1">Class</label>
+            <input
+              type="text"
+              value={classLetter}
+              onChange={(e) => setClassLetter(e.target.value.toUpperCase().replace(/[^A-Z ]/g, '').slice(0, 32))}
+              maxLength={32}
+              className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] text-[18px] font-bold text-[#191c1e] font-headline-sm outline-none focus:ring-1 focus:ring-[#002045]"
+            />
           </div>
           <div>
             <label className="block text-[#43474e] font-semibold mb-1">Lecturers</label>

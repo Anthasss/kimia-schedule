@@ -12,6 +12,7 @@ interface EditableCourseInfo {
 }
 
 interface EditableClass {
+  classLetter: string;
   lecturers: string[];
 }
 
@@ -27,7 +28,7 @@ interface CourseDetailPanelProps {
   lecturers: Lecturer[];
   allCourses: Course[];
   isNewCourse?: boolean;
-  onSave: (updatedCourse: Course, updatedClasses: { id: string; classLetter?: string; lecturers: string[] }[], deletedClassIds: string[]) => void;
+  onSave: (updatedCourse: Course, updatedClasses: { id: string; classLetter?: string; lecturers: string[] }[], deletedClassIds: string[]) => Promise<void>;
   onDeleteCourse: (courseId: string) => void;
   onAddClass: () => void;
 }
@@ -61,8 +62,8 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
   const [editClasses, setEditClasses] = useState<Record<string, EditableClass>>(
     () => {
       const entries: [string, EditableClass][] = isNewCourse
-        ? initialLocalClasses.map((lc) => [lc.tempId, { lecturers: lc.lecturers }])
-        : courseClasses.map((cc) => [cc.id, { lecturers: [...cc.lecturers] }]);
+        ? initialLocalClasses.map((lc) => [lc.tempId, { classLetter: lc.classLetter, lecturers: lc.lecturers }])
+        : courseClasses.map((cc) => [cc.id, { classLetter: cc.classLetter, lecturers: [...cc.lecturers] }]);
       return Object.fromEntries(entries);
     }
   );
@@ -79,7 +80,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
       for (const cc of courseClasses) {
         if (!next[cc.id]) {
           if (next === prev) next = { ...prev };
-          next[cc.id] = { lecturers: [...cc.lecturers] };
+          next[cc.id] = { classLetter: cc.classLetter, lecturers: [...cc.lecturers] };
         }
       }
       return next;
@@ -93,6 +94,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
     for (const cc of courseClasses) {
       const edit = editClasses[cc.id];
       if (!edit) return true;
+      if (edit.classLetter !== cc.classLetter) return true;
       if (edit.lecturers.length !== cc.lecturers.length) return true;
       for (let i = 0; i < edit.lecturers.length; i++) {
         if (edit.lecturers[i] !== cc.lecturers[i]) return true;
@@ -111,7 +113,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
     const nextLetter = letters.find((l) => !usedLetters.includes(l)) || 'Z';
     const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     setLocalClasses((prev) => [...prev, { tempId, classLetter: nextLetter, lecturers: [] }]);
-    setEditClasses((prev) => ({ ...prev, [tempId]: { lecturers: [] } }));
+    setEditClasses((prev) => ({ ...prev, [tempId]: { classLetter: nextLetter, lecturers: [] } }));
   };
 
   const handleSave = async () => {
@@ -145,23 +147,37 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
       }
     }
 
+    const activeIds = Object.keys(editClasses).filter((id) => !deletedClassIds.includes(id));
+    const seenLetters = new Set<string>();
+    for (const id of activeIds) {
+      const letter = (editClasses[id].classLetter || '').trim().toUpperCase();
+      if (!letter) {
+        toast.error('Every class needs a class letter');
+        return;
+      }
+      if (seenLetters.has(letter)) {
+        toast.error(`Duplicate class letter "${letter}"`);
+        return;
+      }
+      seenLetters.add(letter);
+    }
+
     setIsSaving(true);
     const updatedClasses = Object.entries(editClasses)
       .filter(([id]) => !deletedClassIds.includes(id))
-      .map(([id, c]) => {
-        const local = localClasses.find((lc) => lc.tempId === id);
-        if (local) return { id, classLetter: local.classLetter, ...c };
-        return { id, ...c };
-      });
-    onSave({ ...course, ...editCourse }, updatedClasses, deletedClassIds);
-    setIsSaving(false);
+      .map(([id, c]) => ({ id, classLetter: c.classLetter.trim(), ...c }));
+    try {
+      await onSave({ ...course, ...editCourse }, updatedClasses, deletedClassIds);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDiscard = () => {
     setEditCourse({ code: course.code, title: course.title, sks: course.sks, semester: course.semester });
     setEditClasses(
       Object.fromEntries(
-        courseClasses.map((cc) => [cc.id, { lecturers: [...cc.lecturers] }])
+        courseClasses.map((cc) => [cc.id, { classLetter: cc.classLetter, lecturers: [...cc.lecturers] }])
       )
     );
     setLocalClasses([]);
@@ -179,6 +195,13 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
       next.delete(`class_${id}`);
       return next;
     });
+  };
+
+  const updateClassLetter = (id: string, letter: string) => {
+    updateClass(id, { classLetter: letter.toUpperCase() });
+    setLocalClasses((prev) =>
+      prev.map((lc) => (lc.tempId === id ? { ...lc, classLetter: letter.toUpperCase() } : lc))
+    );
   };
 
   const deleteClass = (id: string) => {
@@ -335,9 +358,10 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
               return (
                 <ClassCard
                   key={cc.id}
-                  courseClass={cc}
                   lecturers={lecturers}
+                  editClassLetter={edit.classLetter}
                   editLecturers={edit.lecturers}
+                  onClassLetterChange={(l) => updateClassLetter(cc.id, l)}
                   onLecturersChange={(l) => updateClass(cc.id, { lecturers: l })}
                   onDelete={() => deleteClass(cc.id)}
                   hasError={errorFields.has(`class_${cc.id}`)}
