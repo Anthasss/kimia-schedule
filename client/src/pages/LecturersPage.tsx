@@ -6,6 +6,7 @@ import { PageHeader } from '../components/Shared/PageHeader';
 import { LecturersTable } from '../components/LecturersPage/LecturersTable';
 import { EditLecturerModal } from '../components/LecturersPage/EditLecturerModal';
 import { DeleteLecturerModal } from '../components/LecturersPage/DeleteLecturerModal';
+import { exportLecturerClassesToExcel } from '../utils/exportLecturerClassesToExcel';
 
 interface LecturersPageProps {
   lecturers: Lecturer[];
@@ -35,6 +36,8 @@ export function LecturersPage({
   const [deleteLecturerTarget, setDeleteLecturerTarget] = useState<Lecturer | null>(null);
   const [deletingLecturerId, setDeletingLecturerId] = useState<string | null>(null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isExporting, setIsExporting] = useState(false);
 
   const creditBurden = useMemo(() => {
     const sksByCode = new Map(courses.map((c) => [c.code, c.sks]));
@@ -53,6 +56,42 @@ export function LecturersPage({
   const filteredLecturers = lecturers.filter((l) =>
     l.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const allSelected = filteredLecturers.every((l) => next.has(l.id));
+      for (const l of filteredLecturers) {
+        if (allSelected) next.delete(l.id);
+        else next.add(l.id);
+      }
+      return next;
+    });
+  };
+
+  const handleExportToExcel = async () => {
+    const selected = lecturers.filter((l) => selectedIds.has(l.id));
+    if (selected.length === 0) return;
+    setIsExporting(true);
+    try {
+      await exportLecturerClassesToExcel(selected, courses, courseClasses, scheduleSlots);
+      toast.success('Classes exported to Excel');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to export to Excel');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const removeLecturerFromState = (lecturerName: string) => {
     setCourseClasses((prev) =>
@@ -129,6 +168,19 @@ export function LecturersPage({
               />
             </div>
             <button
+              onClick={handleExportToExcel}
+              disabled={selectedIds.size === 0 || isExporting}
+              className="bg-white border border-[#c4c6cf] text-[#191c1e] px-4 py-2 rounded-lg font-semibold text-[12px] flex items-center gap-2 hover:bg-[#f2f4f6] active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Export checked lecturers' classes to Excel"
+            >
+              {isExporting ? (
+                <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+              ) : (
+                <span className="material-symbols-outlined text-[18px]">download</span>
+              )}
+              <span>{isExporting ? 'Exporting...' : 'Export Classes to Excel'}</span>
+            </button>
+            <button
               onClick={() => onOpenNewRecordModal('Lecturer')}
               className="bg-[#002045] text-white px-4 py-2 rounded-lg font-semibold text-[12px] flex items-center gap-2 hover:bg-opacity-90 active:scale-95 transition-all shadow-sm cursor-pointer"
             >
@@ -146,6 +198,9 @@ export function LecturersPage({
         onUpdateLecturer={(updated) => setLecturers(lecturers.map((l) => (l.id === updated.id ? updated : l)))}
         deletingLecturerId={deletingLecturerId}
         creditBurden={creditBurden}
+        selectedIds={selectedIds}
+        onToggleSelection={toggleSelection}
+        onToggleSelectAll={toggleSelectAll}
       />
 
       {editingLecturer && (

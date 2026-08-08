@@ -11,6 +11,9 @@ interface LecturersTableProps {
   onUpdateLecturer: (updated: Lecturer) => void;
   deletingLecturerId: string | null;
   creditBurden: Record<string, number>;
+  selectedIds: Set<string>;
+  onToggleSelection: (id: string) => void;
+  onToggleSelectAll: () => void;
 }
 
 export const LecturersTable: React.FC<LecturersTableProps> = ({
@@ -20,7 +23,11 @@ export const LecturersTable: React.FC<LecturersTableProps> = ({
   onUpdateLecturer,
   deletingLecturerId,
   creditBurden,
+  selectedIds,
+  onToggleSelection,
+  onToggleSelectAll,
 }) => {
+  const allSelected = lecturers.length > 0 && lecturers.every((l) => selectedIds.has(l.id));
   const [colorPickerId, setColorPickerId] = useState<string | null>(null);
   const [updatingColorId, setUpdatingColorId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,6 +61,15 @@ export const LecturersTable: React.FC<LecturersTableProps> = ({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-[#f2f4f6]">
+              <th className="px-6 py-3">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={onToggleSelectAll}
+                  className="w-4 h-4 accent-[#002045] cursor-pointer"
+                  title="Select all lecturers"
+                />
+              </th>
               <th className="px-6 py-3 font-semibold text-[12px] text-[#43474e] uppercase tracking-wider">
                 Faculty Member
               </th>
@@ -76,6 +92,14 @@ export const LecturersTable: React.FC<LecturersTableProps> = ({
                   key={lect.id}
                   className={`${isEven ? 'bg-[#f7f9fb]' : 'bg-white'} hover:bg-[#eceef0] transition-colors group`}
                 >
+                  <td className="px-6 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(lect.id)}
+                      onChange={() => onToggleSelection(lect.id)}
+                      className="w-4 h-4 accent-[#002045] cursor-pointer"
+                    />
+                  </td>
                   <td className="px-6 py-4 font-semibold text-[#191c1e]">{lect.name}</td>
                   <td className="px-6 py-4 relative">
                     <div className="relative inline-block">
