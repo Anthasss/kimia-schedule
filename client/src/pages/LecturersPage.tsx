@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { apiDelete } from '../api';
 import { Lecturer, Course, CourseClass, ScheduleSlot } from '../types';
@@ -35,6 +35,20 @@ export function LecturersPage({
   const [deleteLecturerTarget, setDeleteLecturerTarget] = useState<Lecturer | null>(null);
   const [deletingLecturerId, setDeletingLecturerId] = useState<string | null>(null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+
+  const creditBurden = useMemo(() => {
+    const sksByCode = new Map(courses.map((c) => [c.code, c.sks]));
+    const burden: Record<string, number> = {};
+    for (const cc of courseClasses) {
+      const sks = sksByCode.get(cc.courseCode);
+      if (!sks || cc.lecturers.length === 0) continue;
+      for (const name of cc.lecturers) {
+        const l = lecturers.find((l) => l.name === name);
+        if (l) burden[l.id] = (burden[l.id] || 0) + sks / cc.lecturers.length;
+      }
+    }
+    return burden;
+  }, [lecturers, courses, courseClasses]);
 
   const filteredLecturers = lecturers.filter((l) =>
     l.name.toLowerCase().includes(search.toLowerCase())
@@ -131,6 +145,7 @@ export function LecturersPage({
         onDeleteLecturer={handleDeleteLecturer}
         onUpdateLecturer={(updated) => setLecturers(lecturers.map((l) => (l.id === updated.id ? updated : l)))}
         deletingLecturerId={deletingLecturerId}
+        creditBurden={creditBurden}
       />
 
       {editingLecturer && (

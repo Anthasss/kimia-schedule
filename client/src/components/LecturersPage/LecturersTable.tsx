@@ -10,6 +10,7 @@ interface LecturersTableProps {
   onDeleteLecturer: (lecturer: Lecturer) => void;
   onUpdateLecturer: (updated: Lecturer) => void;
   deletingLecturerId: string | null;
+  creditBurden: Record<string, number>;
 }
 
 export const LecturersTable: React.FC<LecturersTableProps> = ({
@@ -18,6 +19,7 @@ export const LecturersTable: React.FC<LecturersTableProps> = ({
   onDeleteLecturer,
   onUpdateLecturer,
   deletingLecturerId,
+  creditBurden,
 }) => {
   const [colorPickerId, setColorPickerId] = useState<string | null>(null);
   const [updatingColorId, setUpdatingColorId] = useState<string | null>(null);
@@ -57,6 +59,9 @@ export const LecturersTable: React.FC<LecturersTableProps> = ({
               </th>
               <th className="px-6 py-3 font-semibold text-[12px] text-[#43474e] uppercase tracking-wider">
                 Color
+              </th>
+              <th className="px-6 py-3 font-semibold text-[12px] text-[#43474e] uppercase tracking-wider">
+                Credit Burden
               </th>
               <th className="px-6 py-3 font-semibold text-[12px] text-[#43474e] uppercase tracking-wider text-right">
                 Actions
@@ -104,6 +109,7 @@ export const LecturersTable: React.FC<LecturersTableProps> = ({
                       )}
                     </div>
                   </td>
+                  <td className="px-6 py-4 text-[#191c1e]">{creditBurden[lect.id] ?? 0} SKS</td>
                   <td className="px-6 py-4 text-right">
                     <button
                       onClick={() => onEditLecturer(lect)}
