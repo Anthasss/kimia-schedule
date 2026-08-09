@@ -11,6 +11,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { SchedulePage } from './pages/SchedulePage';
 import { LecturersPage } from './pages/LecturersPage';
 import { CoursesPage } from './pages/CoursesPage';
+import { FinalExamsPage } from './pages/FinalExamsPage';
 import { useRooms } from './hooks/useRooms';
 import { useLecturers } from './hooks/useLecturers';
 import { useBreakTimes } from './hooks/useBreakTimes';
@@ -227,6 +228,7 @@ export default function App() {
                   path="/courses"
                   element={<CoursesPage courses={courses} setCourses={setCourses} courseClasses={courseClasses} setCourseClasses={setCourseClasses} lecturers={lecturers} setLecturers={setLecturers} />}
                 />
+                <Route path="/final-exams" element={<FinalExamsPage lecturers={lecturers} />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/change-password" element={<ChangePasswordPage />} />
                 <Route path="/login" element={<Navigate to="/schedule" replace />} />
