@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { Course, CourseClass, Lecturer } from '../types';
-import { apiPost, apiGet, apiPut, apiDelete } from '../api';
+import { apiPost, apiPut, apiDelete } from '../api';
 import { CoursesSidebar } from '../components/CoursesPage/CoursesSidebar';
 import { CourseDetailPanel } from '../components/CoursesPage/CourseDetailPanel';
 import { AddClassModal } from '../components/CoursesPage/AddClassModal';
@@ -66,7 +66,10 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
         return;
       }
       try {
-        const createdCourse = await apiPost<Course>('/api/courses-with-classes', {
+        const { course: createdCourse, classes: createdClasses } = await apiPost<{
+          course: Course;
+          classes: CourseClass[];
+        }>('/api/courses-with-classes', {
           code: updatedCourse.code,
           title: updatedCourse.title,
           sks: updatedCourse.sks,
@@ -78,8 +81,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
         });
 
         setCourses((prev) => [...prev, createdCourse]);
-        const allClasses = await apiGet<CourseClass[]>('/api/course-classes');
-        setCourseClasses(allClasses);
+        setCourseClasses((prev) => [...prev, ...createdClasses]);
         setIsAddingNewCourse(false);
         setSelectedCourseCode(createdCourse.code);
         toast.success(`Course "${createdCourse.code}" created`);
