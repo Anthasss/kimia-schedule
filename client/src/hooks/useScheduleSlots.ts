@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { apiPost, apiDelete } from '../api';
+import { apiPost } from '../api';
 import { UnscheduledClass, ScheduleSlot, SksSettings, DayOfWeek, Room } from '../types';
 
 interface UseScheduleSlotsParams {
@@ -122,21 +122,10 @@ export function useScheduleSlots({
     setIsSaving(true);
 
     try {
-      const addResults = await Promise.allSettled(
-        pendingAdds.map((slot) => {
-          const { id: _id, ...body } = slot;
-          return apiPost<ScheduleSlot>('/api/schedule-slots', body);
-        })
-      );
-
-      const removeResults = await Promise.allSettled(
-        pendingRemoves.map((slotId) =>
-          apiDelete(`/api/schedule-slots/${slotId}`)
-        )
-      );
-
-      const failedAdds = addResults.filter((r) => r.status === 'rejected').length;
-      const failedRemoves = removeResults.filter((r) => r.status === 'rejected').length;
+      await apiPost('/api/schedule-slots/batch', {
+        adds: pendingAdds.map(({ id: _id, ...slot }) => slot),
+        removes: pendingRemoves,
+      });
 
       const freshRes = await fetch('/api/schedule-slots');
       const freshSlots = await freshRes.json();
@@ -144,12 +133,7 @@ export function useScheduleSlots({
 
       setPendingAdds([]);
       setPendingRemoves([]);
-
-      if (failedAdds > 0 || failedRemoves > 0) {
-        toast.warning(`Saved with issues: ${failedAdds} adds and ${failedRemoves} removes failed`);
-      } else {
-        toast.success('Schedule saved successfully');
-      }
+      toast.success('Schedule saved successfully');
     } catch (err) {
       console.error(err);
       toast.error('Failed to save schedule');

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "../db/index.js";
 import {
   rooms,
@@ -116,6 +116,31 @@ export const deleteScheduleSlot = createDeleteHandler(scheduleSlots);
 export const deleteAllScheduleSlots = async (_req: Request, res: Response) => {
   await db.delete(scheduleSlots);
   res.json({ success: true });
+};
+
+export const batchSaveScheduleSlots = async (req: Request, res: Response) => {
+  const { adds = [], removes = [] } = req.body as {
+    adds?: Omit<typeof scheduleSlots.$inferInsert, 'id'>[];
+    removes?: string[];
+  };
+
+  const queries = [
+    ...adds.map((slot) =>
+      db.insert(scheduleSlots).values({ id: crypto.randomUUID(), ...slot }).returning()
+    ),
+    ...(removes.length
+      ? [db.delete(scheduleSlots).where(inArray(scheduleSlots.id, removes)).returning()]
+      : []),
+  ];
+
+  if (!queries.length) return res.json({ added: [], removed: [] });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const results = await db.batch(queries as any);
+  const added = results.slice(0, adds.length).flat();
+  const removed = results.slice(adds.length).flat();
+
+  res.json({ added, removed });
 };
 
 // UPSERT (singleton)
