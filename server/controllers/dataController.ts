@@ -110,7 +110,17 @@ export const updateScheduleSlot = createUpdateHandler(scheduleSlots);
 export const deleteRoom = createDeleteHandler(rooms);
 export const deleteBreakTime = createDeleteHandler(breakTimes);
 export const deleteLecturer = createDeleteHandler(lecturers);
-export const deleteCourse = createDeleteHandler(courses);
+export const deleteCourse = async (req: Request, res: Response) => {
+  const [course] = await db.select().from(courses).where(eq(courses.id, req.params.id)).limit(1);
+  if (!course) return res.status(404).json({ error: "Not found" });
+
+  if (course.classId) {
+    await db.delete(scheduleSlots).where(eq(scheduleSlots.classId, course.classId));
+    await db.delete(courseClasses).where(eq(courseClasses.id, course.classId));
+  }
+  await db.delete(courses).where(eq(courses.id, req.params.id));
+  res.json({ success: true });
+};
 export const deleteScheduleSlot = createDeleteHandler(scheduleSlots);
 
 export const deleteAllScheduleSlots = async (_req: Request, res: Response) => {

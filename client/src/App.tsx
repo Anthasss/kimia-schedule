@@ -226,7 +226,7 @@ export default function App() {
                 />
                 <Route
                   path="/courses"
-                  element={<CoursesPage courses={courses} setCourses={setCourses} courseClasses={courseClasses} setCourseClasses={setCourseClasses} lecturers={lecturers} setLecturers={setLecturers} />}
+                  element={<CoursesPage courses={courses} setCourses={setCourses} courseClasses={courseClasses} setCourseClasses={setCourseClasses} lecturers={lecturers} setLecturers={setLecturers} scheduleSlots={scheduleSlots} setScheduleSlots={setScheduleSlots} setPendingAdds={setPendingAdds} setPendingRemoves={setPendingRemoves} />}
                 />
                 <Route path="/final-exams" element={<FinalExamsPage lecturers={lecturers} />} />
                 <Route path="/admin" element={<AdminPage />} />

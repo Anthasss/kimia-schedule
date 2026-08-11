@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { Course, CourseClass, Lecturer } from '../types';
+import { Course, CourseClass, Lecturer, ScheduleSlot } from '../types';
 import { apiPost, apiPut, apiDelete } from '../api';
 import { CoursesSidebar } from '../components/CoursesPage/CoursesSidebar';
 import { CourseDetailPanel } from '../components/CoursesPage/CourseDetailPanel';
@@ -13,6 +13,10 @@ interface CoursesPageProps {
   setCourseClasses: React.Dispatch<React.SetStateAction<CourseClass[]>>;
   lecturers: Lecturer[];
   setLecturers: React.Dispatch<React.SetStateAction<Lecturer[]>>;
+  scheduleSlots: ScheduleSlot[];
+  setScheduleSlots: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
+  setPendingAdds: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
+  setPendingRemoves: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export const CoursesPage: React.FC<CoursesPageProps> = ({
@@ -22,6 +26,10 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
   setCourseClasses,
   lecturers,
   setLecturers,
+  scheduleSlots,
+  setScheduleSlots,
+  setPendingAdds,
+  setPendingRemoves,
 }) => {
   const [selectedCourseCode, setSelectedCourseCode] = useState<string | null>(null);
   const [isAddingNewCourse, setIsAddingNewCourse] = useState(false);
@@ -191,8 +199,12 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
 
       const classesToDelete = courseClasses.filter((cc) => cc.courseCode === course.code);
       await Promise.all(classesToDelete.map((cc) => apiDelete(`/api/course-classes/${cc.id}`)));
-      // ponytail: deleteCourseClass cascade-deletes the course via classId FK
       if (!classesToDelete.length) await apiDelete(`/api/courses/${courseId}`);
+
+      const courseSlotIds = scheduleSlots.filter((s) => s.courseId === courseId).map((s) => s.id);
+      setScheduleSlots((prev) => prev.filter((s) => s.courseId !== courseId));
+      setPendingAdds((prev) => prev.filter((s) => s.courseId !== courseId));
+      setPendingRemoves((prev) => prev.filter((id) => !courseSlotIds.includes(id)));
 
       setCourses((prev) => prev.filter((c) => c.id !== courseId));
       setCourseClasses((prev) => prev.filter((cc) => cc.courseCode !== course.code));
