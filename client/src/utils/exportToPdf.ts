@@ -78,15 +78,12 @@ export async function exportScheduleToPdf() {
     y += 8;
 
     // col headers
-    pdf.setFillColor(0, 32, 69);
-    pdf.setTextColor(255);
+    pdf.setTextColor(25, 28, 30);
     pdf.setFontSize(6);
     pdf.setFont('helvetica', 'bold');
-    pdf.rect(M, y, TW, 8, 'F');
     pdf.text('Jam', M + 1, y + 5);
     for (let ci = 0; ci < rooms.length; ci++) {
       const x = M + TW + ci * RW;
-      pdf.rect(x, y, RW, 8, 'F');
       pdf.text(rooms[ci].name, x + 1, y + 5);
     }
     y += 8;
