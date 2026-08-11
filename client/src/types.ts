@@ -83,6 +83,7 @@ export interface UnscheduledClass {
   sks: number;
   semester: string;
   lecturers: string[];
+  scheduledAt?: string;
 }
 
 

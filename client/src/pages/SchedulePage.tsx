@@ -92,6 +92,7 @@ export function SchedulePage({
     setSelectedExpandedDraft,
     unscheduledCourses,
     filteredDraftPool,
+    scheduledMatches,
     activeDraftItem,
   } = useUnscheduledCourses(courseClasses, courses, scheduleSlots);
 
@@ -155,6 +156,7 @@ export function SchedulePage({
         <UnscheduledCoursesSidebar
           unscheduledCourses={unscheduledCourses}
           filteredDraftPool={filteredDraftPool}
+          scheduledMatches={scheduledMatches}
           lecturers={lecturers}
           draftSearch={draftSearch}
           coursesCount={courses.length}

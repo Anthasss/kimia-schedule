@@ -14,6 +14,12 @@ export async function createApp() {
   app.use(express.json());
   app.use(dataRouter);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  app.use((err: any, _req: any, res: any, _next: any) => {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  });
+
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");
     const clientRoot = path.join(process.cwd(), "client");

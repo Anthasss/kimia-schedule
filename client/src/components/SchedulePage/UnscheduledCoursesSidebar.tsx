@@ -5,6 +5,7 @@ import { CourseDraftCard } from './CourseDraftCard';
 interface UnscheduledCoursesSidebarProps {
   unscheduledCourses: UnscheduledClass[];
   filteredDraftPool: UnscheduledClass[];
+  scheduledMatches: UnscheduledClass[];
   lecturers: Lecturer[];
   draftSearch: string;
   coursesCount: number;
@@ -23,6 +24,7 @@ interface UnscheduledCoursesSidebarProps {
 export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps> = ({
   unscheduledCourses,
   filteredDraftPool,
+  scheduledMatches,
   lecturers,
   draftSearch,
   coursesCount,
@@ -39,6 +41,8 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
 }) => {
   const [semesterFilter, setSemesterFilter] = useState<'Ganjil' | 'Genap'>('Ganjil');
 
+  const searching = draftSearch.trim() !== '';
+
   // ponytail: local filter, move to hook only if parent needs the filtered list too
   const displayedCourses = useMemo(
     () =>
@@ -48,6 +52,16 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
     [filteredDraftPool, semesterFilter]
   );
 
+  const displayedScheduled = useMemo(
+    () =>
+      scheduledMatches.filter(
+        (item) => item.semester === semesterFilter || item.semester === 'Both'
+      ),
+    [scheduledMatches, semesterFilter]
+  );
+
+  const shownCount = searching ? displayedCourses.length + displayedScheduled.length : displayedCourses.length;
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center border-b border-[#c4c6cf] pb-3 shrink-0">
@@ -56,7 +70,7 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
         </h3>
         <div className="flex items-center justify-center gap-2">
           <span className="text-[12px] font-bold bg-[#002045] text-white px-2.5 py-0.5">
-            {displayedCourses.length}
+            {shownCount}
           </span>
         </div>
       </div>
@@ -126,13 +140,33 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
           />
         ))}
 
-        {displayedCourses.length === 0 && (
+        {searching && displayedScheduled.length > 0 && (
+          <>
+            <div className="text-[11px] font-bold uppercase tracking-wide text-[#74777f] pt-1">
+              Scheduled on grid
+            </div>
+            {displayedScheduled.map((item) => (
+              <CourseDraftCard
+                key={item.id}
+                course={item}
+                lecturers={lecturers}
+                isSelected={false}
+                onSelect={() => undefined}
+                scheduledAt={item.scheduledAt}
+              />
+            ))}
+          </>
+        )}
+
+        {displayedCourses.length === 0 && displayedScheduled.length === 0 && (
           <div className="p-4 text-center text-[13px] text-[#74777f] italic bg-[#f7f9fb] rounded-lg border border-[#c4c6cf]">
             {coursesCount === 0
               ? 'No courses defined yet.'
-              : unscheduledCourses.length === 0
-                ? 'All classes have been scheduled!'
-                : 'No matching classes found.'}
+              : searching
+                ? 'No matching classes found.'
+                : unscheduledCourses.length === 0
+                  ? 'All classes have been scheduled!'
+                  : 'No matching classes found.'}
           </div>
         )}
       </div>
