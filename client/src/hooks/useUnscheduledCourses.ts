@@ -27,14 +27,25 @@ export function useUnscheduledCourses(
     [scheduleSlots]
   );
 
-  const unscheduledCourses = useMemo<UnscheduledClass[]>(() => {
-    const courseByClassId = new Map<string, Course>();
-    const courseByCode = new Map<string, Course>();
-    for (const c of courses) {
-      if (c.classId) courseByClassId.set(c.classId, c);
-      if (!courseByCode.has(c.code)) courseByCode.set(c.code, c);
-    }
+  const courseByClassId = useMemo(() => {
+    const map = new Map<string, Course>();
+    for (const c of courses) if (c.classId) map.set(c.classId, c);
+    return map;
+  }, [courses]);
 
+  const courseByCode = useMemo(() => {
+    const map = new Map<string, Course>();
+    for (const c of courses) if (!map.has(c.code)) map.set(c.code, c);
+    return map;
+  }, [courses]);
+
+  const slotByClassId = useMemo(() => {
+    const map = new Map<string, ScheduleSlot>();
+    for (const s of scheduleSlots) if (!map.has(s.classId)) map.set(s.classId, s);
+    return map;
+  }, [scheduleSlots]);
+
+  const unscheduledCourses = useMemo<UnscheduledClass[]>(() => {
     const result: UnscheduledClass[] = [];
 
     for (const cc of courseClasses) {
@@ -48,18 +59,41 @@ export function useUnscheduledCourses(
 
     result.sort((a, b) => a.courseTitle.localeCompare(b.courseTitle));
     return result;
-  }, [courseClasses, courses, scheduledClassIds]);
+  }, [courseClasses, courseByClassId, courseByCode, scheduledClassIds]);
+
+  const scheduledPool = useMemo<UnscheduledClass[]>(() => {
+    const result: UnscheduledClass[] = [];
+
+    for (const cc of courseClasses) {
+      if (!scheduledClassIds.has(cc.id)) continue;
+
+      const course = courseByClassId.get(cc.id) || courseByCode.get(cc.courseCode);
+      if (!course) continue;
+
+      const slot = slotByClassId.get(cc.id);
+      result.push({
+        ...buildUnscheduledClass(cc, course),
+        scheduledAt: slot ? `${slot.day} · ${slot.timeSlot.split(' SKS')[0]}` : undefined,
+      });
+    }
+
+    return result;
+  }, [courseClasses, courseByClassId, courseByCode, scheduledClassIds, slotByClassId]);
+
+  const matchesSearch = (item: UnscheduledClass, query: string) =>
+    item.courseCode.toLowerCase().includes(query) ||
+    item.courseTitle.toLowerCase().includes(query) ||
+    item.classLetter.toLowerCase().includes(query) ||
+    item.lecturers.some((l) => l.toLowerCase().includes(query));
 
   const filteredDraftPool = useMemo(
-    () =>
-      unscheduledCourses.filter(
-        (item) =>
-          item.courseCode.toLowerCase().includes(draftSearch.toLowerCase()) ||
-          item.courseTitle.toLowerCase().includes(draftSearch.toLowerCase()) ||
-          item.classLetter.toLowerCase().includes(draftSearch.toLowerCase()) ||
-          item.lecturers.some((l) => l.toLowerCase().includes(draftSearch.toLowerCase()))
-      ),
+    () => unscheduledCourses.filter((item) => matchesSearch(item, draftSearch.toLowerCase())),
     [unscheduledCourses, draftSearch]
+  );
+
+  const scheduledMatches = useMemo(
+    () => scheduledPool.filter((item) => matchesSearch(item, draftSearch.toLowerCase())),
+    [scheduledPool, draftSearch]
   );
 
   const activeDraftItem = useMemo(
@@ -80,6 +114,7 @@ export function useUnscheduledCourses(
     setSelectedExpandedDraft,
     unscheduledCourses,
     filteredDraftPool,
+    scheduledMatches,
     activeDraftItem,
   };
 }

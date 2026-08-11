@@ -6,6 +6,7 @@ interface CourseDraftCardProps {
   lecturers: Lecturer[];
   isSelected: boolean;
   onSelect: () => void;
+  scheduledAt?: string;
 }
 
 export const CourseDraftCard: React.FC<CourseDraftCardProps> = ({
@@ -13,40 +14,50 @@ export const CourseDraftCard: React.FC<CourseDraftCardProps> = ({
   lecturers,
   isSelected,
   onSelect,
+  scheduledAt,
 }) => {
   const primaryLecturer = course.lecturers[0];
   const lecturer = lecturers.find((l) => l.name === primaryLecturer);
   const lecturerColor = lecturer?.color || '#6366f1';
 
+  const scheduled = Boolean(scheduledAt);
+
   return (
     <div
-      onClick={onSelect}
-      className={`rounded-lg p-3 transition-all cursor-pointer border ${
-        isSelected
-          ? 'border-[#002045]'
-          : 'border-[#c4c6cf] hover:border-[#002045]/30'
+      onClick={scheduled ? undefined : onSelect}
+      className={`rounded-lg p-3 transition-all border ${
+        scheduled
+          ? 'opacity-60 cursor-default border-[#c4c6cf]'
+          : `cursor-pointer ${
+              isSelected
+                ? 'border-[#002045]'
+                : 'border-[#c4c6cf] hover:border-[#002045]/30'
+            }`
       }`}
       style={{
         borderLeftWidth: '3px',
         borderLeftColor: lecturerColor,
-        backgroundColor: isSelected ? `${lecturerColor}12` : `${lecturerColor}08`,
+        backgroundColor: scheduled ? '#f2f4f6' : isSelected ? `${lecturerColor}12` : `${lecturerColor}08`,
       }}
     >
-      <div className="flex justify-between items-start">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold px-1.5 py-0.5 bg-[#1a365d] text-white rounded">
-              {course.courseCode}
-            </span>
-            <span className="text-[12px] text-[#505f76] font-semibold">{course.sks} SKS</span>
-          </div>
-          <h4 className="font-semibold text-[14px] text-[#191c1e] mt-1.5 leading-tight">
-            {course.courseTitle} ({course.classLetter})
-          </h4>
-          <p className="text-[12px] text-[#43474e] mt-0.5">
-            {course.lecturers.join(', ') || 'Unassigned'}
-          </p>
+      <div>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold px-1.5 py-0.5 bg-[#1a365d] text-white rounded">
+            {course.courseCode}
+          </span>
+          <span className="text-[12px] text-[#505f76] font-semibold">{course.sks} SKS</span>
         </div>
+        <h4 className="font-semibold text-[14px] text-[#191c1e] mt-1.5 leading-tight">
+          {course.courseTitle} ({course.classLetter})
+        </h4>
+        <p className="text-[12px] text-[#43474e] mt-0.5">
+          {course.lecturers.join(', ') || 'Unassigned'}
+        </p>
+        {scheduled && (
+          <span className="inline-block mt-1.5 text-[11px] font-semibold px-2 py-0.5 bg-[#002045]/10 text-[#002045] rounded">
+            Scheduled · {scheduledAt}
+          </span>
+        )}
       </div>
     </div>
   );
