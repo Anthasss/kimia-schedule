@@ -65,6 +65,10 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
         toast.error('Please fill in all required fields (code, title, SKS, semester)');
         return;
       }
+      if (courses.some((c) => c.code.toLowerCase() === updatedCourse.code.trim().toLowerCase())) {
+        toast.error(`Course "${updatedCourse.code}" already exists`);
+        return;
+      }
       try {
         const { course: createdCourse, classes: createdClasses } = await apiPost<{
           course: Course;
@@ -88,6 +92,18 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
       } catch (err: any) {
         toast.error(err.message || 'Failed to create course');
       }
+      return;
+    }
+
+    const originalCourse = courses.find((c) => c.id === updatedCourse.id);
+    if (
+      originalCourse &&
+      updatedCourse.code.trim().toLowerCase() !== originalCourse.code.toLowerCase() &&
+      courses.some(
+        (c) => c.id !== updatedCourse.id && c.code.toLowerCase() === updatedCourse.code.trim().toLowerCase()
+      )
+    ) {
+      toast.error(`Course "${updatedCourse.code}" already exists`);
       return;
     }
 
@@ -131,7 +147,6 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
         }
       }
 
-      const originalCourse = courses.find((c) => c.id === updatedCourse.id);
       if (originalCourse && updatedCourse.code !== originalCourse.code) {
         const linkedClasses = courseClasses.filter((cc) => cc.courseCode === originalCourse.code);
         await Promise.all(

@@ -187,6 +187,16 @@ export const createCourseWithClasses = async (req: Request, res: Response) => {
     return res.status(400).json({ error: `A class can have at most ${MAX_LECTURERS} lecturers` });
   }
 
+  const letters = classes.map((c: { classLetter: string }) => c.classLetter);
+  if (new Set(letters).size !== letters.length) {
+    return res.status(400).json({ error: "Duplicate class letters in request" });
+  }
+
+  const existingCourse = await db.select({ code: courses.code }).from(courses).where(eq(courses.code, code)).limit(1);
+  if (existingCourse[0]) {
+    return res.status(409).json({ error: `Course "${code}" already exists` });
+  }
+
   const [course] = await db.insert(courses)
     .values({ id: courseId, code, title, sks, semester })
     .returning();
@@ -204,7 +214,8 @@ export const createCourseWithClasses = async (req: Request, res: Response) => {
   } catch (err) {
     // ponytail: no interactive txn on the neon-http driver, compensate manually
     await db.delete(courses).where(eq(courses.id, courseId)).catch(() => undefined);
-    throw err;
+    console.error(err);
+    return res.status(500).json({ error: "Failed to create classes" });
   }
 
   if (createdClasses.length > 0) {
