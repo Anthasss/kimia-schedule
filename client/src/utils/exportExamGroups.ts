@@ -43,8 +43,8 @@ export function exportExamGroupsToPdf(result: ExamGroupsResult) {
   let y = M;
 
   const header = () => {
-    pdf.setFillColor(0, 32, 69);
-    pdf.setTextColor(255, 255, 255);
+    pdf.setFillColor(245, 245, 245);
+    pdf.setTextColor(25, 28, 30);
     pdf.setFontSize(8);
     pdf.setFont('helvetica', 'bold');
     pdf.rect(M, y, PW - 2 * M, 7, 'F');
@@ -74,8 +74,8 @@ export function exportExamGroupsToPdf(result: ExamGroupsResult) {
 
   pdf.addPage();
   y = M;
-  pdf.setFillColor(0, 32, 69);
-  pdf.setTextColor(255, 255, 255);
+  pdf.setFillColor(245, 245, 245);
+  pdf.setTextColor(25, 28, 30);
   pdf.setFontSize(8);
   pdf.setFont('helvetica', 'bold');
   pdf.rect(M, y, PW - 2 * M, 7, 'F');
