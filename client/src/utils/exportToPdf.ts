@@ -33,7 +33,7 @@ function isSpanningSlot(day: DayOfWeek, ts: string, roomId: string, slotsByDay: 
 type GridRow = { type: string; label?: string; name?: string; startTime?: string; endTime?: string };
 
 // ponytail: fixed layout constants, tune if measure fails
-const M = 10, PW = 210, PH = 297, BM = 15, RH = 12, TW = 30;
+const M = 10, PW = 210, PH = 297, BM = 15, TW = 30;
 
 function pageBreak(pdf: jsPDF, y: number, need: number): number {
   if (y + need > PH - BM) { pdf.addPage(); return M; }
@@ -58,6 +58,9 @@ export async function exportScheduleToPdf() {
   const { days, gridRows, slotRowLabels } = computeTimeSlots(sksSettings, breakTimes);
   const turnsByClassId = getWeeklyTurnsForSlots(scheduleSlots, slotRowLabels, classById, 'M');
 
+  // ponytail: one day per page — rows stretch to fill the usable height
+  const RH = Math.floor((PH - M - BM - 8 - 8 - 3) / gridRows.length);
+
   const slotsByDay: Record<string, ScheduleSlot[]> = {};
   for (const slot of scheduleSlots) {
     if (!slotsByDay[slot.day]) slotsByDay[slot.day] = [];
@@ -71,7 +74,7 @@ export async function exportScheduleToPdf() {
     y = pageBreak(pdf, y, 32);
 
     // day header
-    pdf.setFontSize(9);
+    pdf.setFontSize(11);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(25, 28, 30);
     pdf.text(DAY_NAMES_ID[day] || day, M, y + 4);
@@ -79,7 +82,7 @@ export async function exportScheduleToPdf() {
 
     // col headers
     pdf.setTextColor(25, 28, 30);
-    pdf.setFontSize(6);
+    pdf.setFontSize(8);
     pdf.setFont('helvetica', 'bold');
     pdf.text('Jam', M + 1, y + 5);
     for (let ci = 0; ci < rooms.length; ci++) {
@@ -96,7 +99,7 @@ export async function exportScheduleToPdf() {
         pdf.setFillColor(254, 243, 199);
         pdf.rect(M, y, PW - 2 * M, RH, 'F');
         pdf.setTextColor(146, 64, 14);
-        pdf.setFontSize(6);
+        pdf.setFontSize(8);
         pdf.setFont('helvetica', 'bold');
         pdf.text('Istirahat', M + 1, y + RH / 2 + 1.5);
         y += RH;
@@ -107,7 +110,7 @@ export async function exportScheduleToPdf() {
       const displayTs = rawTs.replace(/ SKS \d+$/, '');
 
       // ponytail: no grid lines, colored cells provide visual structure
-      pdf.setFontSize(5);
+      pdf.setFontSize(7);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(25, 28, 30);
       pdf.text(displayTs, M + 1, y + RH / 2 + 1.5);
@@ -131,27 +134,29 @@ export async function exportScheduleToPdf() {
         pdf.setTextColor(tc[0], tc[1], tc[2]);
         const pad = 1;
 
-        pdf.setFontSize(6);
+        pdf.setFontSize(8);
         const titleLines = pdf.splitTextToSize(slot.courseTitle, RW - pad * 2);
-        let cursor = y + pad + 1.8;
+        let cursor = y + pad + 2.2;
         for (const line of titleLines) {
           pdf.text(line, x + pad, cursor);
-          cursor += 2.1;
+          cursor += 2.9;
         }
+        cursor += 1.5;
 
-        pdf.setFontSize(5);
+        pdf.setFontSize(7);
         const turnsText = turnsByClassId.get(slot.classId) || cleanLecturerName(slot.lecturerName);
         const lecturerLines = pdf.splitTextToSize(turnsText, RW - pad * 2);
         for (const line of lecturerLines) {
           pdf.text(line, x + pad, cursor);
-          cursor += 1.8;
+          cursor += 2.5;
         }
 
+        const letterFull = `(${slot.classLetter})`;
+        let letter = letterFull;
+        while (letter.length > 1 && pdf.getTextWidth(letter) > RW - pad * 2) letter = letter.slice(0, -1);
+        if (letter.length !== letterFull.length) letter += '…';
+        pdf.text(letter, x + pad, y + h - pad - 3.5);
         pdf.text(`${slot.sks} SKS`, x + pad, y + h - pad - 0.5);
-        pdf.setFont('helvetica', 'bold');
-        const letter = `(${slot.classLetter})`;
-        pdf.text(letter, x + RW - pad - pdf.getTextWidth(letter), y + h - pad - 0.5);
-        pdf.setFont('helvetica', 'normal');
       }
 
       y += RH;
