@@ -7,6 +7,7 @@ import {
   getLecturers,
   getCourses,
   getCourseClasses,
+  getCourseClassLecturers,
   getScheduleSlots,
   createRoom,
   createBreakTime,
@@ -19,6 +20,7 @@ import {
   updateLecturer,
   updateCourse,
   updateCourseClass,
+  updateSemesterPeriod,
   updateScheduleSlot,
   deleteRoom,
   deleteBreakTime,
@@ -33,6 +35,9 @@ import {
   getSemesterPeriods,
   createSemesterPeriod,
   deleteSemesterPeriod,
+  getSchedules,
+  getScheduleForPeriod,
+  replaceCourseClassLecturers,
 } from "../controllers/dataController.js";
 
 const router = Router();
@@ -68,6 +73,9 @@ router.post("/api/course-classes", createCourseClass);
 router.put("/api/course-classes/:id", updateCourseClass);
 router.delete("/api/course-classes/:id", deleteCourseClass);
 
+router.get("/api/course-class-lecturers", getCourseClassLecturers);
+router.post("/api/course-class-lecturers/replace/:classId", replaceCourseClassLecturers);
+
 router.get("/api/schedule-slots", getScheduleSlots);
 router.post("/api/schedule-slots", createScheduleSlot);
 router.post("/api/schedule-slots/batch", batchSaveScheduleSlots);
@@ -77,6 +85,10 @@ router.delete("/api/schedule-slots/:id", deleteScheduleSlot);
 
 router.get("/api/semester-periods", getSemesterPeriods);
 router.post("/api/semester-periods", createSemesterPeriod);
+router.put("/api/semester-periods/:id", updateSemesterPeriod);
 router.delete("/api/semester-periods/:id", deleteSemesterPeriod);
+
+router.get("/api/schedules", getSchedules);
+router.get("/api/schedules/for-period/:periodId", getScheduleForPeriod);
 
 export default router;

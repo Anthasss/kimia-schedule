@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { Course, CourseClass, Lecturer, ScheduleSlot } from '../types';
+import { Course, CourseClass, Lecturer, ScheduleSlot, ClassLecturerAssignment } from '../types';
 import { apiPost, apiPut, apiDelete } from '../api';
 import { CoursesSidebar } from '../components/CoursesPage/CoursesSidebar';
 import { CourseDetailPanel } from '../components/CoursesPage/CourseDetailPanel';
@@ -12,11 +12,16 @@ interface CoursesPageProps {
   courseClasses: CourseClass[];
   setCourseClasses: React.Dispatch<React.SetStateAction<CourseClass[]>>;
   lecturers: Lecturer[];
-  setLecturers: React.Dispatch<React.SetStateAction<Lecturer[]>>;
+  classLecturerAssignments: ClassLecturerAssignment[];
+  setClassLecturerAssignments: React.Dispatch<React.SetStateAction<ClassLecturerAssignment[]>>;
   scheduleSlots: ScheduleSlot[];
   setScheduleSlots: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
   setPendingAdds: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
   setPendingRemoves: React.Dispatch<React.SetStateAction<string[]>>;
+}
+
+function lecturerIdByName(lecturers: Lecturer[]): Map<string, string> {
+  return new Map(lecturers.map((l) => [l.name, l.id]));
 }
 
 export const CoursesPage: React.FC<CoursesPageProps> = ({
@@ -25,7 +30,8 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
   courseClasses,
   setCourseClasses,
   lecturers,
-  setLecturers,
+  classLecturerAssignments,
+  setClassLecturerAssignments,
   scheduleSlots,
   setScheduleSlots,
   setPendingAdds,
@@ -44,7 +50,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
 
   const selectedCourse = courses.find((c) => c.code === selectedCourseCode) || null;
   const selectedCourseClasses = selectedCourse
-    ? courseClasses.filter((cc) => cc.courseCode === selectedCourse.code)
+    ? courseClasses.filter((cc) => cc.courseId === selectedCourse.id)
     : [];
   const displayCourse: Course | null = isAddingNewCourse
     ? { id: '', code: '', title: '', sks: 0, semester: 'Ganjil' }
@@ -61,12 +67,25 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
     setSelectedCourseCode(null);
   };
 
+  const replaceAssignmentsForClass = (classId: string, lecturerIds: string[]) => {
+    setClassLecturerAssignments((prev) => [
+      ...prev.filter((a) => a.courseClassId !== classId),
+      ...lecturerIds.map((lecturerId, position) => ({
+        id: crypto.randomUUID(),
+        courseClassId: classId,
+        lecturerId,
+        position,
+      })),
+    ]);
+  };
+
   const handleSaveCourse = async (
     updatedCourse: Course,
     updatedClasses: { id: string; classLetter?: string; lecturers: string[] }[],
     deletedClassIds: string[]
   ) => {
     const isNew = !updatedCourse.id;
+    const idByName = lecturerIdByName(lecturers);
 
     if (isNew) {
       if (!updatedCourse.code?.trim() || !updatedCourse.title?.trim() || !updatedCourse.sks || !updatedCourse.semester) {
@@ -88,12 +107,16 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
           semester: updatedCourse.semester,
           classes: updatedClasses.map((c) => ({
             classLetter: c.classLetter || 'A',
-            lecturers: c.lecturers,
+            lecturerIds: c.lecturers.filter(Boolean).map((name) => idByName.get(name)).filter((id): id is string => Boolean(id)),
           })),
         });
 
         setCourses((prev) => [...prev, createdCourse]);
         setCourseClasses((prev) => [...prev, ...createdClasses]);
+        createdClasses.forEach((cc, i) => {
+          const ids = updatedClasses[i]?.lecturers.filter(Boolean).map((name) => idByName.get(name)).filter((id): id is string => Boolean(id)) ?? [];
+          replaceAssignmentsForClass(cc.id, ids);
+        });
         setIsAddingNewCourse(false);
         setSelectedCourseCode(createdCourse.code);
         toast.success(`Course "${createdCourse.code}" created`);
@@ -126,7 +149,6 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
         ...updatedClasses.map((c) =>
           apiPut<CourseClass>(`/api/course-classes/${c.id}`, {
             classLetter: c.classLetter,
-            lecturers: c.lecturers,
           })
         ),
         ...deletedClassIds.map((id) =>
@@ -142,49 +164,31 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
       }
 
       for (const cls of updatedClasses) {
-        const primaryLecturer = cls.lecturers.filter(Boolean)[0] || null;
-        const linkedCourse = courses.find((c) => c.classId === cls.id);
-        if (linkedCourse && linkedCourse.assignedLecturerName !== primaryLecturer) {
-          try {
-            await apiPut(`/api/courses/${linkedCourse.id}`, {
-              assignedLecturerName: primaryLecturer,
-            });
-          } catch {
-            // non-critical
-          }
-        }
+        const lecturerIds = cls.lecturers.filter(Boolean).map((name) => idByName.get(name)).filter((id): id is string => Boolean(id));
+        await apiPost(`/api/course-class-lecturers/replace/${cls.id}`, { lecturerIds });
+        replaceAssignmentsForClass(cls.id, lecturerIds);
       }
 
-      if (originalCourse && updatedCourse.code !== originalCourse.code) {
-        const linkedClasses = courseClasses.filter((cc) => cc.courseCode === originalCourse.code);
-        await Promise.all(
-          linkedClasses.map((cc) =>
-            apiPut(`/api/course-classes/${cc.id}`, { courseCode: updatedCourse.code })
-          )
-        );
-      }
+      setCourseClasses((prev) => {
+        const updated = prev.map((cc) => {
+          const patch = updatedClasses.find((c) => c.id === cc.id);
+          if (patch) return { ...cc, classLetter: patch.classLetter ?? cc.classLetter };
+          return cc;
+        });
+        return updated.filter((cc) => !deletedClassIds.includes(cc.id));
+      });
+
+      setClassLecturerAssignments((prev) =>
+        prev.filter((a) => !deletedClassIds.includes(a.courseClassId))
+      );
 
       setCourses((prev) =>
         prev.map((c) =>
           c.id === updatedCourse.id
             ? { ...c, code: updatedCourse.code, title: updatedCourse.title, sks: updatedCourse.sks, semester: updatedCourse.semester }
-            : deletedClassIds.includes(c.classId || '')
-              ? { ...c, classId: null, assignedLecturerName: null }
-              : c
+            : c
         )
       );
-
-      setCourseClasses((prev) => {
-        const updated = prev.map((cc) => {
-          const patch = updatedClasses.find((c) => c.id === cc.id);
-          if (patch) return { ...cc, classLetter: patch.classLetter, lecturers: patch.lecturers };
-          if (cc.courseCode === (originalCourse?.code || '') && updatedCourse.code !== (originalCourse?.code || '')) {
-            return { ...cc, courseCode: updatedCourse.code };
-          }
-          return cc;
-        });
-        return updated.filter((cc) => !deletedClassIds.includes(cc.id));
-      });
 
       toast.success('Changes saved');
     } catch (err: any) {
@@ -197,17 +201,18 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
       const course = courses.find((c) => c.id === courseId);
       if (!course) return;
 
-      const classesToDelete = courseClasses.filter((cc) => cc.courseCode === course.code);
-      await Promise.all(classesToDelete.map((cc) => apiDelete(`/api/course-classes/${cc.id}`)));
-      if (!classesToDelete.length) await apiDelete(`/api/courses/${courseId}`);
+      const classesToDelete = courseClasses.filter((cc) => cc.courseId === course.id);
+      await apiDelete(`/api/courses/${courseId}`);
 
-      const courseSlotIds = scheduleSlots.filter((s) => s.courseId === courseId).map((s) => s.id);
-      setScheduleSlots((prev) => prev.filter((s) => s.courseId !== courseId));
-      setPendingAdds((prev) => prev.filter((s) => s.courseId !== courseId));
+      const deletedClassIds = new Set(classesToDelete.map((cc) => cc.id));
+      const courseSlotIds = scheduleSlots.filter((s) => deletedClassIds.has(s.classId)).map((s) => s.id);
+      setScheduleSlots((prev) => prev.filter((s) => !deletedClassIds.has(s.classId)));
+      setPendingAdds((prev) => prev.filter((s) => !deletedClassIds.has(s.classId)));
       setPendingRemoves((prev) => prev.filter((id) => !courseSlotIds.includes(id)));
 
       setCourses((prev) => prev.filter((c) => c.id !== courseId));
-      setCourseClasses((prev) => prev.filter((cc) => cc.courseCode !== course.code));
+      setCourseClasses((prev) => prev.filter((cc) => cc.courseId !== course.id));
+      setClassLecturerAssignments((prev) => prev.filter((a) => !deletedClassIds.has(a.courseClassId)));
       setSelectedCourseCode(null);
       toast.success(`Course "${course.code}" deleted`);
     } catch (err: any) {
@@ -219,18 +224,17 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
     if (!selectedCourse) return false;
     try {
       const newClass = await apiPost<CourseClass>('/api/course-classes', {
-        courseCode: selectedCourse.code,
+        courseId: selectedCourse.id,
         classLetter,
-        lecturers: lecturerNames,
       });
 
+      const lecturerIds = lecturerNames
+        .map((name) => lecturerIdByName(lecturers).get(name))
+        .filter((id): id is string => Boolean(id));
+      await apiPost(`/api/course-class-lecturers/replace/${newClass.id}`, { lecturerIds });
+      replaceAssignmentsForClass(newClass.id, lecturerIds);
+
       setCourseClasses((prev) => [...prev, newClass]);
-      if (!selectedCourse.classId) {
-        await apiPut(`/api/courses/${selectedCourse.id}`, { classId: newClass.id });
-        setCourses((prev) =>
-          prev.map((c) => (c.id === selectedCourse.id ? { ...c, classId: newClass.id } : c))
-        );
-      }
       toast.success(`Class ${classLetter} added`);
       return true;
     } catch (err: any) {
@@ -250,6 +254,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
               course={displayCourse}
               courseClasses={displayCourseClasses}
               lecturers={lecturers}
+              classLecturerAssignments={classLecturerAssignments}
               allCourses={courses}
               onSave={handleSaveCourse}
               onDeleteCourse={handleDeleteCourse}
@@ -266,6 +271,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
       <CoursesSidebar
         courses={courses}
         courseClasses={courseClasses}
+        classLecturerAssignments={classLecturerAssignments}
         lecturers={lecturers}
         selectedCourseCode={selectedCourseCode}
         search={search}

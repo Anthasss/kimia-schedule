@@ -1,6 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { UnscheduledClass, Lecturer } from '../../types';
 import { CourseDraftCard } from './CourseDraftCard';
+
+export interface PeriodRef {
+  year: string;
+  semester: 1 | 2;
+}
+
+function formatPeriodLabel(p: PeriodRef) {
+  return `${p.year} ${p.semester === 1 ? 'Ganjil' : 'Genap'}`;
+}
 
 interface UnscheduledCoursesSidebarProps {
   unscheduledCourses: UnscheduledClass[];
@@ -14,11 +23,15 @@ interface UnscheduledCoursesSidebarProps {
   isClearing: boolean;
   isExporting: boolean;
   selectedCourseId: string | null;
+  currentPeriod: PeriodRef | null;
+  savedPeriods: PeriodRef[];
   onSearchChange: (value: string) => void;
   onSelectCourse: (id: string) => void;
   onSave: () => void;
   onExportPdf: () => void;
   onReset: () => void;
+  onPeriodChange: (period: PeriodRef) => void;
+  onOpenAddPeriod: () => void;
 }
 
 export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps> = ({
@@ -33,31 +46,49 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
   isClearing,
   isExporting,
   selectedCourseId,
+  currentPeriod,
+  savedPeriods,
   onSearchChange,
   onSelectCourse,
   onSave,
   onExportPdf,
   onReset,
+  onPeriodChange,
+  onOpenAddPeriod,
 }) => {
-  const [semesterFilter, setSemesterFilter] = useState<'Ganjil' | 'Genap'>('Ganjil');
+  const [showPeriodMenu, setShowPeriodMenu] = useState(false);
+  const periodMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (periodMenuRef.current && !periodMenuRef.current.contains(e.target as Node)) {
+        setShowPeriodMenu(false);
+      }
+    }
+    if (showPeriodMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showPeriodMenu]);
 
   const searching = draftSearch.trim() !== '';
 
-  // ponytail: local filter, move to hook only if parent needs the filtered list too
+  // ponytail: pool follows the active period's term instead of a manual toggle
+  const activeSemester = currentPeriod ? (currentPeriod.semester === 1 ? 'Ganjil' : 'Genap') : null;
+
   const displayedCourses = useMemo(
     () =>
       filteredDraftPool.filter(
-        (item) => item.semester === semesterFilter || item.semester === 'Both'
+        (item) => !activeSemester || item.semester === activeSemester || item.semester === 'Both'
       ),
-    [filteredDraftPool, semesterFilter]
+    [filteredDraftPool, activeSemester]
   );
 
   const displayedScheduled = useMemo(
     () =>
       scheduledMatches.filter(
-        (item) => item.semester === semesterFilter || item.semester === 'Both'
+        (item) => !activeSemester || item.semester === activeSemester || item.semester === 'Both'
       ),
-    [scheduledMatches, semesterFilter]
+    [scheduledMatches, activeSemester]
   );
 
   const shownCount = searching ? displayedCourses.length + displayedScheduled.length : displayedCourses.length;
@@ -76,19 +107,50 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
       </div>
 
       <div className="flex items-center gap-2 shrink-0 mt-4 mb-2">
-        <div className="flex rounded-md overflow-hidden border mr-auto border-[#c4c6cf]">
-          {(['Ganjil', 'Genap'] as const).map((s) => (
+        <div ref={periodMenuRef} className="relative flex-1 min-w-0">
+        <button
+          onClick={() => setShowPeriodMenu((v) => !v)}
+          className="w-full h-8 px-3 flex items-center justify-between bg-[#f2f4f6] border border-[#c4c6cf] rounded-md text-[13px] font-semibold text-[#002045] hover:bg-[#e8eaec] cursor-pointer"
+        >
+          <span>{currentPeriod ? formatPeriodLabel(currentPeriod) : 'No period selected'}</span>
+          <span className="material-symbols-outlined text-[17px]">
+            {showPeriodMenu ? 'expand_less' : 'expand_more'}
+          </span>
+        </button>
+        {showPeriodMenu && (
+          <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#c4c6cf] rounded-md shadow-lg z-50 py-1 max-h-56 overflow-y-auto">
+            {savedPeriods.map((p, i) => {
+              const isActive =
+                currentPeriod?.year === p.year && currentPeriod?.semester === p.semester;
+              return (
+                <button
+                  key={i}
+                  onClick={() => {
+                    onPeriodChange(p);
+                    setShowPeriodMenu(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 hover:bg-[#f2f4f6] flex items-center gap-2 text-[13px] cursor-pointer ${isActive ? 'font-semibold text-[#002045]' : 'text-[#43474e]'}`}
+                >
+                  <span className="material-symbols-outlined text-[16px] w-4">
+                    {isActive ? 'check' : ''}
+                  </span>
+                  <span>{formatPeriodLabel(p)}</span>
+                </button>
+              );
+            })}
+            <div className="border-t border-[#c4c6cf] my-1" />
             <button
-              key={s}
-              onClick={() => setSemesterFilter(s)}
-              className={`h-8 px-3 py-1 text-[12px] font-semibold transition-colors cursor-pointer ${semesterFilter === s
-                ? 'bg-[#002045] text-white'
-                : 'bg-[#f2f4f6] text-[#505f76] hover:bg-[#e8eaec]'
-                }`}
+              onClick={() => {
+                onOpenAddPeriod();
+                setShowPeriodMenu(false);
+              }}
+              className="w-full text-left px-3 py-2 text-[#002045] font-semibold hover:bg-[#f2f4f6] flex items-center gap-2 text-[13px] cursor-pointer"
             >
-              {s}
+              <span className="material-symbols-outlined text-[16px]">add</span>
+              <span>Add new period...</span>
             </button>
-          ))}
+          </div>
+        )}
         </div>
         <button
           onClick={onReset}

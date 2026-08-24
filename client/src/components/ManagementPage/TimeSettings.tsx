@@ -1,5 +1,5 @@
 import React from 'react';
-import { SksSettings, DayOfWeek } from '../../types';
+import { SksSettings, DayOfWeek, SemesterPeriod } from '../../types';
 
 const ALL_WEEKDAYS: DayOfWeek[] = [
   'Monday',
@@ -14,6 +14,8 @@ const ALL_WEEKDAYS: DayOfWeek[] = [
 interface TimeSettingsProps {
   sksSettings: SksSettings;
   setSksSettings: React.Dispatch<React.SetStateAction<SksSettings>>;
+  period: SemesterPeriod | null;
+  setPeriod: React.Dispatch<React.SetStateAction<SemesterPeriod>>;
   onSave: () => void;
   isSaving: boolean;
 }
@@ -21,21 +23,27 @@ interface TimeSettingsProps {
 export const TimeSettings: React.FC<TimeSettingsProps> = ({
   sksSettings,
   setSksSettings,
+  period,
+  setPeriod,
   onSave,
   isSaving,
 }) => {
+  const activeDays = period?.activeDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  const dayStartTime = period?.dayStartTime || '07:30';
+  const dayEndTime = period?.dayEndTime || '17:00';
+
   const handleToggleDay = (day: DayOfWeek) => {
-    const currentActiveDays = sksSettings.activeDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday'];
-    const isSelected = currentActiveDays.includes(day);
+    if (!period) return;
+    const isSelected = activeDays.includes(day);
 
     let newDays: DayOfWeek[];
     if (isSelected) {
-      if (currentActiveDays.length === 1) return;
-      newDays = currentActiveDays.filter((d) => d !== day);
+      if (activeDays.length === 1) return;
+      newDays = activeDays.filter((d) => d !== day);
     } else {
-      newDays = ALL_WEEKDAYS.filter((d) => currentActiveDays.includes(d) || d === day);
+      newDays = ALL_WEEKDAYS.filter((d) => activeDays.includes(d) || d === day);
     }
-    setSksSettings({ ...sksSettings, activeDays: newDays });
+    setPeriod({ ...period, activeDays: newDays });
   };
 
   return (
@@ -89,13 +97,8 @@ export const TimeSettings: React.FC<TimeSettingsProps> = ({
               <label className="block font-semibold text-[12px] text-[#43474e] mb-2">Day Start Time</label>
               <input
                 type="time"
-                value={sksSettings.dayStartTime || '07:30'}
-                onChange={(e) =>
-                  setSksSettings({
-                    ...sksSettings,
-                    dayStartTime: e.target.value,
-                  })
-                }
+                value={dayStartTime}
+                onChange={(e) => period && setPeriod({ ...period, dayStartTime: e.target.value })}
                 className="w-full bg-[#eceef0] border-none focus:ring-2 focus:ring-[#002045] focus:bg-white rounded-md px-4 py-2 font-mono-code text-[14px] text-[#191c1e] outline-none"
               />
             </div>
@@ -103,13 +106,8 @@ export const TimeSettings: React.FC<TimeSettingsProps> = ({
               <label className="block font-semibold text-[12px] text-[#43474e] mb-2">Day End Time</label>
               <input
                 type="time"
-                value={sksSettings.dayEndTime || '17:00'}
-                onChange={(e) =>
-                  setSksSettings({
-                    ...sksSettings,
-                    dayEndTime: e.target.value,
-                  })
-                }
+                value={dayEndTime}
+                onChange={(e) => period && setPeriod({ ...period, dayEndTime: e.target.value })}
                 className="w-full bg-[#eceef0] border-none focus:ring-2 focus:ring-[#002045] focus:bg-white rounded-md px-4 py-2 font-mono-code text-[14px] text-[#191c1e] outline-none"
               />
             </div>
@@ -119,13 +117,7 @@ export const TimeSettings: React.FC<TimeSettingsProps> = ({
             <label className="block font-semibold text-[12px] text-[#43474e] mb-2">Active Academic Days</label>
             <div className="flex flex-wrap gap-1.5">
               {ALL_WEEKDAYS.map((day) => {
-                const currentActiveDays = sksSettings.activeDays || [
-                  'Monday',
-                  'Tuesday',
-                  'Wednesday',
-                  'Thursday',
-                ];
-                const isSelected = currentActiveDays.includes(day);
+                const isSelected = activeDays.includes(day);
 
                 return (
                   <button

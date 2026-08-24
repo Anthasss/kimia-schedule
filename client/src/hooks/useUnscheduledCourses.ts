@@ -1,22 +1,22 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Course, CourseClass, ScheduleSlot, UnscheduledClass } from '../types';
+import { ScheduleSlot, UnscheduledClass } from '../types';
+import type { ClassData } from '../utils/classData';
 
-function buildUnscheduledClass(cc: CourseClass, course: Course): UnscheduledClass {
+function buildUnscheduledClass(data: ClassData): UnscheduledClass {
   return {
-    id: cc.id,
-    courseId: course.id,
-    courseCode: course.code,
-    courseTitle: course.title,
-    classLetter: cc.classLetter,
-    sks: course.sks,
-    semester: course.semester,
-    lecturers: cc.lecturers,
+    id: data.class.id,
+    courseId: data.course.id,
+    courseCode: data.course.code,
+    courseTitle: data.course.title,
+    classLetter: data.class.classLetter,
+    sks: data.course.sks,
+    semester: data.course.semester,
+    lecturers: data.lecturers.map((l) => l.name),
   };
 }
 
 export function useUnscheduledCourses(
-  courseClasses: CourseClass[],
-  courses: Course[],
+  classById: Map<string, ClassData>,
   scheduleSlots: ScheduleSlot[]
 ) {
   const [draftSearch, setDraftSearch] = useState('');
@@ -27,18 +27,6 @@ export function useUnscheduledCourses(
     [scheduleSlots]
   );
 
-  const courseByClassId = useMemo(() => {
-    const map = new Map<string, Course>();
-    for (const c of courses) if (c.classId) map.set(c.classId, c);
-    return map;
-  }, [courses]);
-
-  const courseByCode = useMemo(() => {
-    const map = new Map<string, Course>();
-    for (const c of courses) if (!map.has(c.code)) map.set(c.code, c);
-    return map;
-  }, [courses]);
-
   const slotByClassId = useMemo(() => {
     const map = new Map<string, ScheduleSlot>();
     for (const s of scheduleSlots) if (!map.has(s.classId)) map.set(s.classId, s);
@@ -47,38 +35,26 @@ export function useUnscheduledCourses(
 
   const unscheduledCourses = useMemo<UnscheduledClass[]>(() => {
     const result: UnscheduledClass[] = [];
-
-    for (const cc of courseClasses) {
-      if (scheduledClassIds.has(cc.id)) continue;
-
-      const course = courseByClassId.get(cc.id) || courseByCode.get(cc.courseCode);
-      if (!course) continue;
-
-      result.push(buildUnscheduledClass(cc, course));
+    for (const data of classById.values()) {
+      if (scheduledClassIds.has(data.class.id)) continue;
+      result.push(buildUnscheduledClass(data));
     }
-
     result.sort((a, b) => a.courseTitle.localeCompare(b.courseTitle));
     return result;
-  }, [courseClasses, courseByClassId, courseByCode, scheduledClassIds]);
+  }, [classById, scheduledClassIds]);
 
   const scheduledPool = useMemo<UnscheduledClass[]>(() => {
     const result: UnscheduledClass[] = [];
-
-    for (const cc of courseClasses) {
-      if (!scheduledClassIds.has(cc.id)) continue;
-
-      const course = courseByClassId.get(cc.id) || courseByCode.get(cc.courseCode);
-      if (!course) continue;
-
-      const slot = slotByClassId.get(cc.id);
+    for (const data of classById.values()) {
+      if (!scheduledClassIds.has(data.class.id)) continue;
+      const slot = slotByClassId.get(data.class.id);
       result.push({
-        ...buildUnscheduledClass(cc, course),
-        scheduledAt: slot ? `${slot.day} · ${slot.timeSlot.split(' SKS')[0]}` : undefined,
+        ...buildUnscheduledClass(data),
+        scheduledAt: slot ? `${slot.day} · ${slot.startTime}` : undefined,
       });
     }
-
     return result;
-  }, [courseClasses, courseByClassId, courseByCode, scheduledClassIds, slotByClassId]);
+  }, [classById, scheduledClassIds, slotByClassId]);
 
   const matchesSearch = (item: UnscheduledClass, query: string) =>
     item.courseCode.toLowerCase().includes(query) ||

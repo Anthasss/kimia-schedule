@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { apiDelete } from '../api';
-import { Lecturer, Course, CourseClass, ScheduleSlot } from '../types';
+import { Lecturer, Course, CourseClass, ScheduleSlot, ClassLecturerAssignment } from '../types';
 import { PageHeader } from '../components/Shared/PageHeader';
 import { LecturersTable } from '../components/LecturersPage/LecturersTable';
 import { EditLecturerModal } from '../components/LecturersPage/EditLecturerModal';
@@ -12,11 +12,9 @@ interface LecturersPageProps {
   lecturers: Lecturer[];
   setLecturers: React.Dispatch<React.SetStateAction<Lecturer[]>>;
   courses: Course[];
-  setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
   courseClasses: CourseClass[];
-  setCourseClasses: React.Dispatch<React.SetStateAction<CourseClass[]>>;
+  classLecturerAssignments: ClassLecturerAssignment[];
   scheduleSlots: ScheduleSlot[];
-  setScheduleSlots: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
   onOpenNewRecordModal: (initialType?: string) => void;
 }
 
@@ -24,11 +22,9 @@ export function LecturersPage({
   lecturers,
   setLecturers,
   courses,
-  setCourses,
   courseClasses,
-  setCourseClasses,
+  classLecturerAssignments,
   scheduleSlots,
-  setScheduleSlots,
   onOpenNewRecordModal,
 }: LecturersPageProps) {
   const [search, setSearch] = useState('');
@@ -39,21 +35,31 @@ export function LecturersPage({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
 
+  const activeLecturers = useMemo(() => lecturers.filter((l) => !l.deletedAt), [lecturers]);
+
   const creditBurden = useMemo(() => {
-    const sksByCode = new Map(courses.map((c) => [c.code, c.sks]));
+    const sksByClassId = new Map(
+      courseClasses.map((cc) => {
+        const course = courses.find((c) => c.id === cc.courseId);
+        return [cc.id, course?.sks ?? 0];
+      })
+    );
     const burden: Record<string, number> = {};
-    for (const cc of courseClasses) {
-      const sks = sksByCode.get(cc.courseCode);
-      if (!sks || cc.lecturers.length === 0) continue;
-      for (const name of cc.lecturers) {
-        const l = lecturers.find((l) => l.name === name);
-        if (l) burden[l.id] = (burden[l.id] || 0) + sks / cc.lecturers.length;
+    const perClass: Record<string, string[]> = {};
+    for (const a of classLecturerAssignments) {
+      if (!perClass[a.courseClassId]) perClass[a.courseClassId] = [];
+      perClass[a.courseClassId].push(a.lecturerId);
+    }
+    for (const [classId, ids] of Object.entries(perClass)) {
+      if (ids.length === 0) continue;
+      for (const lecturerId of ids) {
+        burden[lecturerId] = (burden[lecturerId] || 0) + (sksByClassId.get(classId) || 0) / ids.length;
       }
     }
     return burden;
-  }, [lecturers, courses, courseClasses]);
+  }, [lecturers, courses, courseClasses, classLecturerAssignments]);
 
-  const filteredLecturers = lecturers.filter((l) =>
+  const filteredLecturers = activeLecturers.filter((l) =>
     l.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -79,11 +85,11 @@ export function LecturersPage({
   };
 
   const handleExportToExcel = async () => {
-    const selected = lecturers.filter((l) => selectedIds.has(l.id));
+    const selected = activeLecturers.filter((l) => selectedIds.has(l.id));
     if (selected.length === 0) return;
     setIsExporting(true);
     try {
-      await exportLecturerClassesToExcel(selected, courses, courseClasses, scheduleSlots);
+      await exportLecturerClassesToExcel(selected, courses, courseClasses, classLecturerAssignments, scheduleSlots);
       toast.success('Classes exported to Excel');
     } catch (err) {
       console.error(err);
@@ -93,42 +99,8 @@ export function LecturersPage({
     }
   };
 
-  const removeLecturerFromState = (lecturerName: string) => {
-    setCourseClasses((prev) =>
-      prev.map((cc) => ({
-        ...cc,
-        lecturers: cc.lecturers.filter((name) => name !== lecturerName),
-      }))
-    );
-    setCourses((prev) =>
-      prev.map((c) =>
-        c.assignedLecturerName === lecturerName ? { ...c, assignedLecturerName: undefined } : c
-      )
-    );
-    setScheduleSlots((prev) => prev.filter((s) => s.lecturerName !== lecturerName));
-  };
-
-  const handleDeleteLecturer = async (lecturer: Lecturer) => {
-    const isReferenced =
-      courses.some((c) => c.assignedLecturerName === lecturer.name) ||
-      scheduleSlots.some((s) => s.lecturerName === lecturer.name);
-
-    if (!isReferenced) {
-      setDeletingLecturerId(lecturer.id);
-      try {
-        await apiDelete(`/api/lecturers/${lecturer.id}`);
-        setLecturers(lecturers.filter((l) => l.id !== lecturer.id));
-        removeLecturerFromState(lecturer.name);
-        toast.success('Lecturer deleted');
-      } catch (err) {
-        console.error(err);
-        toast.error('Failed to delete lecturer');
-      } finally {
-        setDeletingLecturerId(null);
-      }
-    } else {
-      setDeleteLecturerTarget(lecturer);
-    }
+  const handleDeleteLecturer = (lecturer: Lecturer) => {
+    setDeleteLecturerTarget(lecturer);
   };
 
   const confirmDeleteLecturer = async () => {
@@ -136,13 +108,14 @@ export function LecturersPage({
     setIsConfirmingDelete(true);
     try {
       await apiDelete(`/api/lecturers/${deleteLecturerTarget.id}`);
-      setLecturers(lecturers.filter((l) => l.id !== deleteLecturerTarget.id));
-      removeLecturerFromState(deleteLecturerTarget.name);
+      setLecturers((prev) =>
+        prev.map((l) => (l.id === deleteLecturerTarget.id ? { ...l, deletedAt: new Date().toISOString() } : l))
+      );
       setDeleteLecturerTarget(null);
-      toast.success('Lecturer deleted');
+      toast.success('Lecturer deactivated');
     } catch (err) {
       console.error(err);
-      toast.error('Failed to delete lecturer');
+      toast.error('Failed to deactivate lecturer');
     } finally {
       setIsConfirmingDelete(false);
     }
@@ -217,8 +190,6 @@ export function LecturersPage({
       {deleteLecturerTarget && (
         <DeleteLecturerModal
           lecturer={deleteLecturerTarget}
-          courses={courses}
-          scheduleSlots={scheduleSlots}
           isConfirming={isConfirmingDelete}
           onConfirm={confirmDeleteLecturer}
           onCancel={() => setDeleteLecturerTarget(null)}

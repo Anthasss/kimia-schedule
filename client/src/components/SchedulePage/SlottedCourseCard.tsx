@@ -1,11 +1,12 @@
 import React from 'react';
-import { ScheduleSlot, Lecturer, CourseClass } from '../../types';
+import { ScheduleSlot, Lecturer } from '../../types';
+import { ClassData } from '../../utils/classData';
 import { cleanLecturerName } from '../../utils/rotationSolver';
 
 interface SlottedCourseCardProps {
   slot: ScheduleSlot;
   lecturers: Lecturer[];
-  classById: Map<string, CourseClass>;
+  classById: Map<string, ClassData>;
   turns?: string;
   onRemove: (slotId: string) => void;
 }
@@ -17,30 +18,24 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
   turns,
   onRemove,
 }) => {
-  const lecturer = lecturers.find((l) => l.name === slot.lecturerName);
-  const lecturerColor = lecturer?.color || '#6366f1';
-  const classLecturers = classById.get(slot.classId)?.lecturers ?? [slot.lecturerName];
+  const data = classById.get(slot.classId);
+  const primary = data?.lecturers[0];
+  const lecturerColor = primary?.color || '#6366f1';
+  const classLecturerNames = data?.lecturers.map((l) => l.name) ?? [];
 
   return (
     <div
-      className={`p-2 rounded border transition-all text-left relative group h-full ${slot.hasConflict
-        ? 'bg-[#ffdad6] border-[#ba1a1a] text-[#93000a]'
-        : 'text-[#191c1e] hover:border-[#002045]'
-        }`}
-      style={
-        slot.hasConflict
-          ? undefined
-          : {
-            borderLeftWidth: '3px',
-            borderLeftColor: lecturerColor,
-            backgroundColor: `${lecturerColor}0D`,
-          }
-      }
+      className="p-2 rounded border transition-all text-left relative group h-full text-[#191c1e] hover:border-[#002045]"
+      style={{
+        borderLeftWidth: '3px',
+        borderLeftColor: lecturerColor,
+        backgroundColor: `${lecturerColor}0D`,
+      }}
     >
       <div className="flex justify-between items-start">
         <p className="font-semibold text-[13px] text-[#191c1e] leading-tight">
-          {slot.courseTitle}
-          <span className="text-[11px] font-bold text-[#505f76] ml-1">({slot.classLetter})</span>
+          {data?.course.title ?? ''}
+          <span className="text-[11px] font-bold text-[#505f76] ml-1">({data?.class.classLetter ?? ''})</span>
         </p>
         <button
           onClick={() => onRemove(slot.id)}
@@ -50,7 +45,7 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
           ✕
         </button>
       </div>
-      <p className="text-[12px] text-[#374151] mt-1 whitespace-pre-line">{turns || classLecturers.map(cleanLecturerName).join('\n')}</p>
+      <p className="text-[12px] text-[#374151] mt-1 whitespace-pre-line">{turns || classLecturerNames.map(cleanLecturerName).join('\n')}</p>
     </div>
   );
 };

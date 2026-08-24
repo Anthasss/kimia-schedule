@@ -6,8 +6,10 @@ import {
   Lecturer,
   Course,
   CourseClass,
+  ClassLecturerAssignment,
   ScheduleSlot,
   SemesterPeriod,
+  Schedule,
 } from '../types';
 
 interface DataFetchingSetters {
@@ -17,8 +19,10 @@ interface DataFetchingSetters {
   setLecturers: Dispatch<SetStateAction<Lecturer[]>>;
   setCourses: Dispatch<SetStateAction<Course[]>>;
   setCourseClasses: Dispatch<SetStateAction<CourseClass[]>>;
+  setClassLecturerAssignments: Dispatch<SetStateAction<ClassLecturerAssignment[]>>;
   setScheduleSlots: Dispatch<SetStateAction<ScheduleSlot[]>>;
   setSemesterPeriods: Dispatch<SetStateAction<SemesterPeriod[]>>;
+  setSchedules: Dispatch<SetStateAction<Schedule[]>>;
 }
 
 export function useDataFetching(setters: DataFetchingSetters) {
@@ -33,8 +37,10 @@ export function useDataFetching(setters: DataFetchingSetters) {
         lecturersRes,
         coursesRes,
         courseClassesRes,
+        classLecturerAssignmentsRes,
         scheduleSlotsRes,
         semesterPeriodsRes,
+        schedulesRes,
       ] = await Promise.all([
         fetch('/api/rooms').then((r) => r.json()),
         fetch('/api/break-times').then((r) => r.json()),
@@ -42,8 +48,10 @@ export function useDataFetching(setters: DataFetchingSetters) {
         fetch('/api/lecturers').then((r) => r.json()),
         fetch('/api/courses').then((r) => r.json()),
         fetch('/api/course-classes').then((r) => r.json()),
+        fetch('/api/course-class-lecturers').then((r) => r.json()),
         fetch('/api/schedule-slots').then((r) => r.json()),
         fetch('/api/semester-periods').then((r) => r.json()),
+        fetch('/api/schedules').then((r) => r.json()),
       ]);
 
       setters.setRooms(roomsRes);
@@ -52,8 +60,10 @@ export function useDataFetching(setters: DataFetchingSetters) {
       setters.setLecturers(lecturersRes);
       setters.setCourses(coursesRes);
       setters.setCourseClasses(courseClassesRes);
+      setters.setClassLecturerAssignments(classLecturerAssignmentsRes);
       setters.setScheduleSlots(scheduleSlotsRes);
       setters.setSemesterPeriods(semesterPeriodsRes);
+      setters.setSchedules(schedulesRes);
       setLoading(false);
     }
     fetchData();
