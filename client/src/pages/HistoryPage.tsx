@@ -18,7 +18,7 @@ import { computeTimeSlots } from '../utils/scheduleTimeSlots';
 import { buildClassById } from '../utils/classData';
 import { ScheduleDayGrid } from '../components/SchedulePage/ScheduleDayGrid';
 import { ScheduleLayout } from '../components/SchedulePage/ScheduleLayout';
-import { HistorySidebar } from '../components/HistoryPage/HistorySidebar';
+import { HistorySidebar, PeriodOverview } from '../components/HistoryPage/HistorySidebar';
 import { ConfirmModal } from '../components/Shared/ConfirmModal';
 
 interface HistoryPageProps {
@@ -44,6 +44,11 @@ function periodLabel(p: SemesterPeriod) {
 function periodTimestamp(p: SemesterPeriod) {
   const t = p.createdAt ? Date.parse(p.createdAt) : NaN;
   return Number.isNaN(t) ? 0 : t;
+}
+
+function formatDays(days: string[]): string {
+  const short = (d: string) => d.slice(0, 3);
+  return days.map(short).join(', ');
 }
 
 export function HistoryPage({
@@ -102,20 +107,38 @@ export function HistoryPage({
     [breakTimes, selectedPeriod]
   );
 
-  const slotCountByPeriodId = useMemo(() => {
-    const countByScheduleId = new Map<string, number>();
-    for (const s of scheduleSlots) {
-      countByScheduleId.set(s.scheduleId, (countByScheduleId.get(s.scheduleId) || 0) + 1);
-    }
-    return Object.fromEntries(
-      schedules.map((sch) => [sch.periodId, countByScheduleId.get(sch.id) || 0])
-    );
-  }, [scheduleSlots, schedules]);
-
   const classById = useMemo(
     () => buildClassById(courseClasses, courses, classLecturerAssignments, lecturers),
     [courseClasses, courses, classLecturerAssignments, lecturers]
   );
+
+  const overviewByPeriodId = useMemo(() => {
+    const slotsByScheduleId = new Map<string, ScheduleSlot[]>();
+    for (const s of scheduleSlots) {
+      const list = slotsByScheduleId.get(s.scheduleId) || [];
+      list.push(s);
+      slotsByScheduleId.set(s.scheduleId, list);
+    }
+    return Object.fromEntries(
+      semesterPeriods.map((p): [string, PeriodOverview] => {
+        const schedule = schedules.find((s) => s.periodId === p.id);
+        const slots = schedule ? slotsByScheduleId.get(schedule.id) ?? [] : [];
+        const courseCodes = new Set(
+          slots.map((s) => classById.get(s.classId)?.course.code).filter(Boolean)
+        );
+        return [
+          p.id,
+          {
+            days: formatDays(p.activeDays),
+            hours: `${p.dayStartTime} – ${p.dayEndTime}`,
+            classes: new Set(slots.map((s) => s.classId)).size,
+            courses: courseCodes.size,
+            blocks: slots.length,
+          },
+        ];
+      })
+    );
+  }, [semesterPeriods, schedules, scheduleSlots, classById]);
 
   const { days, gridRows, slotRowLabels } = useMemo(
     () => computeTimeSlots(sksSettings, selectedPeriod, selectedBreaks),
@@ -152,10 +175,8 @@ export function HistoryPage({
       sidebar={
         <HistorySidebar
           pastPeriods={pastPeriods}
-          selectedPeriod={selectedPeriod}
-          selectedSlots={selectedSlots}
-          classById={classById}
-          slotCountByPeriodId={slotCountByPeriodId}
+          selectedPeriodId={selectedPeriod?.id ?? null}
+          overviewByPeriodId={overviewByPeriodId}
           onSelectPeriod={setSelectedPeriodId}
           onLoad={handleRequestLoad}
         />
