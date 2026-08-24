@@ -1,4 +1,4 @@
-import { SksSettings, BreakTime, DayOfWeek } from '../types';
+import { SksSettings, BreakTime, DayOfWeek, SemesterPeriod } from '../types';
 
 export type GridRow =
   | { type: 'slot'; label: string }
@@ -11,17 +11,18 @@ export interface ComputedTimeSlots {
   slotRowLabels: string[];
 }
 
+const DEFAULT_DAYS: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
 export function computeTimeSlots(
   sksSettings: SksSettings,
+  period: SemesterPeriod | null,
   breakTimes: BreakTime[]
 ): ComputedTimeSlots {
   const days: DayOfWeek[] =
-    sksSettings.activeDays && sksSettings.activeDays.length > 0
-      ? sksSettings.activeDays
-      : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    period && period.activeDays.length > 0 ? period.activeDays : DEFAULT_DAYS;
 
-  const startParts = (sksSettings.dayStartTime || '07:30').split(':').map(Number);
-  const endParts = (sksSettings.dayEndTime || '17:00').split(':').map(Number);
+  const startParts = (period?.dayStartTime || '07:30').split(':').map(Number);
+  const endParts = (period?.dayEndTime || '17:00').split(':').map(Number);
   const duration = sksSettings.durationPerSks || 50;
 
   let currentMinutes = startParts[0] * 60 + startParts[1];

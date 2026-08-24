@@ -1,7 +1,8 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Room, ScheduleSlot, Lecturer, DayOfWeek, UnscheduledClass, CourseClass } from '../../types';
+import { Room, ScheduleSlot, Lecturer, DayOfWeek, UnscheduledClass } from '../../types';
 import { GridRow } from '../../utils/scheduleTimeSlots';
+import { ClassData } from '../../utils/classData';
 import { solveRotation, getWeeklyTurnsForSlots } from '../../utils/rotationSolver';
 import { SlottedCourseCard } from './SlottedCourseCard';
 import { EmptyCell } from './EmptyCell';
@@ -13,12 +14,20 @@ interface ScheduleDayGridProps {
   slotRowLabels: string[];
   scheduleSlots: ScheduleSlot[];
   lecturers: Lecturer[];
-  classById: Map<string, CourseClass>;
+  classById: Map<string, ClassData>;
   activeDraftItem: UnscheduledClass | null;
   unscheduledCourses: UnscheduledClass[];
   onPlaceDraft: (item: UnscheduledClass, day: DayOfWeek, timeSlot: string, roomId: string) => void;
   onRemoveSlot: (slotId: string) => void;
   onSelectEmpty: (day: DayOfWeek, timeSlot: string, roomId: string) => void;
+}
+
+function slotStartIndex(slot: ScheduleSlot, slotRowLabels: string[]): number {
+  return slotRowLabels.findIndex((label) => label.startsWith(slot.startTime));
+}
+
+function slotSks(slot: ScheduleSlot, classById: Map<string, ClassData>): number {
+  return classById.get(slot.classId)?.course.sks ?? 0;
 }
 
 export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
@@ -93,9 +102,9 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
 
     const overlappingSlots = scheduleSlots.filter((s) => {
       if (s.day !== day) return false;
-      const theirStart = slotRowLabels.indexOf(s.timeSlot);
+      const theirStart = slotStartIndex(s, slotRowLabels);
       if (theirStart === -1) return false;
-      const theirEnd = theirStart + s.sks;
+      const theirEnd = theirStart + slotSks(s, classById);
       return startIdx < theirEnd && theirStart < startIdx + sks;
     });
 
@@ -103,7 +112,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
       { id: activeDraftItem.id, lecturers: activeDraftItem.lecturers },
       ...overlappingSlots.map((s) => ({
         id: s.classId,
-        lecturers: classById.get(s.classId)?.lecturers ?? [s.lecturerName],
+        lecturers: classById.get(s.classId)?.lecturers.map((l) => l.name) ?? [],
       })),
     ];
 
@@ -131,13 +140,15 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
 
     const roomConflictingSlot = scheduleSlots.find((s) => {
       if (s.day !== day || s.roomId !== roomId) return false;
-      const theirStart = slotRowLabels.indexOf(s.timeSlot);
+      const theirStart = slotStartIndex(s, slotRowLabels);
       if (theirStart === -1) return false;
-      const theirEnd = theirStart + s.sks;
+      const theirEnd = theirStart + slotSks(s, classById);
       return startIdx < theirEnd && theirStart < startIdx + sks;
     });
     if (roomConflictingSlot) {
-      return `Cannot place here: ${roomConflictingSlot.courseCode} already occupies ${roomConflictingSlot.roomName} at this time`;
+      const data = classById.get(roomConflictingSlot.classId);
+      const roomName = gridRooms.find((r) => r.id === roomConflictingSlot.roomId)?.name ?? '';
+      return `Cannot place here: ${data?.course.code ?? ''} already occupies ${roomName} at this time`;
     }
 
     return null;
@@ -228,21 +239,22 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                       (s) => s.day === day && s.roomId === room.id
                     );
 
-                    const startSlot = roomSlots.find((s) => s.timeSlot === ts);
+                    const startSlot = roomSlots.find((s) => slotStartIndex(s, slotRowLabels) === slotRowIdx);
 
                     const spanningSlot = roomSlots.find((s) => {
-                      const startIdx = slotRowLabels.indexOf(s.timeSlot);
+                      const startIdx = slotStartIndex(s, slotRowLabels);
                       return (
-                        startIdx !== -1 && startIdx < slotRowIdx && slotRowIdx < startIdx + s.sks
+                        startIdx !== -1 && startIdx < slotRowIdx && slotRowIdx < startIdx + slotSks(s, classById)
                       );
                     });
 
                     if (startSlot) {
+                      const startSks = slotSks(startSlot, classById);
                       return (
                         <div
                           key={room.id}
                           className="px-2 py-2 border-r border-b border-[#c4c6cf]"
-                          style={{ gridRow: `span ${startSlot.sks}` }}
+                          style={{ gridRow: `span ${startSks}` }}
                         >
                           <SlottedCourseCard
                             slot={startSlot}

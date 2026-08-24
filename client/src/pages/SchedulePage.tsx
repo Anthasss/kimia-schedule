@@ -10,8 +10,11 @@ import {
   BreakTime,
   Lecturer,
   SemesterPeriod,
+  ClassLecturerAssignment,
+  Schedule,
 } from '../types';
 import { computeTimeSlots } from '../utils/scheduleTimeSlots';
+import { buildClassById } from '../utils/classData';
 import { useScheduleSlots } from '../hooks/useScheduleSlots';
 import { useUnscheduledCourses } from '../hooks/useUnscheduledCourses';
 import { ScheduleDayGrid } from '../components/SchedulePage/ScheduleDayGrid';
@@ -28,17 +31,16 @@ interface SchedulePageProps {
   setScheduleSlots: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
   courses: Course[];
   courseClasses: CourseClass[];
+  classLecturerAssignments: ClassLecturerAssignment[];
   lecturers: Lecturer[];
   sksSettings: SksSettings;
-  setSksSettings: React.Dispatch<React.SetStateAction<SksSettings>>;
   breakTimes: BreakTime[];
   semesterPeriods: SemesterPeriod[];
-  setSemesterPeriods: React.Dispatch<React.SetStateAction<SemesterPeriod[]>>;
+  schedules: Schedule[];
   pendingAdds: ScheduleSlot[];
   setPendingAdds: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
   pendingRemoves: string[];
   setPendingRemoves: React.Dispatch<React.SetStateAction<string[]>>;
-  onPeriodChange: (period: { year: string; semester: 1 | 2 } | null) => Promise<void>;
 }
 
 export function SchedulePage({
@@ -47,9 +49,12 @@ export function SchedulePage({
   setScheduleSlots,
   courses,
   courseClasses,
+  classLecturerAssignments,
   lecturers,
   sksSettings,
   breakTimes,
+  semesterPeriods,
+  schedules,
   pendingAdds,
   setPendingAdds,
   pendingRemoves,
@@ -61,10 +66,35 @@ export function SchedulePage({
   const [showSaveExportModal, setShowSaveExportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
+  const currentPeriod = useMemo(
+    () => semesterPeriods.find((p) => p.id === sksSettings.currentPeriodId) ?? null,
+    [semesterPeriods, sksSettings.currentPeriodId]
+  );
+
+  const currentSchedule = useMemo(
+    () => schedules.find((s) => s.periodId === sksSettings.currentPeriodId) ?? null,
+    [schedules, sksSettings.currentPeriodId]
+  );
+
+  const visibleSlots = useMemo(
+    () => (currentSchedule ? scheduleSlots.filter((s) => s.scheduleId === currentSchedule.id) : []),
+    [scheduleSlots, currentSchedule]
+  );
+
+  const periodBreaks = useMemo(
+    () => (currentPeriod ? breakTimes.filter((b) => b.periodId === currentPeriod.id) : []),
+    [breakTimes, currentPeriod]
+  );
+
+  const classById = useMemo(
+    () => buildClassById(courseClasses, courses, classLecturerAssignments, lecturers),
+    [courseClasses, courses, classLecturerAssignments, lecturers]
+  );
+
   const handleReset = useCallback(async () => {
     setIsClearing(true);
     try {
-      await apiDelete('/api/schedule-slots/all');
+      await apiDelete(`/api/schedule-slots/all${currentSchedule ? `?scheduleId=${currentSchedule.id}` : ''}`);
       setScheduleSlots([]);
       setPendingAdds([]);
       setPendingRemoves([]);
@@ -76,13 +106,11 @@ export function SchedulePage({
     } finally {
       setIsClearing(false);
     }
-  }, [setScheduleSlots, setPendingAdds, setPendingRemoves]);
+  }, [currentSchedule, setScheduleSlots, setPendingAdds, setPendingRemoves]);
 
-  const { days, timeSlots, gridRows, slotRowLabels } = useMemo(() => computeTimeSlots(sksSettings, breakTimes), [sksSettings, breakTimes]);
-
-  const classById = useMemo(
-    () => new Map(courseClasses.map((cc) => [cc.id, cc])),
-    [courseClasses]
+  const { days, timeSlots, gridRows, slotRowLabels } = useMemo(
+    () => computeTimeSlots(sksSettings, currentPeriod, periodBreaks),
+    [sksSettings, currentPeriod, periodBreaks]
   );
 
   const {
@@ -94,7 +122,7 @@ export function SchedulePage({
     filteredDraftPool,
     scheduledMatches,
     activeDraftItem,
-  } = useUnscheduledCourses(courseClasses, courses, scheduleSlots);
+  } = useUnscheduledCourses(classById, visibleSlots);
 
   const {
     placeDraftOnGrid,
@@ -106,12 +134,13 @@ export function SchedulePage({
     setAssignTimeSlot,
     setAssignRoomId,
   } = useScheduleSlots({
-    scheduleSlots,
+    scheduleSlots: visibleSlots,
     setScheduleSlots,
     rooms,
     sksSettings,
     days,
     timeSlots,
+    currentSchedule,
     setSelectedExpandedDraft,
     pendingAdds,
     setPendingAdds,
@@ -133,22 +162,22 @@ export function SchedulePage({
     }
     setIsExporting(true);
     try {
-      await exportScheduleToPdf();
+      await exportScheduleToPdf(currentSchedule?.id, currentPeriod);
     } finally {
       setIsExporting(false);
     }
-  }, [isDirty]);
+  }, [isDirty, currentSchedule, currentPeriod]);
 
   const handleConfirmSaveExport = useCallback(async () => {
     setShowSaveExportModal(false);
     setIsExporting(true);
     try {
       await saveChanges();
-      await exportScheduleToPdf();
+      await exportScheduleToPdf(currentSchedule?.id, currentPeriod);
     } finally {
       setIsExporting(false);
     }
-  }, [saveChanges]);
+  }, [saveChanges, currentSchedule, currentPeriod]);
 
   return (
     <ScheduleLayout
@@ -181,7 +210,7 @@ export function SchedulePage({
               gridRooms={rooms}
               gridRows={gridRows}
               slotRowLabels={slotRowLabels}
-              scheduleSlots={scheduleSlots}
+              scheduleSlots={visibleSlots}
               lecturers={lecturers}
               classById={classById}
               activeDraftItem={activeDraftItem}

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Course, CourseClass, Lecturer } from '../../types';
+import { Course, CourseClass, Lecturer, ClassLecturerAssignment } from '../../types';
 import { toast } from 'sonner';
 import { ClassCard } from './ClassCard';
 import { ConfirmModal } from '../Shared/ConfirmModal';
@@ -26,6 +26,7 @@ interface CourseDetailPanelProps {
   course: Course;
   courseClasses: CourseClass[];
   lecturers: Lecturer[];
+  classLecturerAssignments: ClassLecturerAssignment[];
   allCourses: Course[];
   isNewCourse?: boolean;
   onSave: (updatedCourse: Course, updatedClasses: { id: string; classLetter?: string; lecturers: string[] }[], deletedClassIds: string[]) => Promise<void>;
@@ -45,12 +46,29 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
   course,
   courseClasses,
   lecturers,
+  classLecturerAssignments,
   allCourses,
   isNewCourse = false,
   onSave,
   onDeleteCourse,
   onAddClass,
 }) => {
+  const lecturerNamesByClassId = useMemo(() => {
+    const byClass = new Map<string, ClassLecturerAssignment[]>();
+    for (const a of classLecturerAssignments) {
+      if (!byClass.has(a.courseClassId)) byClass.set(a.courseClassId, []);
+      byClass.get(a.courseClassId)!.push(a);
+    }
+    const namesByClass = new Map<string, string[]>();
+    const nameById = new Map(lecturers.map((l) => [l.id, l.name]));
+    for (const [classId, rows] of byClass) {
+      namesByClass.set(
+        classId,
+        [...rows].sort((a, b) => a.position - b.position).map((r) => nameById.get(r.lecturerId) ?? '')
+      );
+    }
+    return namesByClass;
+  }, [classLecturerAssignments, lecturers]);
   const [editCourse, setEditCourse] = useState<EditableCourseInfo>({
     code: course.code,
     title: course.title,
@@ -63,7 +81,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
     () => {
       const entries: [string, EditableClass][] = isNewCourse
         ? initialLocalClasses.map((lc) => [lc.tempId, { classLetter: lc.classLetter, lecturers: lc.lecturers }])
-        : courseClasses.map((cc) => [cc.id, { classLetter: cc.classLetter, lecturers: [...cc.lecturers] }]);
+        : courseClasses.map((cc) => [cc.id, { classLetter: cc.classLetter, lecturers: [...(lecturerNamesByClassId.get(cc.id) ?? [])] }]);
       return Object.fromEntries(entries);
     }
   );
@@ -80,12 +98,12 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
       for (const cc of courseClasses) {
         if (!next[cc.id]) {
           if (next === prev) next = { ...prev };
-          next[cc.id] = { classLetter: cc.classLetter, lecturers: [...cc.lecturers] };
+          next[cc.id] = { classLetter: cc.classLetter, lecturers: [...(lecturerNamesByClassId.get(cc.id) ?? [])] };
         }
       }
       return next;
     });
-  }, [courseClasses, isNewCourse]);
+  }, [courseClasses, isNewCourse, lecturerNamesByClassId]);
 
   const isDirty = useMemo(() => {
     if (isNewCourse) return true;
@@ -95,9 +113,10 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
       const edit = editClasses[cc.id];
       if (!edit) return true;
       if (edit.classLetter !== cc.classLetter) return true;
-      if (edit.lecturers.length !== cc.lecturers.length) return true;
+      const savedNames = lecturerNamesByClassId.get(cc.id) ?? [];
+      if (edit.lecturers.length !== savedNames.length) return true;
       for (let i = 0; i < edit.lecturers.length; i++) {
-        if (edit.lecturers[i] !== cc.lecturers[i]) return true;
+        if (edit.lecturers[i] !== savedNames[i]) return true;
       }
     }
     const currentIds = new Set(courseClasses.map((c) => c.id));
@@ -105,7 +124,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
       if (!currentIds.has(id)) return true;
     }
     return false;
-  }, [isNewCourse, editCourse, editClasses, deletedClassIds, course, courseClasses]);
+  }, [isNewCourse, editCourse, editClasses, deletedClassIds, course, courseClasses, lecturerNamesByClassId]);
 
   const handleAddLocalClass = () => {
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -177,7 +196,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
     setEditCourse({ code: course.code, title: course.title, sks: course.sks, semester: course.semester });
     setEditClasses(
       Object.fromEntries(
-        courseClasses.map((cc) => [cc.id, { classLetter: cc.classLetter, lecturers: [...cc.lecturers] }])
+        courseClasses.map((cc) => [cc.id, { classLetter: cc.classLetter, lecturers: [...(lecturerNamesByClassId.get(cc.id) ?? [])] }])
       )
     );
     setLocalClasses([]);
@@ -217,11 +236,9 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
     if (!isNewCourse) return courseClasses;
     return localClasses.map((lc) => ({
       id: lc.tempId,
-      courseCode: editCourse.code,
       classLetter: lc.classLetter,
-      lecturers: lc.lecturers,
     }));
-  }, [courseClasses, localClasses, isNewCourse, editCourse.code]);
+  }, [courseClasses, localClasses, isNewCourse]);
 
   const activeClassCount = displayClasses.filter((cc) => !deletedClassIds.includes(cc.id)).length;
 
