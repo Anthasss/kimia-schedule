@@ -18,12 +18,21 @@ import { buildClassById } from '../utils/classData';
 import { useScheduleSlots } from '../hooks/useScheduleSlots';
 import { useUnscheduledCourses } from '../hooks/useUnscheduledCourses';
 import { ScheduleDayGrid } from '../components/SchedulePage/ScheduleDayGrid';
-import { UnscheduledCoursesSidebar } from '../components/SchedulePage/UnscheduledCoursesSidebar';
+import { UnscheduledCoursesSidebar, PeriodRef } from '../components/SchedulePage/UnscheduledCoursesSidebar';
 import { ScheduleLayout } from '../components/SchedulePage/ScheduleLayout';
 import { ClearGridModal } from '../components/SchedulePage/ClearGridModal';
 import { SaveAndExportModal } from '../components/SchedulePage/SaveAndExportModal';
 import { exportScheduleToPdf } from '../utils/exportToPdf';
-import { apiDelete } from '../api';
+import { apiDelete, apiPost } from '../api';
+
+function getDefaultYearOptions() {
+  const current = new Date().getFullYear();
+  const years: string[] = [];
+  for (let i = -1; i <= 3; i++) {
+    years.push(String(current + i));
+  }
+  return years;
+}
 
 interface SchedulePageProps {
   rooms: Room[];
@@ -36,7 +45,9 @@ interface SchedulePageProps {
   sksSettings: SksSettings;
   breakTimes: BreakTime[];
   semesterPeriods: SemesterPeriod[];
+  setSemesterPeriods: React.Dispatch<React.SetStateAction<SemesterPeriod[]>>;
   schedules: Schedule[];
+  onPeriodChange: (period: PeriodRef, allPeriods?: SemesterPeriod[]) => void;
   pendingAdds: ScheduleSlot[];
   setPendingAdds: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
   pendingRemoves: string[];
@@ -54,7 +65,9 @@ export function SchedulePage({
   sksSettings,
   breakTimes,
   semesterPeriods,
+  setSemesterPeriods,
   schedules,
+  onPeriodChange,
   pendingAdds,
   setPendingAdds,
   pendingRemoves,
@@ -65,6 +78,11 @@ export function SchedulePage({
   const [isClearing, setIsClearing] = useState(false);
   const [showSaveExportModal, setShowSaveExportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showAddPeriodModal, setShowAddPeriodModal] = useState(false);
+  const [newPeriodYear, setNewPeriodYear] = useState(getDefaultYearOptions()[0] || '');
+  const [newPeriodSemester, setNewPeriodSemester] = useState<1 | 2>(1);
+
+  const yearOptions = getDefaultYearOptions();
 
   const currentPeriod = useMemo(
     () => semesterPeriods.find((p) => p.id === sksSettings.currentPeriodId) ?? null,
@@ -85,6 +103,48 @@ export function SchedulePage({
     () => (currentPeriod ? breakTimes.filter((b) => b.periodId === currentPeriod.id) : []),
     [breakTimes, currentPeriod]
   );
+
+  const savedPeriods: PeriodRef[] = useMemo(
+    () => semesterPeriods.map((p) => ({ year: p.year, semester: p.semester as 1 | 2 })),
+    [semesterPeriods]
+  );
+
+  // pending adds/removes are global; saving them while viewing another schedule
+  // would commit them against the wrong scheduleId — so block switching while dirty
+  const switchPeriod = (period: PeriodRef, allPeriods?: SemesterPeriod[]) => {
+    if (isDirty) {
+      toast.error('Save or clear unsaved changes before switching periods');
+      return;
+    }
+    onPeriodChange(period, allPeriods);
+  };
+
+  const handleAddPeriod = async () => {
+    if (!newPeriodYear) return;
+    const exists = semesterPeriods.find(
+      (p) => p.year === newPeriodYear && p.semester === newPeriodSemester
+    );
+    try {
+      if (exists) {
+        switchPeriod({ year: exists.year, semester: exists.semester as 1 | 2 });
+      } else {
+        const created = await apiPost<SemesterPeriod>('/api/semester-periods', {
+          year: newPeriodYear,
+          semester: newPeriodSemester,
+        });
+        const updated = [...semesterPeriods, created];
+        setSemesterPeriods(updated);
+        switchPeriod({ year: created.year, semester: created.semester as 1 | 2 }, updated);
+        toast.success('Period added');
+      }
+    } catch {
+      toast.error('Failed to add period');
+    } finally {
+      setShowAddPeriodModal(false);
+      setNewPeriodYear(getDefaultYearOptions()[0] || '');
+      setNewPeriodSemester(1);
+    }
+  };
 
   const classById = useMemo(
     () => buildClassById(courseClasses, courses, classLecturerAssignments, lecturers),
@@ -194,11 +254,19 @@ export function SchedulePage({
           isClearing={isClearing}
           isExporting={isExporting}
           selectedCourseId={selectedExpandedDraft}
+          currentPeriod={currentPeriod ? { year: currentPeriod.year, semester: currentPeriod.semester as 1 | 2 } : null}
+          savedPeriods={savedPeriods}
           onSearchChange={setDraftSearch}
           onSelectCourse={setSelectedExpandedDraft}
           onSave={saveChanges}
           onExportPdf={handleExportPdf}
           onReset={() => setShowClearGridModal(true)}
+          onPeriodChange={(p) => switchPeriod(p)}
+          onOpenAddPeriod={() => {
+            setNewPeriodYear(getDefaultYearOptions()[0] || '');
+            setNewPeriodSemester(1);
+            setShowAddPeriodModal(true);
+          }}
         />
       }
     >
@@ -237,6 +305,53 @@ export function SchedulePage({
         onConfirm={handleConfirmSaveExport}
         saving={isSaving}
       />
+
+      {showAddPeriodModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 border border-[#c4c6cf] shadow-xl space-y-4">
+            <h3 className="font-headline-sm text-[18px] text-[#191c1e]">Add Semester Period</h3>
+            <div className="space-y-3 text-[13px]">
+              <div>
+                <label className="block text-[#43474e] font-semibold mb-1">Year</label>
+                <select
+                  value={newPeriodYear}
+                  onChange={(e) => setNewPeriodYear(e.target.value)}
+                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
+                >
+                  {yearOptions.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[#43474e] font-semibold mb-1">Semester</label>
+                <select
+                  value={newPeriodSemester}
+                  onChange={(e) => setNewPeriodSemester(parseInt(e.target.value) as 1 | 2)}
+                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
+                >
+                  <option value={1}>Ganjil</option>
+                  <option value={2}>Genap</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#c4c6cf]">
+              <button
+                onClick={() => setShowAddPeriodModal(false)}
+                className="px-4 py-2 rounded text-[13px] text-[#43474e] hover:bg-[#f2f4f6] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddPeriod}
+                className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer"
+              >
+                Add Period
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ScheduleLayout>
   );
 }

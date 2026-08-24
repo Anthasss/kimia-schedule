@@ -244,7 +244,9 @@ export default function App() {
                       sksSettings={sksSettings}
                       breakTimes={breakTimes}
                       semesterPeriods={semesterPeriods}
+                      setSemesterPeriods={setSemesterPeriods}
                       schedules={schedules}
+                      onPeriodChange={(p, periods) => handlePeriodChange(p, periods ?? semesterPeriods, schedules, setSchedules)}
                       pendingAdds={pendingAdds}
                       setPendingAdds={setPendingAdds}
                       pendingRemoves={pendingRemoves}
