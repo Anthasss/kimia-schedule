@@ -264,8 +264,12 @@ export default function App() {
         }
       }
       const schedule = schedules.find((s) => s.periodId === sksSettings.currentPeriodId);
-      await apiDelete(`/api/schedule-slots/all${schedule ? `?scheduleId=${schedule.id}` : ''}`);
-      setScheduleSlots([]);
+      if (schedule) {
+        await apiDelete(`/api/schedule-slots/all?scheduleId=${schedule.id}`);
+      }
+      setScheduleSlots((prev) =>
+        schedule ? prev.filter((sl) => sl.scheduleId !== schedule.id) : []
+      );
       setPendingAdds([]);
       setPendingRemoves([]);
       toast.success('Schedule grid cleared');
