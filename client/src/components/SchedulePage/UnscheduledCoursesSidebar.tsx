@@ -32,6 +32,7 @@ interface UnscheduledCoursesSidebarProps {
   onReset: () => void;
   onPeriodChange: (period: PeriodRef) => void;
   onOpenAddPeriod: () => void;
+  onDeleteCurrentPeriod: () => void;
 }
 
 export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps> = ({
@@ -55,6 +56,7 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
   onReset,
   onPeriodChange,
   onOpenAddPeriod,
+  onDeleteCurrentPeriod,
 }) => {
   const [showPeriodMenu, setShowPeriodMenu] = useState(false);
   const periodMenuRef = useRef<HTMLDivElement>(null);
@@ -149,6 +151,21 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
               <span className="material-symbols-outlined text-[16px]">add</span>
               <span>Add new period...</span>
             </button>
+            {currentPeriod && savedPeriods.length > 1 && (
+              <>
+                <div className="border-t border-[#c4c6cf] my-1" />
+                <button
+                  onClick={() => {
+                    onDeleteCurrentPeriod();
+                    setShowPeriodMenu(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-[#ba1a1a] font-semibold hover:bg-[#fdecec] flex items-center gap-2 text-[13px] cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">delete</span>
+                  <span>Delete current period...</span>
+                </button>
+              </>
+            )}
           </div>
         )}
         </div>

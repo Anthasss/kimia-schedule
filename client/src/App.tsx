@@ -118,6 +118,35 @@ export default function App() {
     await deleteBreakTime(id);
   };
 
+  const handleDeleteCurrentPeriod = async () => {
+    if (!currentPeriod) return;
+    try {
+      await apiDelete(`/api/semester-periods/${currentPeriod.id}`);
+      const rest = semesterPeriods.filter((p) => p.id !== currentPeriod.id);
+      setSemesterPeriods(rest);
+      const deletedScheduleIds = new Set(
+        schedules.filter((s) => s.periodId === currentPeriod.id).map((s) => s.id)
+      );
+      setSchedules((prev) => prev.filter((s) => s.periodId !== currentPeriod.id));
+      setScheduleSlots((prev) => prev.filter((sl) => !deletedScheduleIds.has(sl.scheduleId)));
+      setBreakTimes((prev) => prev.filter((b) => b.periodId !== currentPeriod.id));
+      setPendingAdds([]);
+      setPendingRemoves([]);
+      const next = rest[rest.length - 1];
+      await handlePeriodChange(
+        next ? { year: next.year, semester: next.semester as 1 | 2 } : null,
+        rest,
+        schedules,
+        setSchedules
+      );
+      toast.success('Semester period deleted');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete period');
+      throw err;
+    }
+  };
+
   const handleConfirmSettingsChange = async () => {
     const action = pendingAction;
     setPendingAction(null);
@@ -247,6 +276,7 @@ export default function App() {
                       setSemesterPeriods={setSemesterPeriods}
                       schedules={schedules}
                       onPeriodChange={(p, periods) => handlePeriodChange(p, periods ?? semesterPeriods, schedules, setSchedules)}
+                      onDeleteCurrentPeriod={handleDeleteCurrentPeriod}
                       pendingAdds={pendingAdds}
                       setPendingAdds={setPendingAdds}
                       pendingRemoves={pendingRemoves}
