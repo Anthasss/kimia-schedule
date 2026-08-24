@@ -12,13 +12,14 @@ import { SchedulePage } from './pages/SchedulePage';
 import { LecturersPage } from './pages/LecturersPage';
 import { CoursesPage } from './pages/CoursesPage';
 import { FinalExamsPage } from './pages/FinalExamsPage';
+import { HistoryPage } from './pages/HistoryPage';
 import { useRooms } from './hooks/useRooms';
 import { useLecturers } from './hooks/useLecturers';
 import { useBreakTimes } from './hooks/useBreakTimes';
 import { useSksSettings } from './hooks/useSksSettings';
 import { useDataFetching } from './hooks/useDataFetching';
 import { ScheduleSlot, Course, CourseClass, ClassLecturerAssignment, SemesterPeriod, BreakTime, SksSettings, Schedule } from './types';
-import { apiDelete, apiPut } from './api';
+import { apiDelete, apiPost, apiPut } from './api';
 import { ClearGridModal } from './components/SchedulePage/ClearGridModal';
 
 export default function App() {
@@ -145,6 +146,90 @@ export default function App() {
       toast.error('Failed to delete period');
       throw err;
     }
+  };
+
+  const handleLoadFromHistory = async (sourcePeriod: SemesterPeriod) => {
+    const currentPeriodId = sksSettings.currentPeriodId;
+    if (!currentPeriodId) throw new Error('No current period');
+
+    let found = schedules.find((s) => s.periodId === currentPeriodId);
+    if (!found) {
+      const res = await fetch(`/api/schedules/for-period/${currentPeriodId}`);
+      if (!res.ok) throw new Error('Failed to resolve current schedule');
+      const created: Schedule = await res.json();
+      setSchedules((prev) => (prev.some((s) => s.id === created.id) ? prev : [...prev, created]));
+      found = created;
+    }
+    const targetSchedule = found;
+
+    const sourceSchedule = schedules.find((s) => s.periodId === sourcePeriod.id);
+
+    // clear the current grid
+    await apiDelete(`/api/schedule-slots/all?scheduleId=${targetSchedule.id}`);
+
+    // apply the source period's time config to the current period
+    await apiPut(`/api/semester-periods/${currentPeriodId}`, {
+      dayStartTime: sourcePeriod.dayStartTime,
+      dayEndTime: sourcePeriod.dayEndTime,
+      activeDays: sourcePeriod.activeDays,
+    });
+
+    // replace the current period's breaks with the source's
+    for (const b of breakTimes.filter((x) => x.periodId === currentPeriodId)) {
+      await apiDelete(`/api/break-times/${b.id}`);
+    }
+    // ponytail: sequential posts — periods have 1-2 breaks, batching not worth it
+    const createdBreaks: BreakTime[] = [];
+    for (const b of breakTimes.filter((x) => x.periodId === sourcePeriod.id)) {
+      createdBreaks.push(
+        await apiPost<BreakTime>('/api/break-times', {
+          name: b.name,
+          startTime: b.startTime,
+          endTime: b.endTime,
+          periodId: currentPeriodId,
+        })
+      );
+    }
+
+    // copy the source slots onto the current schedule (ids regenerated server-side)
+    const sourceSlots = sourceSchedule
+      ? scheduleSlots.filter((sl) => sl.scheduleId === sourceSchedule.id)
+      : [];
+    const { added } = await apiPost<{ added: ScheduleSlot[]; removed: ScheduleSlot[] }>(
+      '/api/schedule-slots/batch',
+      {
+        adds: sourceSlots.map((sl) => ({
+          scheduleId: targetSchedule.id,
+          classId: sl.classId,
+          roomId: sl.roomId,
+          day: sl.day,
+          startTime: sl.startTime,
+        })),
+      }
+    );
+
+    setSemesterPeriods((prev) =>
+      prev.map((p) =>
+        p.id === currentPeriodId
+          ? {
+              ...p,
+              dayStartTime: sourcePeriod.dayStartTime,
+              dayEndTime: sourcePeriod.dayEndTime,
+              activeDays: sourcePeriod.activeDays,
+            }
+          : p
+      )
+    );
+    setBreakTimes((prev) => [
+      ...prev.filter((b) => b.periodId !== currentPeriodId),
+      ...createdBreaks,
+    ]);
+    setScheduleSlots((prev) => [
+      ...prev.filter((sl) => sl.scheduleId !== targetSchedule.id),
+      ...added,
+    ]);
+    setPendingAdds([]);
+    setPendingRemoves([]);
   };
 
   const handleConfirmSettingsChange = async () => {
@@ -281,6 +366,26 @@ export default function App() {
                       setPendingAdds={setPendingAdds}
                       pendingRemoves={pendingRemoves}
                       setPendingRemoves={setPendingRemoves}
+                    />
+                  }
+                />
+                <Route
+                  path="/history"
+                  element={
+                    <HistoryPage
+                      rooms={rooms}
+                      lecturers={lecturers}
+                      courses={courses}
+                      courseClasses={courseClasses}
+                      classLecturerAssignments={classLecturerAssignments}
+                      sksSettings={sksSettings}
+                      breakTimes={breakTimes}
+                      semesterPeriods={semesterPeriods}
+                      schedules={schedules}
+                      scheduleSlots={scheduleSlots}
+                      currentPeriodId={sksSettings.currentPeriodId}
+                      hasUnsavedChanges={pendingAdds.length > 0 || pendingRemoves.length > 0}
+                      onLoadFromHistory={handleLoadFromHistory}
                     />
                   }
                 />

@@ -4,6 +4,7 @@ interface ConfirmModalProps {
   open: boolean;
   message: string;
   confirmLabel?: string;
+  loadingLabel?: string;
   danger?: boolean;
   loading?: boolean;
   onConfirm: () => void;
@@ -14,6 +15,7 @@ export function ConfirmModal({
   open,
   message,
   confirmLabel = 'Confirm',
+  loadingLabel = 'Deleting...',
   danger = false,
   loading,
   onConfirm,
@@ -44,7 +46,7 @@ export function ConfirmModal({
             {loading ? (
               <>
                 <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
-                <span>Deleting...</span>
+                <span>{loadingLabel}</span>
               </>
             ) : (
               confirmLabel

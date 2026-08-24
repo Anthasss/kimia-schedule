@@ -18,6 +18,7 @@ export interface SemesterPeriod {
   dayStartTime: string;
   dayEndTime: string;
   activeDays: DayOfWeek[];
+  createdAt?: string;
 }
 
 export interface SksSettings {

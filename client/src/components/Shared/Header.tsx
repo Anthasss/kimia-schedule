@@ -4,6 +4,7 @@ import { useSession, signOut } from '@/lib/auth-client';
 
 const NAV_TABS = [
   { label: 'Schedule', path: '/schedule' },
+  { label: 'History', path: '/history' },
   { label: 'Final Exams', path: '/final-exams' },
   { label: 'Settings', path: '/settings' },
   { label: 'Lecturers', path: '/lecturers' },

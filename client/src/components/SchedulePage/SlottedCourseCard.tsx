@@ -8,7 +8,7 @@ interface SlottedCourseCardProps {
   lecturers: Lecturer[];
   classById: Map<string, ClassData>;
   turns?: string;
-  onRemove: (slotId: string) => void;
+  onRemove?: (slotId: string) => void;
 }
 
 export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
@@ -37,13 +37,15 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
           {data?.course.title ?? ''}
           <span className="text-[11px] font-bold text-[#505f76] ml-1">({data?.class.classLetter ?? ''})</span>
         </p>
-        <button
-          onClick={() => onRemove(slot.id)}
-          className="opacity-0 group-hover:opacity-100 text-[#ba1a1a] hover:bg-[#ba1a1a] hover:text-white rounded-full w-6 h-6 flex items-center justify-center text-[12px] cursor-pointer transition-colors"
-          title="Remove block"
-        >
-          ✕
-        </button>
+        {onRemove && (
+          <button
+            onClick={() => onRemove(slot.id)}
+            className="opacity-0 group-hover:opacity-100 text-[#ba1a1a] hover:bg-[#ba1a1a] hover:text-white rounded-full w-6 h-6 flex items-center justify-center text-[12px] cursor-pointer transition-colors"
+            title="Remove block"
+          >
+            ✕
+          </button>
+        )}
       </div>
       <p className="text-[12px] text-[#374151] mt-1 whitespace-pre-line">{turns || classLecturerNames.map(cleanLecturerName).join('\n')}</p>
     </div>
