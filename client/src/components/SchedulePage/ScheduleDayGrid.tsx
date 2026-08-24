@@ -20,6 +20,7 @@ interface ScheduleDayGridProps {
   onPlaceDraft: (item: UnscheduledClass, day: DayOfWeek, timeSlot: string, roomId: string) => void;
   onRemoveSlot: (slotId: string) => void;
   onSelectEmpty: (day: DayOfWeek, timeSlot: string, roomId: string) => void;
+  readOnly?: boolean;
 }
 
 function slotStartIndex(slot: ScheduleSlot, slotRowLabels: string[]): number {
@@ -43,6 +44,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
   onPlaceDraft,
   onRemoveSlot,
   onSelectEmpty,
+  readOnly = false,
 }) => {
   const daySlots = useMemo(() => scheduleSlots.filter((s) => s.day === day), [scheduleSlots, day]);
   const turnsByClassId = useMemo(() => {
@@ -261,7 +263,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                             lecturers={lecturers}
                             classById={classById}
                             turns={turnsByClassId.get(startSlot.classId)}
-                            onRemove={onRemoveSlot}
+                            onRemove={readOnly ? undefined : onRemoveSlot}
                           />
                         </div>
                       );
@@ -269,6 +271,15 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
 
                     if (spanningSlot) {
                       return null;
+                    }
+
+                    if (readOnly) {
+                      return (
+                        <div
+                          key={room.id}
+                          className="px-2 py-2 border-r border-b border-[#c4c6cf]"
+                        />
+                      );
                     }
 
                     const isInHoverSpan =

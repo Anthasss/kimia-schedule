@@ -178,10 +178,16 @@ export function SchedulePage({
   const handleReset = useCallback(async () => {
     setIsClearing(true);
     try {
-      await apiDelete(`/api/schedule-slots/all${currentSchedule ? `?scheduleId=${currentSchedule.id}` : ''}`);
-      setScheduleSlots([]);
-      setPendingAdds([]);
-      setPendingRemoves([]);
+      if (!currentSchedule) {
+        // ponytail: nothing persisted for this period — skip API, a paramless /all would truncate every period's slots
+        setPendingAdds([]);
+        setPendingRemoves([]);
+      } else {
+        await apiDelete(`/api/schedule-slots/all?scheduleId=${currentSchedule.id}`);
+        setScheduleSlots((prev) => prev.filter((sl) => sl.scheduleId !== currentSchedule.id));
+        setPendingAdds([]);
+        setPendingRemoves([]);
+      }
       setShowClearGridModal(false);
       toast.success('Schedule grid cleared');
     } catch {

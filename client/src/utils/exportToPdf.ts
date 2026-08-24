@@ -181,5 +181,9 @@ export async function exportScheduleToPdf(scheduleId?: string, period?: Semester
     y += 3;
   }
 
-  pdf.save('jadwal-perkuliahan.pdf');
+  pdf.save(
+    period
+      ? `jadwal-${period.year}-${period.semester === 1 ? 'ganjil' : 'genap'}.pdf`
+      : 'jadwal-perkuliahan.pdf'
+  );
 }

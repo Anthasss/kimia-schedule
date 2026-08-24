@@ -70,7 +70,7 @@ export function useScheduleSlots({
         startTime: timeSlot.split(' - ')[0],
       };
 
-      setScheduleSlots([...scheduleSlots, slotData]);
+      setScheduleSlots((prev) => [...prev, slotData]);
       setPendingAdds((prev) => [...prev, slotData]);
 
       const remaining = _allUnscheduled.filter((c) => c.id !== unscheduledClass.id);
@@ -80,12 +80,12 @@ export function useScheduleSlots({
         setSelectedExpandedDraft(null);
       }
     },
-    [scheduleSlots, setScheduleSlots, rooms, sksSettings, days, assignDay, assignTimeSlot, assignRoomId, currentSchedule, setSelectedExpandedDraft]
+    [rooms, sksSettings, days, assignDay, assignTimeSlot, assignRoomId, currentSchedule, setSelectedExpandedDraft]
   );
 
   const removeSlotFromGrid = useCallback(
     async (slotId: string) => {
-      setScheduleSlots(scheduleSlots.filter((s) => s.id !== slotId));
+      setScheduleSlots((prev) => prev.filter((s) => s.id !== slotId));
       setSelectedExpandedDraft(null);
 
       if (slotId.startsWith('local-')) {
@@ -94,7 +94,7 @@ export function useScheduleSlots({
         setPendingRemoves((prev) => [...prev, slotId]);
       }
     },
-    [scheduleSlots, setScheduleSlots, setSelectedExpandedDraft]
+    [setScheduleSlots, setSelectedExpandedDraft]
   );
 
   const saveChanges = useCallback(async () => {
@@ -109,8 +109,13 @@ export function useScheduleSlots({
       });
 
       const freshRes = await fetch(`/api/schedule-slots?scheduleId=${currentSchedule.id}`);
-      const freshSlots = await freshRes.json();
-      setScheduleSlots(freshSlots);
+      if (!freshRes.ok) throw new Error('Failed to refresh schedule slots');
+      const freshSlots: ScheduleSlot[] = await freshRes.json();
+      // merge into the global array — other periods' slots must survive
+      setScheduleSlots((prev) => [
+        ...prev.filter((sl) => sl.scheduleId !== currentSchedule.id),
+        ...freshSlots,
+      ]);
 
       setPendingAdds([]);
       setPendingRemoves([]);
