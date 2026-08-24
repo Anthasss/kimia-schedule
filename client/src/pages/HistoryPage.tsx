@@ -20,6 +20,7 @@ import { ScheduleDayGrid } from '../components/SchedulePage/ScheduleDayGrid';
 import { ScheduleLayout } from '../components/SchedulePage/ScheduleLayout';
 import { HistorySidebar, PeriodOverview } from '../components/HistoryPage/HistorySidebar';
 import { ConfirmModal } from '../components/Shared/ConfirmModal';
+import { exportScheduleToPdf } from '../utils/exportToPdf';
 
 interface HistoryPageProps {
   rooms: Room[];
@@ -70,6 +71,7 @@ export function HistoryPage({
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
   const [showLoadModal, setShowLoadModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const pastPeriods = useMemo(
     () =>
@@ -154,6 +156,22 @@ export function HistoryPage({
     setShowLoadModal(true);
   };
 
+  const handleExportPdf = async () => {
+    if (!selectedPeriod || !selectedSchedule || selectedSlots.length === 0) {
+      toast.error('Nothing to export for this semester');
+      return;
+    }
+    setIsExporting(true);
+    try {
+      await exportScheduleToPdf(selectedSchedule.id, selectedPeriod);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to export PDF');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleConfirmLoad = async () => {
     if (!selectedPeriod) return;
     setIsLoading(true);
@@ -177,8 +195,10 @@ export function HistoryPage({
           pastPeriods={pastPeriods}
           selectedPeriodId={selectedPeriod?.id ?? null}
           overviewByPeriodId={overviewByPeriodId}
+          isExporting={isExporting}
           onSelectPeriod={setSelectedPeriodId}
           onLoad={handleRequestLoad}
+          onExportPdf={handleExportPdf}
         />
       }
     >

@@ -13,8 +13,10 @@ interface HistorySidebarProps {
   pastPeriods: SemesterPeriod[];
   selectedPeriodId: string | null;
   overviewByPeriodId: Record<string, PeriodOverview>;
+  isExporting?: boolean;
   onSelectPeriod: (periodId: string) => void;
   onLoad: () => void;
+  onExportPdf: () => void;
 }
 
 function formatDays(days: string[]): string {
@@ -26,8 +28,10 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
   pastPeriods,
   selectedPeriodId,
   overviewByPeriodId,
+  isExporting,
   onSelectPeriod,
   onLoad,
+  onExportPdf,
 }) => {
   const semesterLabel = (p: SemesterPeriod) => (p.semester === 1 ? 'Ganjil' : 'Genap');
 
@@ -90,13 +94,32 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
       </div>
 
       {pastPeriods.length > 0 && selectedPeriodId && (
-        <button
-          onClick={onLoad}
-          className="w-full py-2 bg-[#002045] text-white rounded-lg text-[13px] font-semibold hover:bg-[#002f5e] transition-colors flex items-center justify-center gap-1.5 cursor-pointer shrink-0 mt-2"
-        >
-          <span className="material-symbols-outlined text-[17px]">history</span>
-          <span>Load to Schedule</span>
-        </button>
+        <div className="flex gap-2 shrink-0 mt-2">
+          <button
+            onClick={onLoad}
+            className="flex-1 py-2 bg-[#002045] text-white rounded-lg text-[13px] font-semibold hover:bg-[#002f5e] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[17px]">history</span>
+            <span>Load</span>
+          </button>
+          <button
+            onClick={onExportPdf}
+            disabled={isExporting}
+            className="flex-1 py-2 bg-white border border-[#c4c6cf] text-[#191c1e] rounded-lg text-[13px] font-semibold hover:bg-[#f2f4f6] transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExporting ? (
+              <>
+                <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
+                <span>Exporting...</span>
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-[17px]">picture_as_pdf</span>
+                <span>Export PDF</span>
+              </>
+            )}
+          </button>
+        </div>
       )}
     </div>
   );
