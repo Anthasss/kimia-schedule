@@ -1212,3 +1212,25 @@ items:
         - expression: response.status
           operator: eq
           value: "200"
+
+  - info:
+      name: 13. Create semester period - duplicate rejected
+      type: http
+      seq: 13
+    http:
+      method: POST
+      url: "{{baseUrl}}/api/semester-periods"
+      body:
+        type: json
+        data: |
+          {
+            "year": "2025/2026",
+            "semester": 1
+          }
+    docs:
+      description: Periods are unique per year+semester (DB constraint semester_periods_year_semester_key). Creating a duplicate returns 409 with an error message; the UI toasts and switches to the existing period instead.
+    runtime:
+      assertions:
+        - expression: response.status
+          operator: eq
+          value: "409"

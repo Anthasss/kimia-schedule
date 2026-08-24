@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { eq, inArray, isNull, desc } from "drizzle-orm";
+import { eq, inArray, isNull, desc, and } from "drizzle-orm";
 import { db } from "../db/index.js";
 import {
   rooms,
@@ -180,6 +180,15 @@ export const deleteSemesterPeriod = createDeleteHandler(semesterPeriods);
 export const createSemesterPeriod = async (req: Request, res: Response) => {
   const { year, semester } = req.body;
   const id = crypto.randomUUID();
+
+  const [dup] = await db
+    .select()
+    .from(semesterPeriods)
+    .where(and(eq(semesterPeriods.year, year), eq(semesterPeriods.semester, semester)))
+    .limit(1);
+  if (dup) {
+    return res.status(409).json({ error: `${year} ${semester === 1 ? 'Ganjil' : 'Genap'} already exists` });
+  }
 
   const [lastPeriod] = await db
     .select()

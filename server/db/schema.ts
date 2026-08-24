@@ -18,7 +18,7 @@ export const semesterPeriods = pgTable('semester_periods', {
   dayEndTime: text('day_end_time').notNull().default('17:00'),
   activeDays: jsonb('active_days').$type<string[]>().notNull().default(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [unique('semester_periods_year_semester_key').on(t.year, t.semester)]);
 
 export const breakTimes = pgTable('break_times', {
   id: text('id').primaryKey(),

@@ -126,6 +126,7 @@ export function SchedulePage({
     );
     try {
       if (exists) {
+        toast.warning(`${newPeriodYear} ${newPeriodSemester === 1 ? 'Ganjil' : 'Genap'} already exists`);
         switchPeriod({ year: exists.year, semester: exists.semester as 1 | 2 });
       } else {
         const created = await apiPost<SemesterPeriod>('/api/semester-periods', {
