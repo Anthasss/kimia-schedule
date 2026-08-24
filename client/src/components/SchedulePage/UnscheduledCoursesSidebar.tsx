@@ -106,7 +106,8 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
         </div>
       </div>
 
-      <div ref={periodMenuRef} className="relative shrink-0 mt-4">
+      <div className="flex items-center gap-2 shrink-0 mt-4 mb-2">
+        <div ref={periodMenuRef} className="relative flex-1 min-w-0">
         <button
           onClick={() => setShowPeriodMenu((v) => !v)}
           className="w-full h-8 px-3 flex items-center justify-between bg-[#f2f4f6] border border-[#c4c6cf] rounded-md text-[13px] font-semibold text-[#002045] hover:bg-[#e8eaec] cursor-pointer"
@@ -150,13 +151,11 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
             </button>
           </div>
         )}
-      </div>
-
-      <div className="flex items-center gap-2 shrink-0 mt-3 mb-2">
+        </div>
         <button
           onClick={onReset}
           disabled={isClearing}
-          className="ml-auto h-8 w-8 flex items-center justify-center bg-[#ba1a1a] text-white rounded-md p-1.5 hover:bg-[#93000a] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          className="h-8 w-8 flex items-center justify-center bg-[#ba1a1a] text-white rounded-md p-1.5 hover:bg-[#93000a] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           title="Clear schedule grid"
         >
           {isClearing ? (
