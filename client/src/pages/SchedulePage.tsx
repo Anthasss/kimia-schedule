@@ -48,6 +48,7 @@ interface SchedulePageProps {
   setSemesterPeriods: React.Dispatch<React.SetStateAction<SemesterPeriod[]>>;
   schedules: Schedule[];
   onPeriodChange: (period: PeriodRef, allPeriods?: SemesterPeriod[]) => void;
+  onDeleteCurrentPeriod: () => Promise<void>;
   pendingAdds: ScheduleSlot[];
   setPendingAdds: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
   pendingRemoves: string[];
@@ -68,6 +69,7 @@ export function SchedulePage({
   setSemesterPeriods,
   schedules,
   onPeriodChange,
+  onDeleteCurrentPeriod,
   pendingAdds,
   setPendingAdds,
   pendingRemoves,
@@ -81,6 +83,8 @@ export function SchedulePage({
   const [showAddPeriodModal, setShowAddPeriodModal] = useState(false);
   const [newPeriodYear, setNewPeriodYear] = useState(getDefaultYearOptions()[0] || '');
   const [newPeriodSemester, setNewPeriodSemester] = useState<1 | 2>(1);
+  const [showDeletePeriodModal, setShowDeletePeriodModal] = useState(false);
+  const [isDeletingPeriod, setIsDeletingPeriod] = useState(false);
 
   const yearOptions = getDefaultYearOptions();
 
@@ -144,6 +148,25 @@ export function SchedulePage({
       setShowAddPeriodModal(false);
       setNewPeriodYear(getDefaultYearOptions()[0] || '');
       setNewPeriodSemester(1);
+    }
+  };
+
+  const requestDeleteCurrentPeriod = () => {
+    if (!currentPeriod || savedPeriods.length <= 1) return;
+    if (isDirty) {
+      toast.error('Save or clear unsaved changes before deleting this period');
+      return;
+    }
+    setShowDeletePeriodModal(true);
+  };
+
+  const handleConfirmDeletePeriod = async () => {
+    setIsDeletingPeriod(true);
+    try {
+      await onDeleteCurrentPeriod();
+      setShowDeletePeriodModal(false);
+    } finally {
+      setIsDeletingPeriod(false);
     }
   };
 
@@ -268,6 +291,7 @@ export function SchedulePage({
             setNewPeriodSemester(1);
             setShowAddPeriodModal(true);
           }}
+          onDeleteCurrentPeriod={requestDeleteCurrentPeriod}
         />
       }
     >
@@ -298,6 +322,17 @@ export function SchedulePage({
         onClose={() => setShowClearGridModal(false)}
         onConfirm={handleReset}
         loading={isClearing}
+      />
+
+      <ClearGridModal
+        isOpen={showDeletePeriodModal}
+        onClose={() => setShowDeletePeriodModal(false)}
+        onConfirm={handleConfirmDeletePeriod}
+        loading={isDeletingPeriod}
+        title="Delete Semester Period"
+        message={`This will permanently delete ${currentPeriod ? `${currentPeriod.year} ${currentPeriod.semester === 1 ? 'Ganjil' : 'Genap'}` : 'this period'} along with all of its schedules, classes, and break times. This action cannot be undone.`}
+        confirmLabel="Delete Period"
+        loadingLabel="Deleting..."
       />
 
       <SaveAndExportModal

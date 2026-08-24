@@ -7,6 +7,8 @@ interface ClearGridModalProps {
   loading?: boolean;
   title?: string;
   message?: string;
+  confirmLabel?: string;
+  loadingLabel?: string;
 }
 
 export const ClearGridModal: React.FC<ClearGridModalProps> = ({
@@ -16,6 +18,8 @@ export const ClearGridModal: React.FC<ClearGridModalProps> = ({
   loading,
   title,
   message,
+  confirmLabel,
+  loadingLabel,
 }) => {
   if (!isOpen) return null;
 
@@ -44,10 +48,10 @@ export const ClearGridModal: React.FC<ClearGridModalProps> = ({
             {loading ? (
               <>
                 <span className="material-symbols-outlined text-[17px] animate-spin">progress_activity</span>
-                <span>Clearing...</span>
+                <span>{loadingLabel ?? 'Clearing...'}</span>
               </>
             ) : (
-              'Clear Grid'
+              confirmLabel ?? 'Clear Grid'
             )}
           </button>
         </div>
