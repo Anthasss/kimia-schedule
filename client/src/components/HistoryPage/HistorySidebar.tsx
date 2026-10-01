@@ -11,6 +11,7 @@ export interface PeriodOverview {
 
 interface HistorySidebarProps {
   pastPeriods: SemesterPeriod[];
+  currentPeriod?: SemesterPeriod | null;
   selectedPeriodId: string | null;
   overviewByPeriodId: Record<string, PeriodOverview>;
   isExporting?: boolean;
@@ -26,6 +27,7 @@ function formatDays(days: string[]): string {
 
 export const HistorySidebar: React.FC<HistorySidebarProps> = ({
   pastPeriods,
+  currentPeriod,
   selectedPeriodId,
   overviewByPeriodId,
   isExporting,
@@ -35,6 +37,9 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
 }) => {
   const semesterLabel = (p: SemesterPeriod) => (p.semester === 1 ? 'Ganjil' : 'Genap');
 
+  const periods = currentPeriod ? [currentPeriod, ...pastPeriods] : pastPeriods;
+  const isCurrentSelected = selectedPeriodId === currentPeriod?.id;
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center border-b border-[#c4c6cf] pb-3 shrink-0">
@@ -42,20 +47,21 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
           Semesters
         </h3>
         <span className="text-[12px] font-bold bg-[#002045] text-white px-2.5 py-0.5">
-          {pastPeriods.length}
+          {periods.length}
         </span>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar pr-1 mt-4 space-y-4">
-        {pastPeriods.length === 0 && (
+        {periods.length === 0 && (
           <div className="p-4 text-center text-[13px] text-[#74777f] italic bg-[#f7f9fb] rounded-lg border border-[#c4c6cf]">
             No semesters with scheduled classes yet. Add and activate a new period on the
             Schedule page to archive this one.
           </div>
         )}
 
-        {pastPeriods.map((p) => {
+        {periods.map((p) => {
           const isSelected = selectedPeriodId === p.id;
+          const isCurrent = p.id === currentPeriod?.id;
           const o = overviewByPeriodId[p.id];
           return (
             <button
@@ -67,8 +73,17 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
                 }`}
             >
               <div className="flex items-center justify-between px-3 py-2">
-                <span className="text-[13px] font-semibold">
+                <span className="flex items-center gap-1.5 text-[13px] font-semibold">
                   {p.year} {semesterLabel(p)}
+                  {isCurrent && (
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-[#191c1e] text-white'
+                      }`}
+                    >
+                      Current
+                    </span>
+                  )}
                 </span>
                 <span
                   className={`text-[11px] font-bold px-2 py-0.5 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-[#002045] text-white'
@@ -93,15 +108,17 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
         })}
       </div>
 
-      {pastPeriods.length > 0 && selectedPeriodId && (
+      {selectedPeriodId && (
         <div className="flex gap-2 shrink-0 mt-2">
-          <button
-            onClick={onLoad}
-            className="flex-1 py-2 bg-[#002045] text-white rounded-lg text-[13px] font-semibold hover:bg-[#002f5e] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[17px]">history</span>
-            <span>Load</span>
-          </button>
+          {!isCurrentSelected && (
+            <button
+              onClick={onLoad}
+              className="flex-1 py-2 bg-[#002045] text-white rounded-lg text-[13px] font-semibold hover:bg-[#002f5e] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[17px]">history</span>
+              <span>Load</span>
+            </button>
+          )}
           <button
             onClick={onExportPdf}
             disabled={isExporting}

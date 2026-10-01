@@ -101,14 +101,27 @@ export function HistoryPage({
     [semesterPeriods, currentPeriodId, scheduleIdByPeriodId, slotsByScheduleId]
   );
 
+  const currentPeriod = useMemo(
+    () => semesterPeriods.find((p) => p.id === currentPeriodId) ?? null,
+    [semesterPeriods, currentPeriodId]
+  );
+
+  const selectablePeriods = useMemo(
+    () => (currentPeriod ? [currentPeriod, ...pastPeriods] : pastPeriods),
+    [currentPeriod, pastPeriods]
+  );
+
   const selectedPeriod =
-    pastPeriods.find((p) => p.id === selectedPeriodId) ?? pastPeriods[0] ?? null;
+    selectablePeriods.find((p) => p.id === selectedPeriodId) ?? selectablePeriods[0] ?? null;
 
   useEffect(() => {
-    if (pastPeriods.length > 0 && !pastPeriods.some((p) => p.id === selectedPeriodId)) {
-      setSelectedPeriodId(pastPeriods[0].id);
+    if (
+      selectablePeriods.length > 0 &&
+      !selectablePeriods.some((p) => p.id === selectedPeriodId)
+    ) {
+      setSelectedPeriodId((pastPeriods[0] ?? selectablePeriods[0]).id);
     }
-  }, [pastPeriods, selectedPeriodId]);
+  }, [selectablePeriods, pastPeriods, selectedPeriodId]);
 
   const selectedSchedule = useMemo(
     () => (selectedPeriod ? schedules.find((s) => s.periodId === selectedPeriod.id) ?? null : null),
@@ -131,6 +144,8 @@ export function HistoryPage({
     [courseClasses, courses, classLecturerAssignments, lecturers]
   );
 
+  // ponytail: counts come from persisted scheduleSlots only, so the current period
+  // under-reports while pendingAdds/pendingRemoves are unsaved
   const overviewByPeriodId = useMemo(() => {
     return Object.fromEntries(
       semesterPeriods.map((p): [string, PeriodOverview] => {
@@ -206,6 +221,7 @@ export function HistoryPage({
       sidebar={
         <HistorySidebar
           pastPeriods={pastPeriods}
+          currentPeriod={currentPeriod}
           selectedPeriodId={selectedPeriod?.id ?? null}
           overviewByPeriodId={overviewByPeriodId}
           isExporting={isExporting}
