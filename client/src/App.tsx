@@ -213,11 +213,11 @@ export default function App() {
       prev.map((p) =>
         p.id === currentPeriodId
           ? {
-              ...p,
-              dayStartTime: sourcePeriod.dayStartTime,
-              dayEndTime: sourcePeriod.dayEndTime,
-              activeDays: sourcePeriod.activeDays,
-            }
+            ...p,
+            dayStartTime: sourcePeriod.dayStartTime,
+            dayEndTime: sourcePeriod.dayEndTime,
+            activeDays: sourcePeriod.activeDays,
+          }
           : p
       )
     );
@@ -314,7 +314,7 @@ export default function App() {
             <main className="p-8 max-w-7xl mx-auto w-full flex-1 flex flex-col min-h-0 overflow-auto">
               <Routes>
                 <Route
-                  path="/settings"
+                  path="/room-times"
                   element={
                     <SettingsPage
                       rooms={rooms}
@@ -415,7 +415,7 @@ export default function App() {
                   path="/courses"
                   element={<CoursesPage courses={courses} setCourses={setCourses} courseClasses={courseClasses} setCourseClasses={setCourseClasses} lecturers={lecturers} classLecturerAssignments={classLecturerAssignments} setClassLecturerAssignments={setClassLecturerAssignments} scheduleSlots={scheduleSlots} setScheduleSlots={setScheduleSlots} setPendingAdds={setPendingAdds} setPendingRemoves={setPendingRemoves} />}
                 />
-                <Route path="/final-exams" element={<FinalExamsPage lecturers={lecturers} />} />
+                <Route path="/exams-grouping" element={<FinalExamsPage lecturers={lecturers} />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/change-password" element={<ChangePasswordPage />} />
                 <Route path="/login" element={<Navigate to="/schedule" replace />} />
