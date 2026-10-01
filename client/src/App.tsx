@@ -345,6 +345,12 @@ export default function App() {
                       courseClasses={courseClasses}
                       classLecturerAssignments={classLecturerAssignments}
                       onOpenNewRecordModal={handleOpenNewRecordModal}
+                      rooms={rooms}
+                      scheduleSlots={scheduleSlots}
+                      sksSettings={sksSettings}
+                      breakTimes={breakTimes}
+                      semesterPeriods={semesterPeriods}
+                      schedules={schedules}
                     />
                   }
                 />
