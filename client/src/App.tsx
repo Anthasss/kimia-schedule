@@ -12,6 +12,7 @@ import { SchedulePage } from './pages/SchedulePage';
 import { LecturersPage } from './pages/LecturersPage';
 import { CoursesPage } from './pages/CoursesPage';
 import { FinalExamsPage } from './pages/FinalExamsPage';
+import { ReportsPage } from './pages/ReportsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { useRooms } from './hooks/useRooms';
 import { useLecturers } from './hooks/useLecturers';
@@ -343,8 +344,19 @@ export default function App() {
                       courses={courses}
                       courseClasses={courseClasses}
                       classLecturerAssignments={classLecturerAssignments}
-                      scheduleSlots={scheduleSlots}
                       onOpenNewRecordModal={handleOpenNewRecordModal}
+                    />
+                  }
+                />
+                <Route
+                  path="/reports"
+                  element={
+                    <ReportsPage
+                      lecturers={lecturers}
+                      courses={courses}
+                      courseClasses={courseClasses}
+                      classLecturerAssignments={classLecturerAssignments}
+                      scheduleSlots={scheduleSlots}
                     />
                   }
                 />
