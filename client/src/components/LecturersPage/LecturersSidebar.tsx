@@ -221,9 +221,9 @@ export const LecturersSidebar: React.FC<LecturersSidebarProps> = ({
         <div className="shrink-0 mt-2 flex gap-2">
           <button
             onClick={onClearSelection}
-            className="flex-1 py-2 text-[12px] text-[#43474e] border border-[#c4c6cf] rounded-lg hover:bg-[#f2f4f6] transition-colors cursor-pointer"
+            className="flex-1 py-2 text-[12px] font-semibold text-[#ba1a1a] border border-[#ba1a1a] rounded-lg hover:bg-[#ba1a1a] hover:text-white transition-colors cursor-pointer"
           >
-            Clear
+            Clear ({selectedIds.size})
           </button>
           <button
             onClick={onExportPdf}

@@ -105,7 +105,24 @@ export async function exportScheduleToPdf(
     pdf.text(DAY_NAMES_ID[day] || day, M, y + 4);
     y += 8;
 
-    // col headers
+    // col header row background
+    const gridW = TW + rooms.length * RW;
+    pdf.setFillColor(242, 244, 246);
+    pdf.rect(M, y, gridW, 8, 'F');
+    // outer border + top + bottom of header
+    pdf.setDrawColor(196, 198, 207);
+    pdf.setLineWidth(0.2);
+    pdf.line(M, y, M + gridW, y);           // top
+    pdf.line(M, y + 8, M + gridW, y + 8);   // bottom
+    pdf.line(M, y, M, y + 8);               // left
+    pdf.line(M + gridW, y, M + gridW, y + 8); // right
+    // vertical dividers in header
+    pdf.line(M + TW, y, M + TW, y + 8);
+    for (let ci = 1; ci < rooms.length; ci++) {
+      const xv = M + TW + ci * RW;
+      pdf.line(xv, y, xv, y + 8);
+    }
+    // col header text
     pdf.setTextColor(25, 28, 30);
     pdf.setFontSize(8);
     pdf.setFont('helvetica', 'bold');
@@ -116,30 +133,70 @@ export async function exportScheduleToPdf(
     }
     y += 8;
 
+    // ── Pass 1: draw the full grey grid background (all rows) ──────────────────
+    // This must complete before any slot fills so that spanning slots are never
+    // clipped by a later row's white cell background.
+    let yp = y;
     for (let ri = 0; ri < gridRows.length; ri++) {
       const row = gridRows[ri];
-      y = pageBreak(pdf, y, RH);
 
       if (row.type === 'break') {
         pdf.setFillColor(254, 243, 199);
-        pdf.rect(M, y, PW - 2 * M, RH, 'F');
+        pdf.rect(M, yp, gridW, RH, 'F');
+        // break bottom border
+        pdf.setDrawColor(196, 198, 207);
+        pdf.setLineWidth(0.2);
+        pdf.line(M, yp + RH, M + gridW, yp + RH);
+      } else {
+        // time-label cell (slightly off-white)
+        pdf.setFillColor(248, 250, 252);
+        pdf.rect(M, yp, TW, RH, 'F');
+        // room cells (white)
+        pdf.setFillColor(255, 255, 255);
+        for (let ci = 0; ci < rooms.length; ci++) {
+          pdf.rect(M + TW + ci * RW, yp, RW, RH, 'F');
+        }
+        // horizontal row divider (bottom of row)
+        pdf.setDrawColor(196, 198, 207);
+        pdf.setLineWidth(0.2);
+        pdf.line(M, yp + RH, M + gridW, yp + RH);
+        // vertical column dividers
+        pdf.line(M + TW, yp, M + TW, yp + RH);
+        for (let ci = 1; ci < rooms.length; ci++) {
+          pdf.line(M + TW + ci * RW, yp, M + TW + ci * RW, yp + RH);
+        }
+        // outer left / right borders
+        pdf.line(M, yp, M, yp + RH);
+        pdf.line(M + gridW, yp, M + gridW, yp + RH);
+      }
+
+      yp += RH;
+    }
+
+    // ── Pass 2: draw time labels + break labels + course slots on top ──────────
+    yp = y;
+    for (let ri = 0; ri < gridRows.length; ri++) {
+      const row = gridRows[ri];
+
+      if (row.type === 'break') {
         pdf.setTextColor(146, 64, 14);
         pdf.setFontSize(8);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Istirahat', M + 1, y + RH / 2 + 1.5);
-        y += RH;
+        pdf.text('Istirahat', M + 1, yp + RH / 2 + 1.5);
+        yp += RH;
         continue;
       }
 
       const rawTs = row.label!;
       const displayTs = rawTs.replace(/ SKS \d+$/, '');
 
-      // ponytail: no grid lines, colored cells provide visual structure
+      // time label text
       pdf.setFontSize(7);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(25, 28, 30);
-      pdf.text(displayTs, M + 1, y + RH / 2 + 1.5);
+      pdf.text(displayTs, M + 1, yp + RH / 2 + 1.5);
 
+      // course slots that start at this row (may span multiple rows)
       for (let ci = 0; ci < rooms.length; ci++) {
         const room = rooms[ci];
         const x = M + TW + ci * RW;
@@ -155,7 +212,7 @@ export async function exportScheduleToPdf(
         const primary = data?.lecturers[0];
         const [r, g, b] = hexToRgb(primary?.color || '#6366f1');
         pdf.setFillColor(r, g, b);
-        pdf.rect(x, y, RW, h, 'F');
+        pdf.rect(x, yp, RW, h, 'F');
 
         const tc = luminance(r, g, b) < 128 ? [255, 255, 255] : [25, 28, 30];
         pdf.setTextColor(tc[0], tc[1], tc[2]);
@@ -163,7 +220,7 @@ export async function exportScheduleToPdf(
 
         pdf.setFontSize(8);
         const titleLines = pdf.splitTextToSize(data?.course.title ?? '', RW - pad * 2);
-        let cursor = y + pad + 2.2;
+        let cursor = yp + pad + 2.2;
         for (const line of titleLines) {
           pdf.text(line, x + pad, cursor);
           cursor += 2.9;
@@ -182,13 +239,14 @@ export async function exportScheduleToPdf(
         let letter = letterFull;
         while (letter.length > 1 && pdf.getTextWidth(letter) > RW - pad * 2) letter = letter.slice(0, -1);
         if (letter.length !== letterFull.length) letter += '…';
-        pdf.text(letter, x + pad, y + h - pad - 3.5);
-        pdf.text(`${sks} SKS`, x + pad, y + h - pad - 0.5);
+        pdf.text(letter, x + pad, yp + h - pad - 3.5);
+        pdf.text(`${sks} SKS`, x + pad, yp + h - pad - 0.5);
       }
 
-      y += RH;
+      yp += RH;
     }
 
+    y = yp;
     y += 3;
   }
 
