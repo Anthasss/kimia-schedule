@@ -23,6 +23,7 @@ import { ScheduleLayout } from '../components/SchedulePage/ScheduleLayout';
 import { ClearGridModal } from '../components/SchedulePage/ClearGridModal';
 import { SaveAndExportModal } from '../components/SchedulePage/SaveAndExportModal';
 import { exportScheduleToPdf } from '../utils/exportToPdf';
+import { periodOrder } from '../utils/periodOrder';
 import { apiDelete, apiPost } from '../api';
 
 function getDefaultYearOptions() {
@@ -109,7 +110,10 @@ export function SchedulePage({
   );
 
   const savedPeriods: PeriodRef[] = useMemo(
-    () => semesterPeriods.map((p) => ({ year: p.year, semester: p.semester as 1 | 2 })),
+    () =>
+      semesterPeriods
+        .map((p) => ({ year: p.year, semester: p.semester as 1 | 2 }))
+        .sort((a, b) => periodOrder(b) - periodOrder(a)),
     [semesterPeriods]
   );
 

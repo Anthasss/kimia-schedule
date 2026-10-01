@@ -133,6 +133,13 @@ export const scheduleSlots = pgTable('schedule_slots', {
     foreignColumns: [rooms.id],
     name: 'slots_room_fk',
   }).onDelete('cascade'),
+  unique('schedule_slots_placement_unique').on(
+    table.scheduleId,
+    table.classId,
+    table.roomId,
+    table.day,
+    table.startTime
+  ),
 ]);
 
 // ── Relations ──

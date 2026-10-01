@@ -1,0 +1,1 @@
+ALTER TABLE "schedule_slots" ADD CONSTRAINT "schedule_slots_placement_unique" UNIQUE("schedule_id","class_id","room_id","day","start_time");
