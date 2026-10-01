@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { apiPut } from '../../api';
 import { Lecturer } from '../../types';
 import { LECTURER_COLORS } from '../../constants';
+
+type SortOption = 'default' | 'name-asc' | 'name-desc' | 'sks-desc' | 'sks-asc';
 
 interface LecturersSidebarProps {
   lecturers: Lecturer[];
@@ -37,6 +39,48 @@ export const LecturersSidebar: React.FC<LecturersSidebarProps> = ({
 }) => {
   const [colorPickerId, setColorPickerId] = useState<string | null>(null);
   const [updatingColorId, setUpdatingColorId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>('default');
+  const [isSortOpen, setIsSortOpen] = useState<boolean>(false);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
+        setIsSortOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const sortedLecturers = useMemo(() => {
+    if (sortBy === 'default') return lecturers;
+
+    return [...lecturers].sort((a, b) => {
+      const burdenA = creditBurden[a.id] ?? 0;
+      const burdenB = creditBurden[b.id] ?? 0;
+
+      if (sortBy === 'name-asc') {
+        return a.name.localeCompare(b.name);
+      }
+      if (sortBy === 'name-desc') {
+        return b.name.localeCompare(a.name);
+      }
+      if (sortBy === 'sks-desc') {
+        if (burdenB !== burdenA) {
+          return burdenB - burdenA;
+        }
+        return a.name.localeCompare(b.name);
+      }
+      if (sortBy === 'sks-asc') {
+        if (burdenA !== burdenB) {
+          return burdenA - burdenB;
+        }
+        return a.name.localeCompare(b.name);
+      }
+      return 0;
+    });
+  }, [lecturers, sortBy, creditBurden]);
 
   const handleUpdateColor = async (lecturer: Lecturer, color: string) => {
     setUpdatingColorId(lecturer.id);
@@ -63,7 +107,7 @@ export const LecturersSidebar: React.FC<LecturersSidebarProps> = ({
         </span>
       </div>
 
-      {/* Search + Add */}
+      {/* Search + Filter + Add */}
       <div className="flex gap-2 mt-3 shrink-0">
         <div className="relative flex-1">
           <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-[15px] text-[#43474e]">
@@ -77,6 +121,91 @@ export const LecturersSidebar: React.FC<LecturersSidebarProps> = ({
             className="w-full bg-[#f2f4f6] border border-[#c4c6cf] rounded-md py-1.5 pl-7 pr-2 text-[12px] text-[#191c1e] focus:ring-1 focus:ring-[#002045] outline-none"
           />
         </div>
+
+        {/* Filter / Sort Button */}
+        <div className="relative" ref={sortMenuRef}>
+          <button
+            onClick={() => setIsSortOpen((prev) => !prev)}
+            className={`p-1.5 rounded-md border transition-all cursor-pointer shrink-0 flex items-center justify-center ${
+              sortBy !== 'default'
+                ? 'bg-[#002045] text-white border-[#002045]'
+                : 'bg-[#f2f4f6] text-[#43474e] border-[#c4c6cf] hover:bg-[#e0e3e5]'
+            }`}
+            title="Sort Lecturers"
+          >
+            <span className="material-symbols-outlined text-[18px]">filter_list</span>
+          </button>
+
+          {/* Dropdown Menu */}
+          {isSortOpen && (
+            <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-[#c4c6cf] rounded-lg shadow-lg py-1 z-30 text-[12px]">
+              <div className="px-3 py-1.5 font-bold text-[#43474e] border-b border-[#e0e3e5] text-[11px] uppercase tracking-wider">
+                Sort By
+              </div>
+              <button
+                onClick={() => {
+                  setSortBy('name-asc');
+                  setIsSortOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-[#f2f4f6] cursor-pointer ${
+                  sortBy === 'name-asc' ? 'font-bold text-[#002045] bg-[#e7eff8]/50' : 'text-[#191c1e]'
+                }`}
+              >
+                <span>Alphabetical (A – Z)</span>
+                {sortBy === 'name-asc' && <span className="material-symbols-outlined text-[16px]">check</span>}
+              </button>
+              <button
+                onClick={() => {
+                  setSortBy('sks-desc');
+                  setIsSortOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-[#f2f4f6] cursor-pointer ${
+                  sortBy === 'sks-desc' ? 'font-bold text-[#002045] bg-[#e7eff8]/50' : 'text-[#191c1e]'
+                }`}
+              >
+                <span>SKS Burden (High to Low)</span>
+                {sortBy === 'sks-desc' && <span className="material-symbols-outlined text-[16px]">check</span>}
+              </button>
+              <button
+                onClick={() => {
+                  setSortBy('name-desc');
+                  setIsSortOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-[#f2f4f6] cursor-pointer ${
+                  sortBy === 'name-desc' ? 'font-bold text-[#002045] bg-[#e7eff8]/50' : 'text-[#191c1e]'
+                }`}
+              >
+                <span>Alphabetical (Z – A)</span>
+                {sortBy === 'name-desc' && <span className="material-symbols-outlined text-[16px]">check</span>}
+              </button>
+              <button
+                onClick={() => {
+                  setSortBy('sks-asc');
+                  setIsSortOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-[#f2f4f6] cursor-pointer ${
+                  sortBy === 'sks-asc' ? 'font-bold text-[#002045] bg-[#e7eff8]/50' : 'text-[#191c1e]'
+                }`}
+              >
+                <span>SKS Burden (Low to High)</span>
+                {sortBy === 'sks-asc' && <span className="material-symbols-outlined text-[16px]">check</span>}
+              </button>
+              {sortBy !== 'default' && (
+                <button
+                  onClick={() => {
+                    setSortBy('default');
+                    setIsSortOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-[11px] text-[#74777f] hover:text-[#ba1a1a] hover:bg-[#f2f4f6] border-t border-[#e0e3e5] cursor-pointer flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[14px]">restart_alt</span>
+                  <span>Reset to Default</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         <button
           onClick={onOpenAddLecturer}
           className="p-1.5 bg-[#002045] text-white rounded-md hover:bg-opacity-90 active:scale-95 transition-all cursor-pointer shrink-0"
@@ -95,13 +224,13 @@ export const LecturersSidebar: React.FC<LecturersSidebarProps> = ({
 
       {/* Lecturer cards list */}
       <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar pr-1 mt-3 space-y-2">
-        {lecturers.length === 0 && (
+        {sortedLecturers.length === 0 && (
           <div className="p-4 text-center text-[13px] text-[#74777f] italic bg-[#f7f9fb] rounded-lg border border-[#c4c6cf]">
             No lecturers found.
           </div>
         )}
 
-        {lecturers.map((lect) => {
+        {sortedLecturers.map((lect) => {
           const isSelected = selectedIds.has(lect.id);
           const burden = creditBurden[lect.id] ?? 0;
 
