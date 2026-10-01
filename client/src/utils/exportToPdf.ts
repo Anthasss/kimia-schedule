@@ -47,7 +47,16 @@ function pageBreak(pdf: jsPDF, y: number, need: number): number {
   return y;
 }
 
-export async function exportScheduleToPdf(scheduleId?: string, period?: SemesterPeriod | null) {
+export interface ExportPdfOptions {
+  overrideSlots?: ScheduleSlot[];
+  filename?: string;
+}
+
+export async function exportScheduleToPdf(
+  scheduleId?: string,
+  period?: SemesterPeriod | null,
+  options?: ExportPdfOptions
+) {
   const [rooms, scheduleSlots, sksSettings, breakTimes, lecturers, courseClasses, assignments] = await Promise.all([
     fetch('/api/rooms').then(r => r.json()),
     fetch('/api/schedule-slots').then(r => r.json()),
@@ -60,7 +69,9 @@ export async function exportScheduleToPdf(scheduleId?: string, period?: Semester
 
   if (!rooms.length) return;
 
-  const filteredSlots = scheduleId
+  const filteredSlots = options?.overrideSlots
+    ? options.overrideSlots
+    : scheduleId
     ? scheduleSlots.filter((s) => s.scheduleId === scheduleId)
     : scheduleSlots;
   if (!filteredSlots.length) return;
@@ -182,7 +193,9 @@ export async function exportScheduleToPdf(scheduleId?: string, period?: Semester
   }
 
   pdf.save(
-    period
+    options?.filename
+      ? options.filename
+      : period
       ? `jadwal-${period.year}-${period.semester === 1 ? 'ganjil' : 'genap'}.pdf`
       : 'jadwal-perkuliahan.pdf'
   );

@@ -14,6 +14,8 @@ interface LecturersSidebarProps {
   onUpdateLecturer: (updated: Lecturer) => void;
   onOpenAddLecturer: () => void;
   onClearSelection: () => void;
+  isExporting?: boolean;
+  onExportPdf?: () => void;
   search: string;
   onSearchChange: (v: string) => void;
 }
@@ -28,6 +30,8 @@ export const LecturersSidebar: React.FC<LecturersSidebarProps> = ({
   onUpdateLecturer,
   onOpenAddLecturer,
   onClearSelection,
+  isExporting,
+  onExportPdf,
   search,
   onSearchChange,
 }) => {
@@ -212,14 +216,31 @@ export const LecturersSidebar: React.FC<LecturersSidebarProps> = ({
         })}
       </div>
 
-      {/* Clear selection button */}
+      {/* Bottom actions: Clear selection & Export PDF */}
       {selectedIds.size > 0 && (
-        <div className="shrink-0 mt-2">
+        <div className="shrink-0 mt-2 flex gap-2">
           <button
             onClick={onClearSelection}
-            className="w-full py-2 text-[12px] text-[#43474e] border border-[#c4c6cf] rounded-lg hover:bg-[#f2f4f6] transition-colors cursor-pointer"
+            className="flex-1 py-2 text-[12px] text-[#43474e] border border-[#c4c6cf] rounded-lg hover:bg-[#f2f4f6] transition-colors cursor-pointer"
           >
-            Clear selection
+            Clear
+          </button>
+          <button
+            onClick={onExportPdf}
+            disabled={isExporting}
+            className="flex-1 py-2 bg-[#002045] text-white rounded-lg text-[12px] font-semibold hover:bg-opacity-90 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExporting ? (
+              <>
+                <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                <span>Exporting...</span>
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+                <span>Export PDF</span>
+              </>
+            )}
           </button>
         </div>
       )}

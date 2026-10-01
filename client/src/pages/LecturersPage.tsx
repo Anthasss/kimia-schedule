@@ -22,6 +22,7 @@ import { ScheduleDayGrid } from '../components/SchedulePage/ScheduleDayGrid';
 import { computeCreditBurden } from '../utils/creditBurden';
 import { buildClassById } from '../utils/classData';
 import { computeTimeSlots } from '../utils/scheduleTimeSlots';
+import { exportScheduleToPdf } from '../utils/exportToPdf';
 
 interface LecturersPageProps {
   lecturers: Lecturer[];
@@ -154,6 +155,37 @@ export function LecturersPage({
     });
   }, [visibleSlots, classById, selectedLecturerIds]);
 
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPdf = useCallback(async () => {
+    if (selectedLecturerIds.size === 0) {
+      toast.error('Select at least one lecturer to export');
+      return;
+    }
+    if (filteredSlots.length === 0) {
+      toast.error('No scheduled classes for selected lecturer(s)');
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const selectedLecturerNames = lecturers
+        .filter((l) => selectedLecturerIds.has(l.id))
+        .map((l) => l.name.toLowerCase().replace(/[^a-z0-9]/g, '-'))
+        .join('-');
+      const filename = `jadwal-dosen-${selectedLecturerNames.slice(0, 30)}.pdf`;
+      await exportScheduleToPdf(currentSchedule?.id, currentPeriod, {
+        overrideSlots: filteredSlots,
+        filename,
+      });
+      toast.success('PDF exported successfully');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to export PDF');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [selectedLecturerIds, filteredSlots, lecturers, currentSchedule, currentPeriod]);
+
   const hasSelection = selectedLecturerIds.size > 0;
 
   return (
@@ -171,6 +203,8 @@ export function LecturersPage({
           }
           onOpenAddLecturer={() => onOpenNewRecordModal('Lecturer')}
           onClearSelection={handleClearSelection}
+          isExporting={isExporting}
+          onExportPdf={handleExportPdf}
           search={search}
           onSearchChange={setSearch}
         />
