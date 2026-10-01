@@ -21,6 +21,7 @@ import { ScheduleLayout } from '../components/SchedulePage/ScheduleLayout';
 import { HistorySidebar, PeriodOverview } from '../components/HistoryPage/HistorySidebar';
 import { ConfirmModal } from '../components/Shared/ConfirmModal';
 import { exportScheduleToPdf } from '../utils/exportToPdf';
+import { periodOrder } from '../utils/periodOrder';
 
 interface HistoryPageProps {
   rooms: Room[];
@@ -40,11 +41,6 @@ interface HistoryPageProps {
 
 function periodLabel(p: SemesterPeriod) {
   return `${p.year} ${p.semester === 1 ? 'Ganjil' : 'Genap'}`;
-}
-
-function periodTimestamp(p: SemesterPeriod) {
-  const t = p.createdAt ? Date.parse(p.createdAt) : NaN;
-  return Number.isNaN(t) ? 0 : t;
 }
 
 function formatDays(days: string[]): string {
@@ -97,7 +93,7 @@ export function HistoryPage({
           const scheduleId = scheduleIdByPeriodId.get(p.id);
           return !!scheduleId && (slotsByScheduleId.get(scheduleId)?.length ?? 0) > 0;
         })
-        .sort((a, b) => periodTimestamp(b) - periodTimestamp(a)),
+        .sort((a, b) => periodOrder(b) - periodOrder(a)),
     [semesterPeriods, currentPeriodId, scheduleIdByPeriodId, slotsByScheduleId]
   );
 
