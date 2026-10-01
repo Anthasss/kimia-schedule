@@ -57,7 +57,7 @@ export function FinalExamsPage({ lecturers }: FinalExamsPageProps) {
     <div className="flex flex-col flex-1 min-h-0 gap-6">
       <div className="flex items-center justify-between gap-6 pb-4">
         <div>
-          <h1 className="font-headline-lg text-[28px] text-[#191c1e] font-bold">Final Exams</h1>
+          <h1 className="font-headline-lg text-[28px] text-[#191c1e] font-bold">Exams Grouping</h1>
           <p className="text-[#43474e] font-body-md text-[14px]">
             Split lecturers into groups for students finals
           </p>
@@ -99,29 +99,29 @@ export function FinalExamsPage({ lecturers }: FinalExamsPageProps) {
       {result && (
         <div className="bg-white border border-[#c4c6cf] rounded-lg overflow-hidden">
           <table className="w-full text-[13px]">
-              <thead>
-                <tr className="text-left text-[12px] text-[#43474e] border-b border-[#c4c6cf] sticky top-0 bg-white">
-                  <th className="px-4 py-2 font-semibold">Student</th>
-                  <th className="px-4 py-2 font-semibold">Instructor 1</th>
-                  <th className="px-4 py-2 font-semibold">Instructor 2</th>
-                  <th className="px-4 py-2 font-semibold">Examiner 1</th>
-                  <th className="px-4 py-2 font-semibold">Examiner 2</th>
-                  <th className="px-4 py-2 font-semibold">Examiner 3</th>
+            <thead>
+              <tr className="text-left text-[12px] text-[#43474e] border-b border-[#c4c6cf] sticky top-0 bg-white">
+                <th className="px-4 py-2 font-semibold">Student</th>
+                <th className="px-4 py-2 font-semibold">Instructor 1</th>
+                <th className="px-4 py-2 font-semibold">Instructor 2</th>
+                <th className="px-4 py-2 font-semibold">Examiner 1</th>
+                <th className="px-4 py-2 font-semibold">Examiner 2</th>
+                <th className="px-4 py-2 font-semibold">Examiner 3</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedGroups.map((g) => (
+                <tr key={g.studentNumber} className="border-b border-[#f2f4f6]">
+                  <td className="px-4 py-2 font-semibold text-[#002045]">Student {g.studentNumber}</td>
+                  {[...g.instructors, ...g.examiners].map((name, i) => (
+                    <td key={`${g.studentNumber}-${i}`} className="px-4 py-2 text-[#191c1e]">
+                      {name}
+                    </td>
+                  ))}
                 </tr>
-              </thead>
-              <tbody>
-                {paginatedGroups.map((g) => (
-                  <tr key={g.studentNumber} className="border-b border-[#f2f4f6]">
-                    <td className="px-4 py-2 font-semibold text-[#002045]">Student {g.studentNumber}</td>
-                    {[...g.instructors, ...g.examiners].map((name, i) => (
-                      <td key={`${g.studentNumber}-${i}`} className="px-4 py-2 text-[#191c1e]">
-                        {name}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ))}
+            </tbody>
+          </table>
 
           {result.groups.length > ITEMS_PER_PAGE && (
             <div className="px-6 py-3 border-t border-[#c4c6cf] bg-[#f2f4f6] flex justify-between items-center text-[12px]">

@@ -70,7 +70,7 @@ export function SettingsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Basic Data Management"
+        title="Room & Times"
         subtitle="Manage institutional resources and academic parameters."
         actions={
           <div />
