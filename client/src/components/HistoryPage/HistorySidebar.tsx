@@ -6,7 +6,7 @@ export interface PeriodOverview {
   hours: string;
   classes: number;
   courses: number;
-  blocks: number;
+  placements: number;
 }
 
 interface HistorySidebarProps {
@@ -39,7 +39,7 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center border-b border-[#c4c6cf] pb-3 shrink-0">
         <h3 className="font-headline-sm text-[17px] text-[#191c1e] font-bold">
-          Other Semesters
+          Semesters
         </h3>
         <span className="text-[12px] font-bold bg-[#002045] text-white px-2.5 py-0.5">
           {pastPeriods.length}
@@ -49,8 +49,8 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
       <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar pr-1 mt-4 space-y-4">
         {pastPeriods.length === 0 && (
           <div className="p-4 text-center text-[13px] text-[#74777f] italic bg-[#f7f9fb] rounded-lg border border-[#c4c6cf]">
-            No past semesters yet. Add and activate a new period on the Schedule page to
-            archive this one.
+            No semesters with scheduled classes yet. Add and activate a new period on the
+            Schedule page to archive this one.
           </div>
         )}
 
@@ -62,8 +62,8 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
               key={p.id}
               onClick={() => onSelectPeriod(p.id)}
               className={`w-full rounded-lg border text-left cursor-pointer transition-colors ${isSelected
-                  ? 'bg-[#002045] border-[#002045] text-white'
-                  : 'bg-[#f2f4f6] border-[#c4c6cf] text-[#191c1e] hover:bg-[#e8eaec]'
+                ? 'bg-[#002045] border-[#002045] text-white'
+                : 'bg-[#f2f4f6] border-[#c4c6cf] text-[#191c1e] hover:bg-[#e8eaec]'
                 }`}
             >
               <div className="flex items-center justify-between px-3 py-2">
@@ -74,7 +74,7 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
                   className={`text-[11px] font-bold px-2 py-0.5 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-[#002045] text-white'
                     }`}
                 >
-                  {o?.blocks ?? 0}
+                  {o?.placements ?? 0}
                 </span>
               </div>
 
@@ -86,7 +86,7 @@ export const HistorySidebar: React.FC<HistorySidebarProps> = ({
                 <OverviewRow label="Day Hours" value={o?.hours ?? '-'} selected={isSelected} />
                 <OverviewRow label="Classes" value={String(o?.classes ?? 0)} selected={isSelected} />
                 <OverviewRow label="Courses" value={String(o?.courses ?? 0)} selected={isSelected} />
-                <OverviewRow label="Blocks" value={String(o?.blocks ?? 0)} selected={isSelected} />
+                <OverviewRow label="Placements" value={String(o?.placements ?? 0)} selected={isSelected} />
               </div>
             </button>
           );

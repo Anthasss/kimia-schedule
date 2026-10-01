@@ -73,12 +73,32 @@ export function HistoryPage({
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
+  const slotsByScheduleId = useMemo(() => {
+    const m = new Map<string, ScheduleSlot[]>();
+    for (const s of scheduleSlots) {
+      const list = m.get(s.scheduleId) || [];
+      list.push(s);
+      m.set(s.scheduleId, list);
+    }
+    return m;
+  }, [scheduleSlots]);
+
+  const scheduleIdByPeriodId = useMemo(
+    () => new Map(schedules.map((s) => [s.periodId, s.id])),
+    [schedules]
+  );
+
+  // only archive periods that actually have classes slotted on the grid
   const pastPeriods = useMemo(
     () =>
       semesterPeriods
-        .filter((p) => p.id !== currentPeriodId)
+        .filter((p) => {
+          if (p.id === currentPeriodId) return false;
+          const scheduleId = scheduleIdByPeriodId.get(p.id);
+          return !!scheduleId && (slotsByScheduleId.get(scheduleId)?.length ?? 0) > 0;
+        })
         .sort((a, b) => periodTimestamp(b) - periodTimestamp(a)),
-    [semesterPeriods, currentPeriodId]
+    [semesterPeriods, currentPeriodId, scheduleIdByPeriodId, slotsByScheduleId]
   );
 
   const selectedPeriod =
@@ -96,11 +116,8 @@ export function HistoryPage({
   );
 
   const selectedSlots = useMemo(
-    () =>
-      selectedSchedule
-        ? scheduleSlots.filter((s) => s.scheduleId === selectedSchedule.id)
-        : [],
-    [scheduleSlots, selectedSchedule]
+    () => (selectedSchedule ? (slotsByScheduleId.get(selectedSchedule.id) ?? []) : []),
+    [slotsByScheduleId, selectedSchedule]
   );
 
   const selectedBreaks = useMemo(
@@ -115,12 +132,6 @@ export function HistoryPage({
   );
 
   const overviewByPeriodId = useMemo(() => {
-    const slotsByScheduleId = new Map<string, ScheduleSlot[]>();
-    for (const s of scheduleSlots) {
-      const list = slotsByScheduleId.get(s.scheduleId) || [];
-      list.push(s);
-      slotsByScheduleId.set(s.scheduleId, list);
-    }
     return Object.fromEntries(
       semesterPeriods.map((p): [string, PeriodOverview] => {
         const schedule = schedules.find((s) => s.periodId === p.id);
@@ -135,12 +146,14 @@ export function HistoryPage({
             hours: `${p.dayStartTime} – ${p.dayEndTime}`,
             classes: new Set(slots.map((s) => s.classId)).size,
             courses: courseCodes.size,
-            blocks: slots.length,
+            placements: new Set(
+              slots.map((s) => `${s.classId}|${s.day}|${s.startTime}|${s.roomId}`)
+            ).size,
           },
         ];
       })
     );
-  }, [semesterPeriods, schedules, scheduleSlots, classById]);
+  }, [semesterPeriods, schedules, slotsByScheduleId, classById]);
 
   const { days, gridRows, slotRowLabels } = useMemo(
     () => computeTimeSlots(sksSettings, selectedPeriod, selectedBreaks),
