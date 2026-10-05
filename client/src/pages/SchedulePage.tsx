@@ -22,18 +22,10 @@ import { UnscheduledCoursesSidebar, PeriodRef } from '../components/SchedulePage
 import { ScheduleLayout } from '../components/SchedulePage/ScheduleLayout';
 import { ClearGridModal } from '../components/SchedulePage/ClearGridModal';
 import { SaveAndExportModal } from '../components/SchedulePage/SaveAndExportModal';
+import { YearPicker } from '../components/SchedulePage/YearPicker';
 import { exportScheduleToPdf } from '../utils/exportToPdf';
 import { periodOrder } from '../utils/periodOrder';
 import { apiDelete, apiPost } from '../api';
-
-function getDefaultYearOptions() {
-  const current = new Date().getFullYear();
-  const years: string[] = [];
-  for (let i = -1; i <= 3; i++) {
-    years.push(String(current + i));
-  }
-  return years;
-}
 
 interface SchedulePageProps {
   rooms: Room[];
@@ -82,12 +74,10 @@ export function SchedulePage({
   const [showSaveExportModal, setShowSaveExportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showAddPeriodModal, setShowAddPeriodModal] = useState(false);
-  const [newPeriodYear, setNewPeriodYear] = useState(getDefaultYearOptions()[0] || '');
+  const [newPeriodYear, setNewPeriodYear] = useState(String(new Date().getFullYear()));
   const [newPeriodSemester, setNewPeriodSemester] = useState<1 | 2>(1);
   const [showDeletePeriodModal, setShowDeletePeriodModal] = useState(false);
   const [isDeletingPeriod, setIsDeletingPeriod] = useState(false);
-
-  const yearOptions = getDefaultYearOptions();
 
   const currentPeriod = useMemo(
     () => semesterPeriods.find((p) => p.id === sksSettings.currentPeriodId) ?? null,
@@ -128,17 +118,21 @@ export function SchedulePage({
   };
 
   const handleAddPeriod = async () => {
-    if (!newPeriodYear) return;
+    const year = newPeriodYear.trim();
+    if (!/^\d{4}$/.test(year)) {
+      toast.error('Pick a valid year');
+      return;
+    }
     const exists = semesterPeriods.find(
-      (p) => p.year === newPeriodYear && p.semester === newPeriodSemester
+      (p) => p.year === year && p.semester === newPeriodSemester
     );
     try {
       if (exists) {
-        toast.warning(`${newPeriodYear} ${newPeriodSemester === 1 ? 'Ganjil' : 'Genap'} already exists`);
+        toast.warning(`${year} ${newPeriodSemester === 1 ? 'Ganjil' : 'Genap'} already exists`);
         switchPeriod({ year: exists.year, semester: exists.semester as 1 | 2 });
       } else {
         const created = await apiPost<SemesterPeriod>('/api/semester-periods', {
-          year: newPeriodYear,
+          year,
           semester: newPeriodSemester,
         });
         const updated = [...semesterPeriods, created];
@@ -150,7 +144,7 @@ export function SchedulePage({
       toast.error('Failed to add period');
     } finally {
       setShowAddPeriodModal(false);
-      setNewPeriodYear(getDefaultYearOptions()[0] || '');
+      setNewPeriodYear(String(new Date().getFullYear()));
       setNewPeriodSemester(1);
     }
   };
@@ -297,7 +291,7 @@ export function SchedulePage({
           onReset={() => setShowClearGridModal(true)}
           onPeriodChange={(p) => switchPeriod(p)}
           onOpenAddPeriod={() => {
-            setNewPeriodYear(getDefaultYearOptions()[0] || '');
+            setNewPeriodYear(String(new Date().getFullYear()));
             setNewPeriodSemester(1);
             setShowAddPeriodModal(true);
           }}
@@ -359,15 +353,7 @@ export function SchedulePage({
             <div className="space-y-3 text-[13px]">
               <div>
                 <label className="block text-[#43474e] font-semibold mb-1">Year</label>
-                <select
-                  value={newPeriodYear}
-                  onChange={(e) => setNewPeriodYear(e.target.value)}
-                  className="w-full bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none"
-                >
-                  {yearOptions.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
+                <YearPicker value={newPeriodYear} onChange={setNewPeriodYear} />
               </div>
               <div>
                 <label className="block text-[#43474e] font-semibold mb-1">Semester</label>

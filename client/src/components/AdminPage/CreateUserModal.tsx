@@ -45,6 +45,7 @@ interface CreateUserModalProps {
 export const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreated }) => {
   const [names, setNames] = useState<string[]>(['']);
   const [isCreating, setIsCreating] = useState(false);
+  const [created, setCreated] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
 
@@ -102,8 +103,61 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCre
 
     setIsCreating(false);
     onCreated();
-    onClose();
+    setCreated(true);
   };
+
+  const handleCopyPassword = async () => {
+    await navigator.clipboard.writeText(DEFAULT_PASSWORD);
+    toast.success("Password copied");
+  };
+
+  if (created) {
+    return (
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl max-w-md w-full p-6 border border-[#c4c6cf] shadow-xl space-y-4 relative">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-1 text-[#43474e] hover:text-[#191c1e] transition-colors cursor-pointer"
+            title="Close"
+          >
+            <span className="material-symbols-outlined text-[20px]">close</span>
+          </button>
+
+          <div className="flex items-center gap-2 pr-8">
+            <span className="material-symbols-outlined text-[22px] text-[#1b7f3b]">check_circle</span>
+            <h3 className="font-headline-sm text-[18px] text-[#191c1e] font-bold">User creation successful</h3>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[13px] text-[#43474e] leading-relaxed">
+              New users can sign in with this default password:
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 bg-[#f2f4f6] border border-[#c4c6cf] rounded px-3 py-2 text-[13px] text-[#191c1e] select-all">
+                {DEFAULT_PASSWORD}
+              </code>
+              <button
+                onClick={handleCopyPassword}
+                className="p-2 rounded text-[#002045] hover:bg-[#e8ebef] transition-colors cursor-pointer"
+                title="Copy password"
+              >
+                <span className="material-symbols-outlined text-[18px]">content_copy</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-[#002045] text-white rounded text-[13px] font-semibold cursor-pointer hover:bg-opacity-90"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
