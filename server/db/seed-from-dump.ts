@@ -53,6 +53,20 @@ function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`assertion failed: ${msg}`);
 }
 
+// old dumps store Ganjil/Genap/Both; current schema wants int arrays (1..14).
+// also tolerates raw arrays like "{1,2}" from dumps of the new schema.
+function dumpSemesters(v: string): number[] {
+  const nums = v
+    .replace(/[{}]/g, '')
+    .split(',')
+    .map(Number)
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= 14);
+  if (nums.length) return [...new Set(nums)].sort((a, b) => a - b);
+  if (v === 'Genap') return [2];
+  if (v === 'Both') return [1, 2];
+  return [1];
+}
+
 // ── Transform (in memory, before touching the DB) ──
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
@@ -119,7 +133,7 @@ const coursesOut = [...courseByCode.values()].map((r) => ({
   code: req(r, 'code'),
   title: req(r, 'title'),
   sks: Number(req(r, 'sks')),
-  semester: req(r, 'semester'),
+  semester: dumpSemesters(req(r, 'semester')),
 }));
 
 const classRows = dump.get('course_classes') ?? [];

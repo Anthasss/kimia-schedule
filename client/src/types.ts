@@ -38,7 +38,8 @@ export interface Course {
   code: string;
   title: string;
   sks: number;
-  semester: string;
+  /** semesters (1..14) this course is offered in; odd = ganjil, even = genap */
+  semester: number[];
 }
 
 export interface CourseClass {
@@ -85,7 +86,7 @@ export interface UnscheduledClass {
   courseTitle: string;
   classLetter: string;
   sks: number;
-  semester: string;
+  semester: number[];
   lecturers: string[];
   scheduledAt?: string;
 }

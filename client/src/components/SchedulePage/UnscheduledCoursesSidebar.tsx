@@ -74,23 +74,19 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
 
   const searching = draftSearch.trim() !== '';
 
-  // ponytail: pool follows the active period's term instead of a manual toggle
-  const activeSemester = currentPeriod ? (currentPeriod.semester === 1 ? 'Ganjil' : 'Genap') : null;
+  // ponytail: pool follows the active period's term — odd semesters in Ganjil, even in Genap
+  const activeParity = currentPeriod ? currentPeriod.semester % 2 : null;
+  const matchesPeriod = (item: UnscheduledClass) =>
+    activeParity === null || item.semester.some((s) => s % 2 === activeParity);
 
   const displayedCourses = useMemo(
-    () =>
-      filteredDraftPool.filter(
-        (item) => !activeSemester || item.semester === activeSemester || item.semester === 'Both'
-      ),
-    [filteredDraftPool, activeSemester]
+    () => filteredDraftPool.filter(matchesPeriod),
+    [filteredDraftPool, activeParity]
   );
 
   const displayedScheduled = useMemo(
-    () =>
-      scheduledMatches.filter(
-        (item) => !activeSemester || item.semester === activeSemester || item.semester === 'Both'
-      ),
-    [scheduledMatches, activeSemester]
+    () => scheduledMatches.filter(matchesPeriod),
+    [scheduledMatches, activeParity]
   );
 
   const shownCount = searching ? displayedCourses.length + displayedScheduled.length : displayedCourses.length;

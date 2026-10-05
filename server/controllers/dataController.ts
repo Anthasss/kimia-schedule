@@ -52,6 +52,33 @@ function createUpdateHandler(table: any) {
   };
 }
 
+const MAX_SEMESTER = 14;
+
+// courses.semester: non-empty, unique integers 1..14 (sorted). null = invalid.
+function normalizeSemesters(value: unknown): number[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const nums = value.map(Number);
+  if (nums.some((n) => !Number.isInteger(n) || n < 1 || n > MAX_SEMESTER)) return null;
+  return [...new Set(nums)].sort((a, b) => a - b);
+}
+
+// validate/normalize body.semester when present, pass everything else through
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function withSemesterValidation<H extends (req: Request, res: Response) => any>(handler: H): H {
+  return (async (req: Request, res: Response) => {
+    if (req.body && "semester" in req.body) {
+      const semester = normalizeSemesters(req.body.semester);
+      if (!semester) {
+        return res.status(400).json({
+          error: `semester must be a non-empty list of integers 1-${MAX_SEMESTER}`,
+        });
+      }
+      req.body = { ...req.body, semester };
+    }
+    return handler(req, res);
+  }) as H;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createDeleteHandler(table: any) {
   return async (req: Request, res: Response) => {
@@ -110,14 +137,14 @@ export const getScheduleSlots = async (req: Request, res: Response) => {
 export const createRoom = createInsertHandler(rooms);
 export const createBreakTime = createInsertHandler(breakTimes);
 export const createLecturer = createInsertHandler(lecturers);
-export const createCourse = createInsertHandler(courses);
+export const createCourse = withSemesterValidation(createInsertHandler(courses));
 export const createScheduleSlot = createInsertHandler(scheduleSlots);
 
 // PUT
 export const updateRoom = createUpdateHandler(rooms);
 export const updateBreakTime = createUpdateHandler(breakTimes);
 export const updateLecturer = createUpdateHandler(lecturers);
-export const updateCourse = createUpdateHandler(courses);
+export const updateCourse = withSemesterValidation(createUpdateHandler(courses));
 export const updateScheduleSlot = createUpdateHandler(scheduleSlots);
 
 // DELETE
@@ -294,7 +321,7 @@ export const updateCourseClass = createUpdateHandler(courseClasses);
 export const updateSemesterPeriod = createUpdateHandler(semesterPeriods);
 
 // Create course with classes in one call
-export const createCourseWithClasses = async (req: Request, res: Response) => {
+export const createCourseWithClasses = withSemesterValidation(async (req: Request, res: Response) => {
   const { code, title, sks, semester, classes } = req.body;
   const courseId = crypto.randomUUID();
 
@@ -348,6 +375,6 @@ export const createCourseWithClasses = async (req: Request, res: Response) => {
     console.error(err);
     return res.status(500).json({ error: "Failed to create classes" });
   }
-};
+});
 
 export const deleteCourseClass = createDeleteHandler(courseClasses);

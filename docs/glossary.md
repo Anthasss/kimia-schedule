@@ -4,7 +4,8 @@ Terms used across the kimia-schedule-maker codebase and schema.
 
 ## Course
 A catalog subject offering — e.g., "Matematika Dasar". Has a unique `code`, a
-`title`, an `sks` count, and a `semester` (Ganjil / Genap / Both). Holds no
+`title`, an `sks` count, and a `semester` list of integers 1–14 (odd = Ganjil,
+even = Genap) for every semester it is offered in. Holds no
 schedule or lecturer data itself.
 
 ## CourseClass

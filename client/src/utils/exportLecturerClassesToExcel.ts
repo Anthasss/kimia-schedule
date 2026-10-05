@@ -33,7 +33,7 @@ export async function exportLecturerClassesToExcel(
         data.course.title,
         data.class.classLetter,
         data.course.sks,
-        data.course.semester,
+        data.course.semester.join(', '),
         data.lecturers.filter((l) => l.id !== lecturer.id).map((l) => l.name).join(', '),
         slots.map((s) => s.day).join(', '),
         slots.map((s) => s.startTime).join(', '),

@@ -41,11 +41,14 @@ export const CourseDraftCard: React.FC<CourseDraftCardProps> = ({
       }}
     >
       <div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[11px] font-bold px-1.5 py-0.5 bg-[#1a365d] text-white rounded">
             {course.courseCode}
           </span>
           <span className="text-[12px] text-[#505f76] font-semibold">{course.sks} SKS</span>
+          <span className="text-[11px] font-bold px-1.5 py-0.5 bg-[#0b6b3a] text-white rounded">
+            Sem {course.semester.join(', ')}
+          </span>
         </div>
         <h4 className="font-semibold text-[14px] text-[#191c1e] mt-1.5 leading-tight">
           {course.courseTitle} ({course.classLetter})

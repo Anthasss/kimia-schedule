@@ -239,7 +239,7 @@ async function seed() {
   ];
 
   await db.insert(courses).values(
-    courseData.map((c, i) => ({ id: `cour${i + 1}`, ...c, semester: 'Ganjil' }))
+    courseData.map((c, i) => ({ id: `cour${i + 1}`, ...c, semester: [1] }))
   );
   console.log('✓ Courses seeded');
 

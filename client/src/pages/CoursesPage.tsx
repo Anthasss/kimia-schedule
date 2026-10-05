@@ -47,7 +47,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
     ? courseClasses.filter((cc) => cc.courseId === selectedCourse.id)
     : [];
   const displayCourse: Course | null = isAddingNewCourse
-    ? { id: '', code: '', title: '', sks: 0, semester: 'Ganjil' }
+    ? { id: '', code: '', title: '', sks: 0, semester: [1] }
     : selectedCourse;
   const displayCourseClasses = isAddingNewCourse ? [] : selectedCourseClasses;
 
@@ -82,7 +82,7 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
     const idByName = lecturerIdByName(lecturers);
 
     if (isNew) {
-      if (!updatedCourse.code?.trim() || !updatedCourse.title?.trim() || !updatedCourse.sks || !updatedCourse.semester) {
+      if (!updatedCourse.code?.trim() || !updatedCourse.title?.trim() || !updatedCourse.sks || !updatedCourse.semester?.length) {
         toast.error('Please fill in all required fields (code, title, SKS, semester)');
         return;
       }
