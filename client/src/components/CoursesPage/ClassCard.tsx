@@ -1,5 +1,6 @@
 import React from 'react';
 import { Lecturer } from '../../types';
+import { LecturerAutocomplete } from './LecturerAutocomplete';
 
 interface ClassCardProps {
   lecturers: Lecturer[];
@@ -67,18 +68,12 @@ export const ClassCard: React.FC<ClassCardProps> = ({
       <div className="space-y-1.5">
         {editLecturers.map((name, idx) => (
           <div key={idx} className="flex items-center gap-2">
-            <select
+            <LecturerAutocomplete
               value={name}
-              onChange={(e) => updateLecturer(idx, e.target.value)}
-              className="flex-1 bg-white px-2.5 py-1.5 rounded border border-[#c4c6cf] outline-none text-[12px] text-[#191c1e] focus:ring-1 focus:ring-[#002045]"
-            >
-              <option value="">Unassigned</option>
-              {lecturers.map((l) => (
-                <option key={l.id} value={l.name}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
+              lecturers={lecturers}
+              onChange={(newName) => updateLecturer(idx, newName)}
+              placeholder="Unassigned"
+            />
             <button
               onClick={() => removeLecturer(idx)}
               className="p-1 text-[#43474e] hover:text-[#ba1a1a] transition-colors cursor-pointer shrink-0"
