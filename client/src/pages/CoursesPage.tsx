@@ -244,26 +244,28 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
   };
 
   return (
-    <div className="flex flex-1 min-h-0 gap-6">
-      <div className="flex-1 min-w-0 bg-white rounded-lg border border-[#c4c6cf] overflow-y-auto custom-scrollbar">
-        {displayCourse ? (
-          <CourseDetailPanel
-            key={displayCourse.id || '__new__'}
-            isNewCourse={isAddingNewCourse}
-            course={displayCourse}
-            courseClasses={displayCourseClasses}
-            lecturers={lecturers}
-            classLecturerAssignments={classLecturerAssignments}
-            allCourses={courses}
-            onSave={handleSaveCourse}
-            onDeleteCourse={handleDeleteCourse}
-            onAddClass={() => setShowAddClassModal(true)}
-          />
-        ) : (
-          <div className="min-h-[300px] flex items-center justify-center text-[#74777f] text-[14px]">
-            Select a course to view details
-          </div>
-        )}
+    <div className="relative flex-1 min-h-0">
+      <div className="pr-80 h-full overflow-y-auto custom-scrollbar">
+        <div className="bg-white rounded-lg border border-[#c4c6cf]">
+          {displayCourse ? (
+            <CourseDetailPanel
+              key={displayCourse.id || '__new__'}
+              isNewCourse={isAddingNewCourse}
+              course={displayCourse}
+              courseClasses={displayCourseClasses}
+              lecturers={lecturers}
+              classLecturerAssignments={classLecturerAssignments}
+              allCourses={courses}
+              onSave={handleSaveCourse}
+              onDeleteCourse={handleDeleteCourse}
+              onAddClass={() => setShowAddClassModal(true)}
+            />
+          ) : (
+            <div className="min-h-[300px] flex items-center justify-center text-[#74777f] text-[14px]">
+              Select a course to view details
+            </div>
+          )}
+        </div>
       </div>
 
       <CoursesSidebar
