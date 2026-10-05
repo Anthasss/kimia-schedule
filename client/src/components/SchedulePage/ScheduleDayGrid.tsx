@@ -255,7 +255,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                       return (
                         <div
                           key={room.id}
-                          className="px-2 py-2 border-r border-b border-[#c4c6cf]"
+                          className="px-2 py-2 border-r border-b border-[#c4c6cf] overflow-hidden"
                           style={{ gridRow: `span ${startSks}` }}
                         >
                           <SlottedCourseCard
