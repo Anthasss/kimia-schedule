@@ -72,7 +72,7 @@ export const CoursesSidebar: React.FC<CoursesSidebarProps> = ({
   }, [grouped, search, lecturerNameByClassId]);
 
   return (
-    <div className="flex flex-col h-screen w-80 bg-white border-l border-[#c4c6cf] p-5 fixed right-0 top-0 z-40">
+    <div className="flex flex-col h-full w-80 shrink-0 bg-white border border-[#c4c6cf] rounded-lg p-5">
       <div className="flex justify-between items-center border-b border-[#c4c6cf] pb-3 shrink-0">
         <h3 className="font-headline-sm text-[17px] text-[#191c1e] font-bold">
           Courses
