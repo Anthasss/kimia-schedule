@@ -42,7 +42,7 @@ export function ChangePasswordPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto">
+    <div className="w-1/2 mx-auto flex-1 flex flex-col justify-center">
       <h1 className="text-2xl font-bold text-[#002045] mb-6">Change Password</h1>
       <div className="bg-white rounded-xl shadow-sm border border-[#e5e7eb] p-6">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
