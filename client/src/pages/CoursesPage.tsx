@@ -42,12 +42,6 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
   const [showAddClassModal, setShowAddClassModal] = useState(false);
   const [search, setSearch] = useState('');
 
-  React.useEffect(() => {
-    if (!selectedCourseCode && courses.length > 0 && !isAddingNewCourse) {
-      setSelectedCourseCode(courses[0].code);
-    }
-  }, [courses, selectedCourseCode, isAddingNewCourse]);
-
   const selectedCourse = courses.find((c) => c.code === selectedCourseCode) || null;
   const selectedCourseClasses = selectedCourse
     ? courseClasses.filter((cc) => cc.courseId === selectedCourse.id)
@@ -246,8 +240,8 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
   return (
     <div className="relative flex-1 min-h-0">
       <div className="pr-80 h-full overflow-y-auto custom-scrollbar">
-        <div className="bg-white rounded-lg border border-[#c4c6cf]">
-          {displayCourse ? (
+        {displayCourse ? (
+          <div className="bg-white rounded-lg border border-[#c4c6cf]">
             <CourseDetailPanel
               key={displayCourse.id || '__new__'}
               isNewCourse={isAddingNewCourse}
@@ -260,12 +254,16 @@ export const CoursesPage: React.FC<CoursesPageProps> = ({
               onDeleteCourse={handleDeleteCourse}
               onAddClass={() => setShowAddClassModal(true)}
             />
-          ) : (
-            <div className="min-h-[300px] flex items-center justify-center text-[#74777f] text-[14px]">
-              Select a course to view details
-            </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-center px-8 py-24">
+            <span className="material-symbols-outlined text-[64px] text-[#c4c6cf] mb-4">menu_book</span>
+            <h2 className="text-[18px] font-bold text-[#191c1e] mb-2">No Course Selected</h2>
+            <p className="text-[14px] text-[#74777f] max-w-xs">
+              Select a course from the sidebar to view and edit its details and classes.
+            </p>
+          </div>
+        )}
       </div>
 
       <CoursesSidebar
