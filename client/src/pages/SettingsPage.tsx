@@ -73,7 +73,11 @@ export function SettingsPage({
         title="Room & Times"
         subtitle="Manage institutional resources and academic parameters."
         actions={
-          <div />
+          <span className="text-[14px] font-semibold text-white bg-[#002045] px-3 py-1.5 rounded">
+            {currentPeriod
+              ? `${currentPeriod.year} ${currentPeriod.semester === 1 ? 'Ganjil' : 'Genap'}`
+              : 'No semester selected'}
+          </span>
         }
       />
 
