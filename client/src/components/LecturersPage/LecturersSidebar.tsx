@@ -54,8 +54,6 @@ export const LecturersSidebar: React.FC<LecturersSidebarProps> = ({
   }, []);
 
   const sortedLecturers = useMemo(() => {
-    if (sortBy === 'default') return lecturers;
-
     return [...lecturers].sort((a, b) => {
       const burdenA = creditBurden[a.id] ?? 0;
       const burdenB = creditBurden[b.id] ?? 0;
@@ -66,7 +64,7 @@ export const LecturersSidebar: React.FC<LecturersSidebarProps> = ({
       if (sortBy === 'name-desc') {
         return b.name.localeCompare(a.name);
       }
-      if (sortBy === 'sks-desc') {
+      if (sortBy === 'sks-desc' || sortBy === 'default') {
         if (burdenB !== burdenA) {
           return burdenB - burdenA;
         }
