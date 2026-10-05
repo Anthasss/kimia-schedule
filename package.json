@@ -10,6 +10,7 @@
     "clean": "rm -rf dist",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx server/db/seed.ts",
+    "db:seed-dump": "tsx server/db/seed-from-dump.ts",
     "seed-admin": "tsx server/db/seed-admin.ts",
     "lint": "tsc --noEmit"
   },
