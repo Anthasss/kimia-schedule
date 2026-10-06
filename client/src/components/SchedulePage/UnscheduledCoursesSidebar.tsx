@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { UnscheduledClass, Lecturer } from '../../types';
 import { CourseDraftCard } from './CourseDraftCard';
-import { ColorMode } from '../../constants';
+import { ColorMode, GridMode } from '../../constants';
 
 export interface PeriodRef {
   year: string;
@@ -36,6 +36,8 @@ interface UnscheduledCoursesSidebarProps {
   onDeleteCurrentPeriod: () => void;
   colorMode: ColorMode;
   onToggleColorMode: () => void;
+  gridMode: GridMode;
+  onToggleGridMode: () => void;
 }
 
 export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps> = ({
@@ -62,6 +64,8 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
   onDeleteCurrentPeriod,
   colorMode,
   onToggleColorMode,
+  gridMode,
+  onToggleGridMode,
 }) => {
   const [showPeriodMenu, setShowPeriodMenu] = useState(false);
   const periodMenuRef = useRef<HTMLDivElement>(null);
@@ -182,6 +186,16 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
         >
           <span className="material-symbols-outlined text-[17px]">
             {colorMode === 'semester' ? 'toggle_on' : 'toggle_off'}
+          </span>
+        </button>
+        <button
+          onClick={onToggleGridMode}
+          aria-label={`Columns by ${gridMode}`}
+          title={`Columns by ${gridMode === 'room' ? 'room — click for semester' : 'semester — click for room (view only)'}`}
+          className="h-8 w-8 flex items-center justify-center bg-[#4f46e5] text-white rounded-md p-1.5 hover:bg-[#4338ca] cursor-pointer shrink-0"
+        >
+          <span className="material-symbols-outlined text-[17px]">
+            {gridMode === 'room' ? 'grid_view' : 'view_column'}
           </span>
         </button>
         <button

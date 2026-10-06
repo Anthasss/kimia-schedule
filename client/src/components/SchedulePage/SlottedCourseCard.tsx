@@ -3,7 +3,7 @@ import { ScheduleSlot, Lecturer } from '../../types';
 import { ClassData } from '../../utils/classData';
 import { cleanLecturerName } from '../../utils/rotationSolver';
 import { useFitScale } from '../../hooks/useFitScale';
-import { ColorMode, semesterColor } from '../../constants';
+import { ColorMode, semesterColor, CARD_MIN_WIDTH } from '../../constants';
 
 interface SlottedCourseCardProps {
   slot: ScheduleSlot;
@@ -12,6 +12,7 @@ interface SlottedCourseCardProps {
   turns?: string;
   onRemove?: (slotId: string) => void;
   colorMode?: ColorMode;
+  roomName?: string;
 }
 
 export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
@@ -21,6 +22,7 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
   turns,
   onRemove,
   colorMode = 'lecturer',
+  roomName,
 }) => {
   const data = classById.get(slot.classId);
   const primary = data?.lecturers[0];
@@ -33,13 +35,16 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
   const boxRef = useRef<HTMLDivElement>(null);
   useFitScale(boxRef);
 
-  const hasBadge = !!data && data.course.semester.length > 0;
+  const hasSemBadge = !!data && data.course.semester.length > 0;
+  const hasRoomBadge = !!roomName;
+  const hasBadge = hasSemBadge || hasRoomBadge;
 
   return (
     <div
       ref={boxRef}
       className="rounded border transition-all text-left relative group h-full overflow-hidden text-[#191c1e] hover:border-[#002045]"
       style={{
+        minWidth: CARD_MIN_WIDTH,
         borderLeftWidth: '3px',
         borderLeftColor: accentColor,
         backgroundColor: `${accentColor}0D`,
@@ -64,13 +69,22 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
         </div>
         <p className="text-[12px] text-[#374151] mt-1 whitespace-pre-line">{turns || classLecturerNames.map(cleanLecturerName).join('\n')}</p>
       </div>
-      {data && data.course.semester.length > 0 && (
-        <span
-          className="absolute bottom-1 right-1 text-[11px] font-bold px-1.5 py-0.5 text-white rounded"
-          style={{ backgroundColor: semesterColor(data.course.semester) }}
-        >
-          Sem {data.course.semester.join(', ')}
-        </span>
+      {hasBadge && (
+        <div className="absolute bottom-1 right-1 flex gap-1 items-center">
+          {hasRoomBadge && (
+            <span className="text-[11px] font-bold px-1.5 py-0.5 text-white rounded bg-[#002045]">
+              {roomName}
+            </span>
+          )}
+          {hasSemBadge && (
+            <span
+              className="text-[11px] font-bold px-1.5 py-0.5 text-white rounded"
+              style={{ backgroundColor: semesterColor(data!.course.semester) }}
+            >
+              Sem {data!.course.semester.join(', ')}
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

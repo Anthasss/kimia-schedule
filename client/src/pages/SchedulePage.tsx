@@ -26,7 +26,7 @@ import { YearPicker } from '../components/SchedulePage/YearPicker';
 import { exportScheduleToPdf } from '../utils/exportToPdf';
 import { periodOrder } from '../utils/periodOrder';
 import { apiDelete, apiPost } from '../api';
-import { ColorMode } from '../constants';
+import { ColorMode, GridMode } from '../constants';
 
 interface SchedulePageProps {
   rooms: Room[];
@@ -83,6 +83,7 @@ export function SchedulePage({
   const [newPeriodSemester, setNewPeriodSemester] = useState<1 | 2>(1);
   const [showDeletePeriodModal, setShowDeletePeriodModal] = useState(false);
   const [isDeletingPeriod, setIsDeletingPeriod] = useState(false);
+  const [gridMode, setGridMode] = useState<GridMode>('room');
 
   const currentPeriod = useMemo(
     () => semesterPeriods.find((p) => p.id === sksSettings.currentPeriodId) ?? null,
@@ -176,6 +177,31 @@ export function SchedulePage({
   const classById = useMemo(
     () => buildClassById(courseClasses, courses, classLecturerAssignments, lecturers),
     [courseClasses, courses, classLecturerAssignments, lecturers]
+  );
+
+  // ponytail: semester column = lowest semester matching the period's parity (ganjil→odd, genap→even)
+  const semesterColumnOf = useCallback(
+    (slot: ScheduleSlot): string | null => {
+      const sems = classById.get(slot.classId)?.course.semester ?? [];
+      const parity = currentPeriod ? currentPeriod.semester % 2 : null;
+      const match = sems.filter((s) => parity === null || s % 2 === parity);
+      return match.length > 0 ? `sem-${Math.min(...match)}` : null;
+    },
+    [classById, currentPeriod]
+  );
+
+  const semesterColumns = useMemo(() => {
+    const nums = new Set<number>();
+    for (const s of visibleSlots) {
+      const col = semesterColumnOf(s);
+      if (col) nums.add(Number(col.slice(4)));
+    }
+    return [...nums].sort((a, b) => a - b).map((n) => ({ id: `sem-${n}`, name: `Sem ${n}` }));
+  }, [visibleSlots, semesterColumnOf]);
+
+  const roomNameOf = useCallback(
+    (slot: ScheduleSlot) => rooms.find((r) => r.id === slot.roomId)?.name,
+    [rooms]
   );
 
   const handleReset = useCallback(async () => {
@@ -303,15 +329,19 @@ export function SchedulePage({
           onDeleteCurrentPeriod={requestDeleteCurrentPeriod}
           colorMode={colorMode}
           onToggleColorMode={() => setColorMode((m) => (m === 'lecturer' ? 'semester' : 'lecturer'))}
+          gridMode={gridMode}
+          onToggleGridMode={() => setGridMode((m) => (m === 'room' ? 'semester' : 'room'))}
         />
       }
     >
-      <div className="space-y-6 overflow-y-auto overflow-x-auto custom-scrollbar pr-1">
+      <div className="space-y-6 pr-1">
           {days.map((day) => (
             <ScheduleDayGrid
               key={day}
               day={day}
-              gridRooms={rooms}
+              gridRooms={gridMode === 'semester' ? semesterColumns : rooms}
+              columnOf={gridMode === 'semester' ? semesterColumnOf : undefined}
+              roomNameOf={gridMode === 'semester' ? roomNameOf : undefined}
               gridRows={gridRows}
               slotRowLabels={slotRowLabels}
               scheduleSlots={visibleSlots}
