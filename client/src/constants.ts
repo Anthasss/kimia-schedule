@@ -12,6 +12,7 @@ export const LECTURER_COLORS = [
 ];
 
 export type ColorMode = 'lecturer' | 'semester';
+export type GridMode = 'room' | 'semester';
 
 // one color per semester 1-14 (index 0 = sem 1)
 export const SEMESTER_COLORS = [

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Room, ScheduleSlot, Lecturer, DayOfWeek, UnscheduledClass } from '../../types';
+import { ScheduleSlot, Lecturer, DayOfWeek, UnscheduledClass } from '../../types';
 import { GridRow } from '../../utils/scheduleTimeSlots';
 import { ClassData } from '../../utils/classData';
 import { solveRotation, getWeeklyTurnsForSlots } from '../../utils/rotationSolver';
@@ -8,9 +8,49 @@ import { SlottedCourseCard } from './SlottedCourseCard';
 import { EmptyCell } from './EmptyCell';
 import { ColorMode } from '../../constants';
 
+type SlotEntry = { slot: ScheduleSlot; start: number; sks: number };
+
+interface Cluster {
+  members: SlotEntry[];
+  start: number;
+  end: number;
+}
+
+// group a column's slots into overlapping clusters — one cluster = one grid cell
+function clusterSlots(entries: SlotEntry[]): Cluster[] {
+  const sorted = [...entries].sort((a, b) => a.start - b.start || b.sks - a.sks);
+  const out: Cluster[] = [];
+  for (const e of sorted) {
+    const cur = out[out.length - 1];
+    if (cur && e.start < cur.end) {
+      cur.members.push(e);
+      cur.end = Math.max(cur.end, e.start + e.sks);
+    } else {
+      out.push({ members: [e], start: e.start, end: e.start + e.sks });
+    }
+  }
+  return out;
+}
+
+// first-fit side-by-side lanes so overlapping members don't occlude each other
+function assignLanes(members: SlotEntry[]): number[] {
+  const laneEnds: number[] = [];
+  return members.map((m) => {
+    let lane = laneEnds.findIndex((end) => end <= m.start);
+    if (lane === -1) {
+      lane = laneEnds.length;
+      laneEnds.push(m.start + m.sks);
+    } else {
+      laneEnds[lane] = m.start + m.sks;
+    }
+    return lane;
+  });
+}
+
 interface ScheduleDayGridProps {
   day: DayOfWeek;
-  gridRooms: Room[];
+  gridRooms: { id: string; name: string }[];
+  columnOf?: (slot: ScheduleSlot) => string | null;
   gridRows: GridRow[];
   slotRowLabels: string[];
   scheduleSlots: ScheduleSlot[];
@@ -36,6 +76,7 @@ function slotSks(slot: ScheduleSlot, classById: Map<string, ClassData>): number 
 export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
   day,
   gridRooms,
+  columnOf,
   gridRows,
   slotRowLabels,
   scheduleSlots,
@@ -49,6 +90,10 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
   readOnly = false,
   colorMode = 'lecturer',
 }) => {
+  // ponytail: columnOf present = semester view mode — pure viewing, no place/remove
+  const viewOnly = readOnly || columnOf !== undefined;
+  const columnKey = (s: ScheduleSlot) => (columnOf ? columnOf(s) : s.roomId);
+
   const daySlots = useMemo(() => scheduleSlots.filter((s) => s.day === day), [scheduleSlots, day]);
   const turnsByClassId = useMemo(() => {
     return getWeeklyTurnsForSlots(daySlots, slotRowLabels, classById);
@@ -238,46 +283,68 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                     </div>
                   </div>
 
-                  {/* Room cells for this row */}
+                  {/* Column cells for this row */}
                   {gridRooms.map((room) => {
-                    const roomSlots = scheduleSlots.filter(
-                      (s) => s.day === day && s.roomId === room.id
-                    );
+                    const columnEntries: SlotEntry[] = scheduleSlots
+                      .filter((s) => s.day === day && columnKey(s) === room.id)
+                      .map((s) => ({
+                        slot: s,
+                        start: slotStartIndex(s, slotRowLabels),
+                        sks: slotSks(s, classById),
+                      }))
+                      .filter((e) => e.start !== -1);
 
-                    const startSlot = roomSlots.find((s) => slotStartIndex(s, slotRowLabels) === slotRowIdx);
+                    const clusters = clusterSlots(columnEntries);
+                    const cluster = clusters.find((c) => c.start === slotRowIdx);
 
-                    const spanningSlot = roomSlots.find((s) => {
-                      const startIdx = slotStartIndex(s, slotRowLabels);
-                      return (
-                        startIdx !== -1 && startIdx < slotRowIdx && slotRowIdx < startIdx + slotSks(s, classById)
-                      );
-                    });
-
-                    if (startSlot) {
-                      const startSks = slotSks(startSlot, classById);
+                    if (cluster) {
+                      const span = cluster.end - cluster.start;
+                      const lanes = assignLanes(cluster.members);
+                      const laneCount = Math.max(...lanes) + 1;
                       return (
                         <div
                           key={room.id}
                           className="px-2 py-2 border-r border-b border-[#c4c6cf] overflow-hidden"
-                          style={{ gridRow: `span ${startSks}` }}
+                          style={{ gridRow: `span ${span}` }}
                         >
-                          <SlottedCourseCard
-                            slot={startSlot}
-                            lecturers={lecturers}
-                            classById={classById}
-                            turns={turnsByClassId.get(startSlot.classId)}
-                            onRemove={readOnly ? undefined : onRemoveSlot}
-                            colorMode={colorMode}
-                          />
+                          <div className="relative h-full">
+                            {cluster.members.map((entry, i) => {
+                              const lane = lanes[i];
+                              return (
+                                <div
+                                  key={entry.slot.id}
+                                  className="absolute"
+                                  style={{
+                                    top: `${((entry.start - cluster.start) / span) * 100}%`,
+                                    height: `${(entry.sks / span) * 100}%`,
+                                    left: `${(lane / laneCount) * 100}%`,
+                                    width: `${100 / laneCount}%`,
+                                    paddingRight: lane < laneCount - 1 ? 4 : 0,
+                                    boxSizing: 'border-box',
+                                  }}
+                                >
+                                  <SlottedCourseCard
+                                    slot={entry.slot}
+                                    lecturers={lecturers}
+                                    classById={classById}
+                                    turns={turnsByClassId.get(entry.slot.classId)}
+                                    onRemove={viewOnly ? undefined : onRemoveSlot}
+                                    colorMode={colorMode}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       );
                     }
 
-                    if (spanningSlot) {
+                    const covered = clusters.some((c) => c.start < slotRowIdx && slotRowIdx < c.end);
+                    if (covered) {
                       return null;
                     }
 
-                    if (readOnly) {
+                    if (viewOnly) {
                       return (
                         <div
                           key={room.id}
