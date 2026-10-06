@@ -21,34 +21,23 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
 }
 
-// card background on screen = accent at #0D alpha over white
-function tintOverWhite(hex: string): [number, number, number] {
-  const [r, g, b] = hexToRgb(hex);
-  const a = 13 / 255;
-  return [
-    Math.round(r * a + 255 * (1 - a)),
-    Math.round(g * a + 255 * (1 - a)),
-    Math.round(b * a + 255 * (1 - a)),
-  ];
-}
-
 // ponytail: fixed layout constants, tune if measure fails
-const M = 10, PW = 210, PH = 297, BM = 15, TW = 30;
-// card metrics in mm (screen: 3px bar, px-2 padding, 11px badges @96dpi)
-const PAD = 1, GAP = 1, BAR = 0.8, BADGE_H = 3.2;
+const M = 10, PW = 210, PH = 297, BM = 15, TW = 20;
+// card metrics in mm (solid accent bg, no bar — text spans the card)
+const PAD = 1, GAP = 1, BADGE_H = 3.2;
 
 function pageBreak(pdf: jsPDF, y: number, need: number): number {
   if (y + need > PH - BM) { pdf.addPage(); return M; }
   return y;
 }
 
-// right-aligned badge; returns the x to the left of it for chaining
+// white chip w/ colored text + hairline, so it stays visible on any accent
 function drawBadge(
   pdf: jsPDF,
   xRight: number,
   y: number,
   text: string,
-  bg: [number, number, number],
+  color: [number, number, number],
   minX: number
 ): number {
   pdf.setFont('helvetica', 'bold');
@@ -60,14 +49,16 @@ function drawBadge(
     bw = pdf.getTextWidth(label) + 1.6;
   }
   if (xRight - bw < minX) return xRight;
-  pdf.setFillColor(bg[0], bg[1], bg[2]);
-  pdf.rect(xRight - bw, y, bw, BADGE_H, 'F');
-  pdf.setTextColor(255, 255, 255);
+  pdf.setFillColor(255, 255, 255);
+  pdf.setDrawColor(color[0], color[1], color[2]);
+  pdf.setLineWidth(0.15);
+  pdf.rect(xRight - bw, y, bw, BADGE_H, 'FD');
+  pdf.setTextColor(color[0], color[1], color[2]);
   pdf.text(label, xRight - bw + 0.8, y + BADGE_H - 1.1);
   return xRight - bw - 1;
 }
 
-// mirrors SlottedCourseCard: tinted bg, dark outline, 3px accent bar, badges bottom-right
+// solid accent background; text flips to white on dark accents (YIQ)
 function drawCard(
   pdf: jsPDF,
   x: number,
@@ -81,17 +72,19 @@ function drawCard(
 ) {
   if (w <= 3 || h <= 3) return;
   const [ar, ag, ab] = hexToRgb(accent);
-  const [tr, tg, tb] = tintOverWhite(accent);
-  pdf.setFillColor(tr, tg, tb);
+  pdf.setFillColor(ar, ag, ab);
   pdf.rect(x, y, w, h, 'F');
   pdf.setDrawColor(25, 28, 30);
   pdf.setLineWidth(0.2);
   pdf.rect(x, y, w, h, 'S');
-  pdf.setFillColor(ar, ag, ab);
-  pdf.rect(x, y, BAR, h, 'F');
 
-  const tx = x + BAR + 1;
-  const textW = w - BAR - 2;
+  const dark = (299 * ar + 587 * ag + 114 * ab) / 1000 < 128;
+  const titleC: [number, number, number] = dark ? [255, 255, 255] : [25, 28, 30];
+  const bodyC: [number, number, number] = dark ? [232, 235, 241] : [55, 65, 81];
+  const subC: [number, number, number] = dark ? [205, 212, 225] : [80, 95, 118];
+
+  const tx = x + 1;
+  const textW = w - 2;
   if (textW <= 4) return;
 
   // badges sit in a bottom band; text stops above them
@@ -107,36 +100,36 @@ function drawCard(
 
   // title + inline (letter) like the card
   pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(8);
-  pdf.setTextColor(25, 28, 30);
+  pdf.setFontSize(7);
+  pdf.setTextColor(titleC[0], titleC[1], titleC[2]);
   const titleLines: string[] = pdf.splitTextToSize(data?.course.title ?? '', textW);
-  let cursor = y + PAD + 3;
+  let cursor = y + PAD + 2.6;
   for (let li = 0; li < titleLines.length && cursor <= contentBottom; li++) {
     pdf.text(titleLines[li], tx, cursor);
     if (li === titleLines.length - 1 && data) {
       pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(7);
-      pdf.setTextColor(80, 95, 118);
+      pdf.setFontSize(6);
+      pdf.setTextColor(subC[0], subC[1], subC[2]);
       const letter = `(${data.class.classLetter ?? ''})`;
       const lw = pdf.getTextWidth(letter);
       if (pdf.getTextWidth(titleLines[li]) + 1 + lw <= textW) {
         pdf.text(letter, tx + pdf.getTextWidth(titleLines[li]) + 1, cursor);
       } else {
-        cursor += 3;
+        cursor += 2.6;
         if (cursor <= contentBottom) pdf.text(letter, tx, cursor);
       }
     }
-    cursor += 3;
+    cursor += 2.6;
   }
   cursor += 1;
 
   pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(7);
-  pdf.setTextColor(55, 65, 81);
+  pdf.setFontSize(6);
+  pdf.setTextColor(bodyC[0], bodyC[1], bodyC[2]);
   for (const line of pdf.splitTextToSize(turnsText, textW) as string[]) {
     if (cursor > contentBottom) break;
     pdf.text(line, tx, cursor);
-    cursor += 2.7;
+    cursor += 2.4;
   }
 }
 
@@ -324,10 +317,10 @@ export async function exportScheduleToPdf(
             || (data?.lecturers ?? []).map((l) => cleanLecturerName(l.name)).join('\n');
           drawCard(
             pdf,
-            cellX + PAD,
-            cellY + PAD,
-            cellW - 2 * PAD,
-            cellH - 2 * PAD,
+            cellX,
+            cellY,
+            cellW,
+            cellH,
             data,
             accent,
             turnsText,
