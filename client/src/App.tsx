@@ -385,7 +385,11 @@ export default function App() {
                       semesterPeriods={semesterPeriods}
                       setSemesterPeriods={setSemesterPeriods}
                       schedules={schedules}
-                      onPeriodChange={(p, periods) => handlePeriodChange(p, periods ?? semesterPeriods, schedules, setSchedules)}
+                      onPeriodChange={async (p, periods) => {
+                        await handlePeriodChange(p, periods ?? semesterPeriods, schedules, setSchedules);
+                        // ponytail: server copies breaks on period create but doesn't return them — refetch instead of changing the response shape
+                        setBreakTimes(await fetch('/api/break-times').then((r) => r.json()));
+                      }}
                       onDeleteCurrentPeriod={handleDeleteCurrentPeriod}
                       pendingAdds={pendingAdds}
                       setPendingAdds={setPendingAdds}

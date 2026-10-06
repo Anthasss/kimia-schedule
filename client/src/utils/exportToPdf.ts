@@ -31,31 +31,32 @@ function pageBreak(pdf: jsPDF, y: number, need: number): number {
   return y;
 }
 
-// white chip w/ colored text + hairline, so it stays visible on any accent
+// white chip w/ colored text + hairline, so it stays visible on any accent.
+// font shrinks to fit the lane (down to 3pt); skip only below that (no "…")
 function drawBadge(
   pdf: jsPDF,
   xRight: number,
   y: number,
   text: string,
   color: [number, number, number],
-  minX: number
-): number {
+  minX: number,
+  bh: number
+): void {
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(5);
-  let label = text;
-  let bw = pdf.getTextWidth(label) + 1.6;
-  while (label.length > 1 && xRight - bw < minX) {
-    label = `${label.slice(0, -2)}…`;
-    bw = pdf.getTextWidth(label) + 1.6;
-  }
-  if (xRight - bw < minX) return xRight;
+  const avail = xRight - minX;
+  const tw = pdf.getTextWidth(text);
+  if (avail <= 2 || tw <= 0) return;
+  const fs = Math.min(5, Math.max(3, (5 * (avail - 1.6)) / tw));
+  pdf.setFontSize(fs);
+  const bw = pdf.getTextWidth(text) + 1.6;
+  if (bw > avail) return;
   pdf.setFillColor(255, 255, 255);
   pdf.setDrawColor(color[0], color[1], color[2]);
   pdf.setLineWidth(0.15);
-  pdf.rect(xRight - bw, y, bw, BADGE_H, 'FD');
+  pdf.rect(xRight - bw, y, bw, bh, 'FD');
   pdf.setTextColor(color[0], color[1], color[2]);
-  pdf.text(label, xRight - bw + 0.8, y + BADGE_H - 1.1);
-  return xRight - bw - 1;
+  pdf.text(text, xRight - bw + 0.8, y + bh - 1.1);
 }
 
 // solid accent background; text flips to white on dark accents (YIQ)
@@ -87,16 +88,20 @@ function drawCard(
   const textW = w - 2;
   if (textW <= 4) return;
 
-  // badges sit in a bottom band; text stops above them
-  const badgeY = y + h - PAD - BADGE_H;
-  const contentBottom = badgeY - 1;
-  let bx = x + w - PAD;
+  // badges stack vertically, each on its own row with the full cell width
+  // (side-by-side forced "…" when the combined label exceeded the lane)
+  const badges: [string, [number, number, number]][] = [];
   if (data && data.course.semester.length > 0) {
-    bx = drawBadge(pdf, bx, badgeY, `Sem ${data.course.semester.join(', ')}`, hexToRgb(semesterColor(data.course.semester)), x + PAD);
+    badges.push([`Sem ${data.course.semester.join(', ')}`, hexToRgb(semesterColor(data.course.semester))]);
   }
-  if (roomName) {
-    drawBadge(pdf, bx, badgeY, roomName, [0, 32, 69], x + PAD);
-  }
+  if (roomName) badges.push([roomName, [0, 32, 69]]);
+  const bh = badges.length > 1 ? 2.8 : BADGE_H; // fit 2 rows in a 1-SKS (12mm) card
+  const bGap = 0.5;
+  const badgeTop = y + h - PAD - (badges.length ? badges.length * bh + (badges.length - 1) * bGap : 0);
+  const contentBottom = badgeTop - 1;
+  badges.forEach((b, i) =>
+    drawBadge(pdf, x + w - PAD, badgeTop + i * (bh + bGap), b[0], b[1], x + PAD, bh)
+  );
 
   // title + inline (letter) like the card
   pdf.setFont('helvetica', 'bold');
@@ -107,13 +112,14 @@ function drawCard(
   for (let li = 0; li < titleLines.length && cursor <= contentBottom; li++) {
     pdf.text(titleLines[li], tx, cursor);
     if (li === titleLines.length - 1 && data) {
+      const titleW = pdf.getTextWidth(titleLines[li]); // still bold 7 — measure before switching
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(6);
       pdf.setTextColor(subC[0], subC[1], subC[2]);
       const letter = `(${data.class.classLetter ?? ''})`;
       const lw = pdf.getTextWidth(letter);
-      if (pdf.getTextWidth(titleLines[li]) + 1 + lw <= textW) {
-        pdf.text(letter, tx + pdf.getTextWidth(titleLines[li]) + 1, cursor);
+      if (titleW + 1 + lw <= textW) {
+        pdf.text(letter, tx + titleW + 1, cursor);
       } else {
         cursor += 2.6;
         if (cursor <= contentBottom) pdf.text(letter, tx, cursor);
