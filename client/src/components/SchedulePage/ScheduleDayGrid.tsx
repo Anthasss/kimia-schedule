@@ -7,45 +7,7 @@ import { solveRotation, getWeeklyTurnsForSlots } from '../../utils/rotationSolve
 import { SlottedCourseCard } from './SlottedCourseCard';
 import { EmptyCell } from './EmptyCell';
 import { ColorMode, CARD_MIN_WIDTH } from '../../constants';
-
-type SlotEntry = { slot: ScheduleSlot; start: number; sks: number };
-
-interface Cluster {
-  members: SlotEntry[];
-  start: number;
-  end: number;
-}
-
-// group a column's slots into overlapping clusters — one cluster = one grid cell
-function clusterSlots(entries: SlotEntry[]): Cluster[] {
-  const sorted = [...entries].sort((a, b) => a.start - b.start || b.sks - a.sks);
-  const out: Cluster[] = [];
-  for (const e of sorted) {
-    const cur = out[out.length - 1];
-    if (cur && e.start < cur.end) {
-      cur.members.push(e);
-      cur.end = Math.max(cur.end, e.start + e.sks);
-    } else {
-      out.push({ members: [e], start: e.start, end: e.start + e.sks });
-    }
-  }
-  return out;
-}
-
-// first-fit side-by-side lanes so overlapping members don't occlude each other
-function assignLanes(members: SlotEntry[]): number[] {
-  const laneEnds: number[] = [];
-  return members.map((m) => {
-    let lane = laneEnds.findIndex((end) => end <= m.start);
-    if (lane === -1) {
-      lane = laneEnds.length;
-      laneEnds.push(m.start + m.sks);
-    } else {
-      laneEnds[lane] = m.start + m.sks;
-    }
-    return lane;
-  });
-}
+import { Cluster, SlotEntry, slotStartIndex, slotSks, clusterSlots, assignLanes } from '../../utils/gridLanes';
 
 interface ScheduleDayGridProps {
   day: DayOfWeek;
@@ -64,14 +26,6 @@ interface ScheduleDayGridProps {
   onSelectEmpty: (day: DayOfWeek, timeSlot: string, roomId: string) => void;
   readOnly?: boolean;
   colorMode?: ColorMode;
-}
-
-function slotStartIndex(slot: ScheduleSlot, slotRowLabels: string[]): number {
-  return slotRowLabels.findIndex((label) => label.startsWith(slot.startTime));
-}
-
-function slotSks(slot: ScheduleSlot, classById: Map<string, ClassData>): number {
-  return classById.get(slot.classId)?.course.sks ?? 0;
 }
 
 export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({

@@ -204,6 +204,15 @@ export function SchedulePage({
     [rooms]
   );
 
+  // export follows exactly what the grid shows: current columns + current colors
+  const exportOptions = useMemo(
+    () =>
+      gridMode === 'semester'
+        ? { columns: semesterColumns, columnOf: semesterColumnOf, roomNameOf, colorMode }
+        : { colorMode },
+    [gridMode, semesterColumns, semesterColumnOf, roomNameOf, colorMode]
+  );
+
   const handleReset = useCallback(async () => {
     setIsClearing(true);
     try {
@@ -281,22 +290,22 @@ export function SchedulePage({
     }
     setIsExporting(true);
     try {
-      await exportScheduleToPdf(currentSchedule?.id, currentPeriod);
+      await exportScheduleToPdf(currentSchedule?.id, currentPeriod, exportOptions);
     } finally {
       setIsExporting(false);
     }
-  }, [isDirty, currentSchedule, currentPeriod]);
+  }, [isDirty, currentSchedule, currentPeriod, exportOptions]);
 
   const handleConfirmSaveExport = useCallback(async () => {
     setShowSaveExportModal(false);
     setIsExporting(true);
     try {
       await saveChanges();
-      await exportScheduleToPdf(currentSchedule?.id, currentPeriod);
+      await exportScheduleToPdf(currentSchedule?.id, currentPeriod, exportOptions);
     } finally {
       setIsExporting(false);
     }
-  }, [saveChanges, currentSchedule, currentPeriod]);
+  }, [saveChanges, currentSchedule, currentPeriod, exportOptions]);
 
   return (
     <ScheduleLayout
