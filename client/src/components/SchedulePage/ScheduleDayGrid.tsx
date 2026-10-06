@@ -185,7 +185,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
             style={{
               display: 'grid',
               gridTemplateColumns: `80px repeat(${gridRooms.length}, minmax(120px, 1fr))`,
-              gridAutoRows: 'minmax(140px, auto)',
+              gridAutoRows: 'minmax(100px, auto)',
             }}
           >
             {/* Header row */}

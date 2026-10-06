@@ -33,6 +33,8 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
   const boxRef = useRef<HTMLDivElement>(null);
   useFitScale(boxRef);
 
+  const hasBadge = !!data && data.course.semester.length > 0;
+
   return (
     <div
       ref={boxRef}
@@ -43,7 +45,8 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
         backgroundColor: `${accentColor}0D`,
       }}
     >
-      <div className="p-2 origin-top-left">
+      {/* ponytail: bottom padding reserves the badge's bottom-right band */}
+      <div className={`p-2 origin-top-left ${hasBadge ? 'pb-7' : ''}`}>
         <div className="flex justify-between items-start">
           <p className="font-semibold text-[13px] text-[#191c1e] leading-tight">
             {data?.course.title ?? ''}
