@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import { pgTable, pgEnum, serial, text, integer, boolean, jsonb, foreignKey, unique, timestamp, index } from 'drizzle-orm/pg-core';
 
 export const dayOfWeekEnum = pgEnum('day_of_week', [
@@ -60,7 +60,8 @@ export const courses = pgTable('courses', {
   code: text('code').notNull(),
   title: text('title').notNull(),
   sks: integer('sks').notNull(),
-  semester: text('semester').notNull().default('Both'),
+  // which semesters (1..14) this course is offered in; odd = ganjil, even = genap
+  semester: integer('semester').array().notNull().default(sql`'{1}'`),
 }, (table) => [
   unique('courses_code_unique').on(table.code),
 ]);

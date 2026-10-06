@@ -8,8 +8,10 @@ interface EditableCourseInfo {
   code: string;
   title: string;
   sks: number;
-  semester: string;
+  semester: number[];
 }
+
+const SEMESTERS = Array.from({ length: 14 }, (_, i) => i + 1);
 
 interface EditableClass {
   classLetter: string;
@@ -107,7 +109,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
 
   const isDirty = useMemo(() => {
     if (isNewCourse) return true;
-    if (editCourse.code !== course.code || editCourse.title !== course.title || editCourse.sks !== course.sks || editCourse.semester !== course.semester) return true;
+    if (editCourse.code !== course.code || editCourse.title !== course.title || editCourse.sks !== course.sks || editCourse.semester.join(',') !== course.semester.join(',')) return true;
     if (deletedClassIds.length > 0) return true;
     for (const cc of courseClasses) {
       const edit = editClasses[cc.id];
@@ -143,6 +145,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
       if (!editCourse.code?.trim()) errors.add('code');
       if (!editCourse.title?.trim()) errors.add('title');
       if (!editCourse.sks || editCourse.sks < 1) errors.add('sks');
+      if (editCourse.semester.length === 0) errors.add('semester');
 
       const activeClasses = localClasses.filter((lc) => !deletedClassIds.includes(lc.tempId));
       if (activeClasses.length === 0) {
@@ -232,6 +235,20 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
     });
   };
 
+  const toggleSemester = (n: number) => {
+    setEditCourse((prev) => ({
+      ...prev,
+      semester: (prev.semester.includes(n) ? prev.semester.filter((s) => s !== n) : [...prev.semester, n]).sort(
+        (a, b) => a - b
+      ),
+    }));
+    setErrorFields((prev) => {
+      const next = new Set(prev);
+      next.delete('semester');
+      return next;
+    });
+  };
+
   const displayClasses = useMemo(() => {
     if (!isNewCourse) return courseClasses;
     return localClasses.map((lc) => ({
@@ -308,7 +325,7 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
             }`}
           />
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-[12px] text-[#74777f] font-semibold mb-1.5 uppercase tracking-wide">Course Code</label>
             <input
@@ -335,18 +352,32 @@ export const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({
               className={inputClass('sks')}
             />
           </div>
-          <div>
-            <label className="block text-[12px] text-[#74777f] font-semibold mb-1.5 uppercase tracking-wide">Semester</label>
-            <select
-              value={editCourse.semester}
-              onChange={(e) => setEditCourse((prev) => ({ ...prev, semester: e.target.value }))}
-              className="w-full text-[14px] text-[#191c1e] bg-[#f2f4f6] px-3 py-2 rounded border border-[#c4c6cf] outline-none cursor-pointer focus:ring-1 focus:ring-[#002045]"
-            >
-              <option value="Ganjil">Ganjil</option>
-              <option value="Genap">Genap</option>
-              <option value="Both">Both</option>
-            </select>
+        </div>
+        <div>
+          <label className="block text-[12px] text-[#74777f] font-semibold mb-1.5 uppercase tracking-wide">
+            Semester{editCourse.semester.length > 0 ? ` (${editCourse.semester.length} selected)` : ''}
+          </label>
+          <div
+            className={`flex flex-wrap gap-1.5 ${
+              errorFields.has('semester') ? 'border-2 border-[#ba1a1a] rounded-md p-1.5' : ''
+            }`}
+          >
+            {SEMESTERS.map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => toggleSemester(n)}
+                className={`w-8 h-8 text-[13px] font-semibold rounded-md transition-colors cursor-pointer ${
+                  editCourse.semester.includes(n)
+                    ? 'bg-[#002045] text-white'
+                    : 'bg-[#f2f4f6] text-[#43474e] border border-[#c4c6cf] hover:bg-[#e8eaec]'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
           </div>
+          <p className="text-[11px] text-[#74777f] mt-1">Odd = Ganjil, even = Genap. Pick every semester this course is offered.</p>
         </div>
       </div>
 

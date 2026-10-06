@@ -23,6 +23,7 @@ import { computeCreditBurden } from '../utils/creditBurden';
 import { buildClassById } from '../utils/classData';
 import { computeTimeSlots } from '../utils/scheduleTimeSlots';
 import { exportScheduleToPdf } from '../utils/exportToPdf';
+import { ColorMode } from '../constants';
 
 interface LecturersPageProps {
   lecturers: Lecturer[];
@@ -37,6 +38,7 @@ interface LecturersPageProps {
   breakTimes: BreakTime[];
   semesterPeriods: SemesterPeriod[];
   schedules: Schedule[];
+  colorMode?: ColorMode;
 }
 
 export function LecturersPage({
@@ -52,6 +54,7 @@ export function LecturersPage({
   breakTimes,
   semesterPeriods,
   schedules,
+  colorMode = 'lecturer',
 }: LecturersPageProps) {
   const [search, setSearch] = useState('');
   const [editingLecturer, setEditingLecturer] = useState<Lecturer | null>(null);
@@ -236,6 +239,7 @@ export function LecturersPage({
               onRemoveSlot={() => undefined}
               onSelectEmpty={() => undefined}
               readOnly
+              colorMode={colorMode}
             />
           ))}
         </div>

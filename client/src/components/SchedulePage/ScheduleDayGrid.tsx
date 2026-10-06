@@ -6,6 +6,7 @@ import { ClassData } from '../../utils/classData';
 import { solveRotation, getWeeklyTurnsForSlots } from '../../utils/rotationSolver';
 import { SlottedCourseCard } from './SlottedCourseCard';
 import { EmptyCell } from './EmptyCell';
+import { ColorMode } from '../../constants';
 
 interface ScheduleDayGridProps {
   day: DayOfWeek;
@@ -21,6 +22,7 @@ interface ScheduleDayGridProps {
   onRemoveSlot: (slotId: string) => void;
   onSelectEmpty: (day: DayOfWeek, timeSlot: string, roomId: string) => void;
   readOnly?: boolean;
+  colorMode?: ColorMode;
 }
 
 function slotStartIndex(slot: ScheduleSlot, slotRowLabels: string[]): number {
@@ -45,6 +47,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
   onRemoveSlot,
   onSelectEmpty,
   readOnly = false,
+  colorMode = 'lecturer',
 }) => {
   const daySlots = useMemo(() => scheduleSlots.filter((s) => s.day === day), [scheduleSlots, day]);
   const turnsByClassId = useMemo(() => {
@@ -264,6 +267,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                             classById={classById}
                             turns={turnsByClassId.get(startSlot.classId)}
                             onRemove={readOnly ? undefined : onRemoveSlot}
+                            colorMode={colorMode}
                           />
                         </div>
                       );

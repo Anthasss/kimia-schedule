@@ -26,6 +26,7 @@ import { YearPicker } from '../components/SchedulePage/YearPicker';
 import { exportScheduleToPdf } from '../utils/exportToPdf';
 import { periodOrder } from '../utils/periodOrder';
 import { apiDelete, apiPost } from '../api';
+import { ColorMode } from '../constants';
 
 interface SchedulePageProps {
   rooms: Room[];
@@ -46,6 +47,8 @@ interface SchedulePageProps {
   setPendingAdds: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
   pendingRemoves: string[];
   setPendingRemoves: React.Dispatch<React.SetStateAction<string[]>>;
+  colorMode: ColorMode;
+  setColorMode: React.Dispatch<React.SetStateAction<ColorMode>>;
 }
 
 export function SchedulePage({
@@ -67,6 +70,8 @@ export function SchedulePage({
   setPendingAdds,
   pendingRemoves,
   setPendingRemoves,
+  colorMode,
+  setColorMode,
 }: SchedulePageProps) {
 
   const [showClearGridModal, setShowClearGridModal] = useState(false);
@@ -296,6 +301,8 @@ export function SchedulePage({
             setShowAddPeriodModal(true);
           }}
           onDeleteCurrentPeriod={requestDeleteCurrentPeriod}
+          colorMode={colorMode}
+          onToggleColorMode={() => setColorMode((m) => (m === 'lecturer' ? 'semester' : 'lecturer'))}
         />
       }
     >
@@ -317,6 +324,7 @@ export function SchedulePage({
               }
               onRemoveSlot={removeSlotFromGrid}
               onSelectEmpty={handleSelectEmpty}
+              colorMode={colorMode}
             />
           ))}
         </div>

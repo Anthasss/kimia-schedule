@@ -22,6 +22,7 @@ import { HistorySidebar, PeriodOverview } from '../components/HistoryPage/Histor
 import { ConfirmModal } from '../components/Shared/ConfirmModal';
 import { exportScheduleToPdf } from '../utils/exportToPdf';
 import { periodOrder } from '../utils/periodOrder';
+import { ColorMode } from '../constants';
 
 interface HistoryPageProps {
   rooms: Room[];
@@ -37,6 +38,7 @@ interface HistoryPageProps {
   currentPeriodId?: string | null;
   hasUnsavedChanges: boolean;
   onLoadFromHistory: (sourcePeriod: SemesterPeriod) => Promise<void>;
+  colorMode?: ColorMode;
 }
 
 function periodLabel(p: SemesterPeriod) {
@@ -62,6 +64,7 @@ export function HistoryPage({
   currentPeriodId,
   hasUnsavedChanges,
   onLoadFromHistory,
+  colorMode = 'lecturer',
 }: HistoryPageProps) {
   const navigate = useNavigate();
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
@@ -245,6 +248,7 @@ export function HistoryPage({
               onRemoveSlot={() => undefined}
               onSelectEmpty={() => undefined}
               readOnly
+              colorMode={colorMode}
             />
           ))}
         </div>
