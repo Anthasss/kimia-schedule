@@ -3,6 +3,7 @@ import { ScheduleSlot, Lecturer } from '../../types';
 import { ClassData } from '../../utils/classData';
 import { cleanLecturerName } from '../../utils/rotationSolver';
 import { useFitScale } from '../../hooks/useFitScale';
+import { ColorMode, semesterColor } from '../../constants';
 
 interface SlottedCourseCardProps {
   slot: ScheduleSlot;
@@ -10,6 +11,7 @@ interface SlottedCourseCardProps {
   classById: Map<string, ClassData>;
   turns?: string;
   onRemove?: (slotId: string) => void;
+  colorMode?: ColorMode;
 }
 
 export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
@@ -18,10 +20,14 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
   classById,
   turns,
   onRemove,
+  colorMode = 'lecturer',
 }) => {
   const data = classById.get(slot.classId);
   const primary = data?.lecturers[0];
-  const lecturerColor = primary?.color || '#6366f1';
+  const accentColor =
+    colorMode === 'semester'
+      ? semesterColor(data?.course.semester ?? [])
+      : primary?.color || '#6366f1';
   const classLecturerNames = data?.lecturers.map((l) => l.name) ?? [];
 
   const boxRef = useRef<HTMLDivElement>(null);
@@ -33,8 +39,8 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
       className="rounded border transition-all text-left relative group h-full overflow-hidden text-[#191c1e] hover:border-[#002045]"
       style={{
         borderLeftWidth: '3px',
-        borderLeftColor: lecturerColor,
-        backgroundColor: `${lecturerColor}0D`,
+        borderLeftColor: accentColor,
+        backgroundColor: `${accentColor}0D`,
       }}
     >
       <div className="p-2 origin-top-left">
@@ -55,6 +61,14 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
         </div>
         <p className="text-[12px] text-[#374151] mt-1 whitespace-pre-line">{turns || classLecturerNames.map(cleanLecturerName).join('\n')}</p>
       </div>
+      {data && data.course.semester.length > 0 && (
+        <span
+          className="absolute bottom-1 right-1 text-[11px] font-bold px-1.5 py-0.5 text-white rounded"
+          style={{ backgroundColor: semesterColor(data.course.semester) }}
+        >
+          Sem {data.course.semester.join(', ')}
+        </span>
+      )}
     </div>
   );
 };

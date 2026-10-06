@@ -20,6 +20,7 @@ import { useBreakTimes } from './hooks/useBreakTimes';
 import { useSksSettings } from './hooks/useSksSettings';
 import { useDataFetching } from './hooks/useDataFetching';
 import { ScheduleSlot, Course, CourseClass, ClassLecturerAssignment, SemesterPeriod, BreakTime, SksSettings, Schedule } from './types';
+import type { ColorMode } from './constants';
 import { apiDelete, apiPost, apiPut } from './api';
 import { ClearGridModal } from './components/SchedulePage/ClearGridModal';
 
@@ -27,6 +28,7 @@ export default function App() {
   const { data: session, isPending } = useSession();
   const [pendingAdds, setPendingAdds] = useState<ScheduleSlot[]>([]);
   const [pendingRemoves, setPendingRemoves] = useState<string[]>([]);
+  const [colorMode, setColorMode] = useState<ColorMode>('lecturer');
   const [scheduleSlots, setScheduleSlots] = useState<ScheduleSlot[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [courseClasses, setCourseClasses] = useState<CourseClass[]>([]);
@@ -351,6 +353,7 @@ export default function App() {
                       breakTimes={breakTimes}
                       semesterPeriods={semesterPeriods}
                       schedules={schedules}
+                      colorMode={colorMode}
                     />
                   }
                 />
@@ -388,6 +391,8 @@ export default function App() {
                       setPendingAdds={setPendingAdds}
                       pendingRemoves={pendingRemoves}
                       setPendingRemoves={setPendingRemoves}
+                      colorMode={colorMode}
+                      setColorMode={setColorMode}
                     />
                   }
                 />
@@ -408,6 +413,7 @@ export default function App() {
                       currentPeriodId={sksSettings.currentPeriodId}
                       hasUnsavedChanges={pendingAdds.length > 0 || pendingRemoves.length > 0}
                       onLoadFromHistory={handleLoadFromHistory}
+                      colorMode={colorMode}
                     />
                   }
                 />
