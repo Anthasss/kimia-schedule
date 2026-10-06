@@ -9,7 +9,7 @@ interface ScheduleLayoutProps {
 export const ScheduleLayout: React.FC<ScheduleLayoutProps> = ({ sidebar, children }) => {
   return (
     <div className="relative flex-1 min-h-0">
-      <div className="pr-80 h-full overflow-y-auto custom-scrollbar">
+      <div className="absolute inset-y-0 left-0 right-80 overflow-y-auto custom-scrollbar">
         {children}
       </div>
 
