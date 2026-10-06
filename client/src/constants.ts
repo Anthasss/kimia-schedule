@@ -14,6 +14,9 @@ export const LECTURER_COLORS = [
 export type ColorMode = 'lecturer' | 'semester';
 export type GridMode = 'room' | 'semester';
 
+// cards never shrink below this — the grid scrolls horizontally instead
+export const CARD_MIN_WIDTH = 110;
+
 // one color per semester 1-14 (index 0 = sem 1)
 export const SEMESTER_COLORS = [
   '#4f46e5', '#e11d48', '#059669', '#d97706', '#0891b2', '#7c3aed', '#ea580c',

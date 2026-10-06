@@ -199,6 +199,11 @@ export function SchedulePage({
     return [...nums].sort((a, b) => a - b).map((n) => ({ id: `sem-${n}`, name: `Sem ${n}` }));
   }, [visibleSlots, semesterColumnOf]);
 
+  const roomNameOf = useCallback(
+    (slot: ScheduleSlot) => rooms.find((r) => r.id === slot.roomId)?.name,
+    [rooms]
+  );
+
   const handleReset = useCallback(async () => {
     setIsClearing(true);
     try {
@@ -336,6 +341,7 @@ export function SchedulePage({
               day={day}
               gridRooms={gridMode === 'semester' ? semesterColumns : rooms}
               columnOf={gridMode === 'semester' ? semesterColumnOf : undefined}
+              roomNameOf={gridMode === 'semester' ? roomNameOf : undefined}
               gridRows={gridRows}
               slotRowLabels={slotRowLabels}
               scheduleSlots={visibleSlots}

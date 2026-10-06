@@ -6,7 +6,7 @@ import { ClassData } from '../../utils/classData';
 import { solveRotation, getWeeklyTurnsForSlots } from '../../utils/rotationSolver';
 import { SlottedCourseCard } from './SlottedCourseCard';
 import { EmptyCell } from './EmptyCell';
-import { ColorMode } from '../../constants';
+import { ColorMode, CARD_MIN_WIDTH } from '../../constants';
 
 type SlotEntry = { slot: ScheduleSlot; start: number; sks: number };
 
@@ -51,6 +51,7 @@ interface ScheduleDayGridProps {
   day: DayOfWeek;
   gridRooms: { id: string; name: string }[];
   columnOf?: (slot: ScheduleSlot) => string | null;
+  roomNameOf?: (slot: ScheduleSlot) => string | undefined;
   gridRows: GridRow[];
   slotRowLabels: string[];
   scheduleSlots: ScheduleSlot[];
@@ -77,6 +78,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
   day,
   gridRooms,
   columnOf,
+  roomNameOf,
   gridRows,
   slotRowLabels,
   scheduleSlots,
@@ -92,12 +94,47 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
 }) => {
   // ponytail: columnOf present = semester view mode — pure viewing, no place/remove
   const viewOnly = readOnly || columnOf !== undefined;
-  const columnKey = (s: ScheduleSlot) => (columnOf ? columnOf(s) : s.roomId);
+  const columnKey = useCallback(
+    (s: ScheduleSlot) => (columnOf ? columnOf(s) : s.roomId),
+    [columnOf]
+  );
 
   const daySlots = useMemo(() => scheduleSlots.filter((s) => s.day === day), [scheduleSlots, day]);
   const turnsByClassId = useMemo(() => {
     return getWeeklyTurnsForSlots(daySlots, slotRowLabels, classById);
   }, [daySlots, slotRowLabels, classById]);
+
+  const clustersByColumn = useMemo(() => {
+    const map = new Map<string, Cluster[]>();
+    for (const room of gridRooms) {
+      const entries: SlotEntry[] = daySlots
+        .filter((s) => columnKey(s) === room.id)
+        .map((s) => ({
+          slot: s,
+          start: slotStartIndex(s, slotRowLabels),
+          sks: slotSks(s, classById),
+        }))
+        .filter((e) => e.start !== -1);
+      map.set(room.id, clusterSlots(entries));
+    }
+    return map;
+  }, [daySlots, gridRooms, columnKey, slotRowLabels, classById]);
+
+  // column grows with its widest cluster so cards keep CARD_MIN_WIDTH — grid scrolls instead of squashing
+  const columnMinWidths = useMemo(
+    () =>
+      gridRooms.map((room) => {
+        const maxLanes = Math.max(
+          1,
+          ...(clustersByColumn.get(room.id) ?? []).map((c) => Math.max(...assignLanes(c.members)) + 1)
+        );
+        return maxLanes * (CARD_MIN_WIDTH + 4) + 16; // +4 lane gap, +16 cell px-2 padding
+      }),
+    [gridRooms, clustersByColumn]
+  );
+
+  // equal columns: every column gets the widest column's minimum
+  const sharedColumnMin = Math.max(1, ...columnMinWidths);
 
   const [hoveredCell, setHoveredCell] = useState<{ slotRowIdx: number; roomId: string } | null>(null);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -229,8 +266,8 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
             className="schedule-grid"
             style={{
               display: 'grid',
-              gridTemplateColumns: `80px repeat(${gridRooms.length}, minmax(120px, 1fr))`,
-              gridAutoRows: 'minmax(100px, auto)',
+              gridTemplateColumns: ['80px', ...gridRooms.map(() => `minmax(${sharedColumnMin}px, 1fr)`)].join(' '),
+              gridAutoRows: 'minmax(140px, auto)',
             }}
           >
             {/* Header row */}
@@ -285,16 +322,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
 
                   {/* Column cells for this row */}
                   {gridRooms.map((room) => {
-                    const columnEntries: SlotEntry[] = scheduleSlots
-                      .filter((s) => s.day === day && columnKey(s) === room.id)
-                      .map((s) => ({
-                        slot: s,
-                        start: slotStartIndex(s, slotRowLabels),
-                        sks: slotSks(s, classById),
-                      }))
-                      .filter((e) => e.start !== -1);
-
-                    const clusters = clusterSlots(columnEntries);
+                    const clusters = clustersByColumn.get(room.id) ?? [];
                     const cluster = clusters.find((c) => c.start === slotRowIdx);
 
                     if (cluster) {
@@ -330,6 +358,7 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                                     turns={turnsByClassId.get(entry.slot.classId)}
                                     onRemove={viewOnly ? undefined : onRemoveSlot}
                                     colorMode={colorMode}
+                                    roomName={roomNameOf?.(entry.slot)}
                                   />
                                 </div>
                               );
