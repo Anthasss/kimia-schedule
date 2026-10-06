@@ -256,20 +256,22 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
 
   return (
     <div key={day} className="space-y-2">
-      <div className="flex items-center gap-2 border-l-4 border-[#002045] pl-3 py-1">
+      <div className="flex items-center gap-2 border-l-4 border-[#002045] pl-3 py-1 sticky left-0">
         <h2 className="font-headline-sm text-[21px] text-[#191c1e] font-bold">{day}</h2>
       </div>
 
-      <div className="bg-white border border-[#c4c6cf] rounded-xl overflow-hidden shadow-2xs">
-        <div className="overflow-x-auto custom-scrollbar">
-          <div
-            className="schedule-grid"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: ['80px', ...gridRooms.map(() => `minmax(${sharedColumnMin}px, 1fr)`)].join(' '),
-              gridAutoRows: 'minmax(140px, auto)',
-            }}
-          >
+      <div
+        className="bg-white border border-[#c4c6cf] rounded-xl overflow-hidden shadow-2xs"
+        style={{ minWidth: 80 + gridRooms.length * sharedColumnMin + 2 }}
+      >
+        <div
+          className="schedule-grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: ['80px', ...gridRooms.map(() => `minmax(${sharedColumnMin}px, 1fr)`)].join(' '),
+            gridAutoRows: 'minmax(140px, auto)',
+          }}
+        >
             {/* Header row */}
             <div className="px-4 py-3 font-semibold text-[13px] text-[#1f2329] bg-[#f2f4f6] border-r border-b border-[#c4c6cf] rounded-tl-xl flex justify-center items-center">
               Jam
@@ -423,7 +425,6 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
                 </React.Fragment>
               );
             })}
-          </div>
         </div>
       </div>
     </div>

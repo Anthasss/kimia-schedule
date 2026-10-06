@@ -334,7 +334,7 @@ export function SchedulePage({
         />
       }
     >
-      <div className="space-y-6 overflow-y-auto overflow-x-auto custom-scrollbar pr-1">
+      <div className="space-y-6 pr-1">
           {days.map((day) => (
             <ScheduleDayGrid
               key={day}
