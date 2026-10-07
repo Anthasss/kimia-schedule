@@ -83,24 +83,17 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
 
   const searching = draftSearch.trim() !== '';
 
-  // ponytail: pool follows the active period's term — odd semesters in Ganjil, even in Genap
-  const activeParity = currentPeriod ? currentPeriod.semester % 2 : null;
-  const matchesPeriod = (item: UnscheduledClass) =>
-    activeParity === null || item.semester.some((s) => s % 2 === activeParity);
-
   // ponytail: in semester color mode, group cards by their first semester number
   const bySemester = (a: UnscheduledClass, b: UnscheduledClass) =>
     (a.semester[0] ?? 99) - (b.semester[0] ?? 99) || a.courseCode.localeCompare(b.courseCode);
 
   const displayedCourses = useMemo(() => {
-    const list = filteredDraftPool.filter(matchesPeriod);
-    return colorMode === 'semester' ? [...list].sort(bySemester) : list;
-  }, [filteredDraftPool, activeParity, colorMode]);
+    return colorMode === 'semester' ? [...filteredDraftPool].sort(bySemester) : filteredDraftPool;
+  }, [filteredDraftPool, colorMode]);
 
   const displayedScheduled = useMemo(() => {
-    const list = scheduledMatches.filter(matchesPeriod);
-    return colorMode === 'semester' ? [...list].sort(bySemester) : list;
-  }, [scheduledMatches, activeParity, colorMode]);
+    return colorMode === 'semester' ? [...scheduledMatches].sort(bySemester) : scheduledMatches;
+  }, [scheduledMatches, colorMode]);
 
   const shownCount = searching ? displayedCourses.length + displayedScheduled.length : displayedCourses.length;
 

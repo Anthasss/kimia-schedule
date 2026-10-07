@@ -250,7 +250,7 @@ export function SchedulePage({
     filteredDraftPool,
     scheduledMatches,
     activeDraftItem,
-  } = useUnscheduledCourses(classById, visibleSlots);
+  } = useUnscheduledCourses(classById, visibleSlots, currentPeriod ? currentPeriod.semester % 2 : null);
 
   const {
     placeDraftOnGrid,
