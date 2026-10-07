@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { apiPost } from '../api';
-import { UnscheduledClass, ScheduleSlot, SksSettings, DayOfWeek, Room } from '../types';
+import { UnscheduledClass, ScheduleSlot, SksSettings, DayOfWeek, Room, Schedule } from '../types';
 
 interface UseScheduleSlotsParams {
   scheduleSlots: ScheduleSlot[];
@@ -10,6 +10,7 @@ interface UseScheduleSlotsParams {
   sksSettings: SksSettings;
   days: DayOfWeek[];
   timeSlots: string[];
+  currentSchedule: Schedule | null;
   setSelectedExpandedDraft: (id: string | null) => void;
   pendingAdds: ScheduleSlot[];
   setPendingAdds: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
@@ -24,6 +25,7 @@ export function useScheduleSlots({
   sksSettings,
   days,
   timeSlots,
+  currentSchedule,
   setSelectedExpandedDraft,
   pendingAdds,
   setPendingAdds,
@@ -55,41 +57,20 @@ export function useScheduleSlots({
       const timeSlot = targetTimeSlot || assignTimeSlot;
       const roomId = targetRoomId || assignRoomId;
       const selectedRoom = rooms.find((r) => r.id === roomId) || rooms[0];
-
-      const lecturerName = unscheduledClass.lecturers[0] || 'Unassigned';
-
-      let hasConflict = false;
-      let conflictReason = '';
-      if (sksSettings.autoConflictDetection) {
-        const existingInSlot = scheduleSlots.find(
-          (s) => s.day === day && s.timeSlot === timeSlot && s.roomId === selectedRoom.id
-        );
-        if (existingInSlot) {
-          hasConflict = true;
-          conflictReason = `Room conflict with ${existingInSlot.courseCode}`;
-        }
-      }
+      if (!currentSchedule) return;
 
       const tempId = 'local-' + crypto.randomUUID();
 
       const slotData: ScheduleSlot = {
         id: tempId,
-        courseId: unscheduledClass.courseId,
-        courseCode: unscheduledClass.courseCode,
-        courseTitle: unscheduledClass.courseTitle,
-        sks: unscheduledClass.sks,
-        lecturerName,
+        scheduleId: currentSchedule.id,
         classId: unscheduledClass.id,
-        classLetter: unscheduledClass.classLetter,
         roomId: selectedRoom.id,
-        roomName: selectedRoom.name,
         day,
-        timeSlot,
-        hasConflict,
-        conflictReason,
+        startTime: timeSlot.split(' - ')[0],
       };
 
-      setScheduleSlots([...scheduleSlots, slotData]);
+      setScheduleSlots((prev) => [...prev, slotData]);
       setPendingAdds((prev) => [...prev, slotData]);
 
       const remaining = _allUnscheduled.filter((c) => c.id !== unscheduledClass.id);
@@ -99,12 +80,12 @@ export function useScheduleSlots({
         setSelectedExpandedDraft(null);
       }
     },
-    [scheduleSlots, setScheduleSlots, rooms, sksSettings, days, assignDay, assignTimeSlot, assignRoomId, setSelectedExpandedDraft]
+    [rooms, sksSettings, days, assignDay, assignTimeSlot, assignRoomId, currentSchedule, setSelectedExpandedDraft]
   );
 
   const removeSlotFromGrid = useCallback(
     async (slotId: string) => {
-      setScheduleSlots(scheduleSlots.filter((s) => s.id !== slotId));
+      setScheduleSlots((prev) => prev.filter((s) => s.id !== slotId));
       setSelectedExpandedDraft(null);
 
       if (slotId.startsWith('local-')) {
@@ -113,11 +94,11 @@ export function useScheduleSlots({
         setPendingRemoves((prev) => [...prev, slotId]);
       }
     },
-    [scheduleSlots, setScheduleSlots, setSelectedExpandedDraft]
+    [setScheduleSlots, setSelectedExpandedDraft]
   );
 
   const saveChanges = useCallback(async () => {
-    if (!isDirty) return;
+    if (!isDirty || !currentSchedule) return;
 
     setIsSaving(true);
 
@@ -127,9 +108,14 @@ export function useScheduleSlots({
         removes: pendingRemoves,
       });
 
-      const freshRes = await fetch('/api/schedule-slots');
-      const freshSlots = await freshRes.json();
-      setScheduleSlots(freshSlots);
+      const freshRes = await fetch(`/api/schedule-slots?scheduleId=${currentSchedule.id}`);
+      if (!freshRes.ok) throw new Error('Failed to refresh schedule slots');
+      const freshSlots: ScheduleSlot[] = await freshRes.json();
+      // merge into the global array — other periods' slots must survive
+      setScheduleSlots((prev) => [
+        ...prev.filter((sl) => sl.scheduleId !== currentSchedule.id),
+        ...freshSlots,
+      ]);
 
       setPendingAdds([]);
       setPendingRemoves([]);
@@ -140,7 +126,7 @@ export function useScheduleSlots({
     } finally {
       setIsSaving(false);
     }
-  }, [isDirty, pendingAdds, pendingRemoves, setScheduleSlots]);
+  }, [isDirty, pendingAdds, pendingRemoves, currentSchedule, setScheduleSlots]);
 
   return {
     placeDraftOnGrid,

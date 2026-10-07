@@ -1,5 +1,6 @@
 import React from 'react';
 import { UnscheduledClass, Lecturer } from '../../types';
+import { ColorMode, semesterColor } from '../../constants';
 
 interface CourseDraftCardProps {
   course: UnscheduledClass;
@@ -7,6 +8,7 @@ interface CourseDraftCardProps {
   isSelected: boolean;
   onSelect: () => void;
   scheduledAt?: string;
+  colorMode?: ColorMode;
 }
 
 export const CourseDraftCard: React.FC<CourseDraftCardProps> = ({
@@ -15,10 +17,14 @@ export const CourseDraftCard: React.FC<CourseDraftCardProps> = ({
   isSelected,
   onSelect,
   scheduledAt,
+  colorMode = 'lecturer',
 }) => {
   const primaryLecturer = course.lecturers[0];
   const lecturer = lecturers.find((l) => l.name === primaryLecturer);
-  const lecturerColor = lecturer?.color || '#6366f1';
+  const accentColor =
+    colorMode === 'semester'
+      ? semesterColor(course.semester)
+      : lecturer?.color || '#6366f1';
 
   const scheduled = Boolean(scheduledAt);
 
@@ -36,16 +42,22 @@ export const CourseDraftCard: React.FC<CourseDraftCardProps> = ({
       }`}
       style={{
         borderLeftWidth: '3px',
-        borderLeftColor: lecturerColor,
-        backgroundColor: scheduled ? '#f2f4f6' : isSelected ? `${lecturerColor}12` : `${lecturerColor}08`,
+        borderLeftColor: accentColor,
+        backgroundColor: scheduled ? '#f2f4f6' : isSelected ? `${accentColor}12` : `${accentColor}08`,
       }}
     >
       <div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[11px] font-bold px-1.5 py-0.5 bg-[#1a365d] text-white rounded">
             {course.courseCode}
           </span>
           <span className="text-[12px] text-[#505f76] font-semibold">{course.sks} SKS</span>
+          <span
+            className="text-[11px] font-bold px-1.5 py-0.5 text-white rounded"
+            style={{ backgroundColor: semesterColor(course.semester) }}
+          >
+            Sem {course.semester.join(', ')}
+          </span>
         </div>
         <h4 className="font-semibold text-[14px] text-[#191c1e] mt-1.5 leading-tight">
           {course.courseTitle} ({course.classLetter})

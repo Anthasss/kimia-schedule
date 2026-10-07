@@ -22,6 +22,7 @@ async function seedAdmin() {
 
   await auth.api.signUpEmail({
     body: { email, password, name },
+    headers: new Headers({ host: "localhost:3000" }),
   });
 
   await db.update(authUser).set({ role: "admin" }).where(eq(authUser.email, email));

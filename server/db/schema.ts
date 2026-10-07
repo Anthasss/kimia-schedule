@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import { pgTable, pgEnum, serial, text, integer, boolean, jsonb, foreignKey, unique, timestamp, index } from 'drizzle-orm/pg-core';
 
 export const dayOfWeekEnum = pgEnum('day_of_week', [
@@ -10,26 +10,33 @@ export const rooms = pgTable('rooms', {
   name: text('name').notNull(),
 });
 
+export const semesterPeriods = pgTable('semester_periods', {
+  id: text('id').primaryKey(),
+  year: text('year').notNull(),
+  semester: integer('semester').notNull(),
+  dayStartTime: text('day_start_time').notNull().default('07:30'),
+  dayEndTime: text('day_end_time').notNull().default('17:00'),
+  activeDays: jsonb('active_days').$type<string[]>().notNull().default(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [unique('semester_periods_year_semester_key').on(t.year, t.semester)]);
+
 export const breakTimes = pgTable('break_times', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   startTime: text('start_time').notNull(),
   endTime: text('end_time').notNull(),
-});
-
-export const semesterPeriods = pgTable('semester_periods', {
-  id: text('id').primaryKey(),
-  year: text('year').notNull(),
-  semester: integer('semester').notNull(),
-});
+  periodId: text('period_id').notNull(),
+}, (table) => [
+  foreignKey({
+    columns: [table.periodId],
+    foreignColumns: [semesterPeriods.id],
+    name: 'break_times_period_fk',
+  }).onDelete('cascade'),
+]);
 
 export const sksSettings = pgTable('sks_settings', {
   id: serial('id').primaryKey(),
   durationPerSks: integer('duration_per_sks').notNull().default(50),
-  autoConflictDetection: boolean('auto_conflict_detection').notNull().default(true),
-  activeDays: jsonb('active_days').$type<string[]>().default(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']),
-  dayStartTime: text('day_start_time').notNull().default('07:30'),
-  dayEndTime: text('day_end_time').notNull().default('17:00'),
   currentPeriodId: text('current_period_id'),
 }, (table) => [
   foreignKey({
@@ -43,17 +50,9 @@ export const lecturers = pgTable('lecturers', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   color: text('color').notNull().default('#6366f1'),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
 }, (table) => [
   unique('lecturers_name_unique').on(table.name),
-]);
-
-export const courseClasses = pgTable('course_classes', {
-  id: text('id').primaryKey(),
-  courseCode: text('course_code').notNull(),
-  classLetter: text('class_letter').notNull(),
-  lecturers: jsonb('lecturers').$type<string[]>().notNull().default([]),
-}, (table) => [
-  unique('course_classes_code_letter_unique').on(table.courseCode, table.classLetter),
 ]);
 
 export const courses = pgTable('courses', {
@@ -61,44 +60,130 @@ export const courses = pgTable('courses', {
   code: text('code').notNull(),
   title: text('title').notNull(),
   sks: integer('sks').notNull(),
-  semester: text('semester').notNull().default('Both'),
-  assignedLecturerName: text('assigned_lecturer_name'),
-  classId: text('class_id'),
+  // which semesters (1..14) this course is offered in; odd = ganjil, even = genap
+  semester: integer('semester').array().notNull().default(sql`'{1}'`),
+}, (table) => [
+  unique('courses_code_unique').on(table.code),
+]);
+
+export const courseClasses = pgTable('course_classes', {
+  id: text('id').primaryKey(),
+  courseId: text('course_id').notNull(),
+  classLetter: text('class_letter').notNull(),
 }, (table) => [
   foreignKey({
-    columns: [table.assignedLecturerName],
-    foreignColumns: [lecturers.name],
-    name: 'courses_lecturer_fk',
-  }).onDelete('set null'),
+    columns: [table.courseId],
+    foreignColumns: [courses.id],
+    name: 'course_classes_course_fk',
+  }).onDelete('cascade'),
+  unique('course_classes_course_letter_unique').on(table.courseId, table.classLetter),
+]);
+
+export const courseClassLecturers = pgTable('course_class_lecturers', {
+  id: text('id').primaryKey(),
+  courseClassId: text('course_class_id').notNull(),
+  lecturerId: text('lecturer_id').notNull(),
+  position: integer('position').notNull().default(0),
+}, (table) => [
   foreignKey({
-    columns: [table.classId],
+    columns: [table.courseClassId],
     foreignColumns: [courseClasses.id],
-    name: 'courses_class_fk',
-  }).onDelete('set null'),
+    name: 'ccl_course_class_fk',
+  }).onDelete('cascade'),
+  foreignKey({
+    columns: [table.lecturerId],
+    foreignColumns: [lecturers.id],
+    name: 'ccl_lecturer_fk',
+  }).onDelete('cascade'),
+]);
+
+export const schedules = pgTable('schedules', {
+  id: text('id').primaryKey(),
+  periodId: text('period_id').notNull(),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  foreignKey({
+    columns: [table.periodId],
+    foreignColumns: [semesterPeriods.id],
+    name: 'schedules_period_fk',
+  }).onDelete('cascade'),
+  unique('schedules_period_unique').on(table.periodId),
 ]);
 
 export const scheduleSlots = pgTable('schedule_slots', {
   id: text('id').primaryKey(),
-  courseId: text('course_id').notNull(),
-  courseCode: text('course_code').notNull(),
-  courseTitle: text('course_title').notNull(),
-  sks: integer('sks').notNull(),
-  lecturerName: text('lecturer_name').notNull(),
-  roomId: text('room_id').notNull(),
-  roomName: text('room_name').notNull(),
-  day: dayOfWeekEnum('day').notNull(),
-  timeSlot: text('time_slot').notNull(),
+  scheduleId: text('schedule_id').notNull(),
   classId: text('class_id').notNull(),
-  classLetter: text('class_letter').notNull(),
-  hasConflict: boolean('has_conflict'),
-  conflictReason: text('conflict_reason'),
+  roomId: text('room_id').notNull(),
+  day: dayOfWeekEnum('day').notNull(),
+  startTime: text('start_time').notNull(),
 }, (table) => [
   foreignKey({
-    columns: [table.lecturerName],
-    foreignColumns: [lecturers.name],
-    name: 'slots_lecturer_fk',
+    columns: [table.scheduleId],
+    foreignColumns: [schedules.id],
+    name: 'slots_schedule_fk',
   }).onDelete('cascade'),
+  foreignKey({
+    columns: [table.classId],
+    foreignColumns: [courseClasses.id],
+    name: 'slots_class_fk',
+  }).onDelete('cascade'),
+  foreignKey({
+    columns: [table.roomId],
+    foreignColumns: [rooms.id],
+    name: 'slots_room_fk',
+  }).onDelete('cascade'),
+  unique('schedule_slots_placement_unique').on(
+    table.scheduleId,
+    table.classId,
+    table.roomId,
+    table.day,
+    table.startTime
+  ),
 ]);
+
+// ── Relations ──
+
+export const courseRelations = relations(courses, ({ many }) => ({
+  classes: many(courseClasses),
+}));
+
+export const courseClassRelations = relations(courseClasses, ({ one, many }) => ({
+  course: one(courses, {
+    fields: [courseClasses.courseId],
+    references: [courses.id],
+  }),
+  lecturers: many(courseClassLecturers),
+  slots: many(scheduleSlots),
+}));
+
+export const courseClassLecturerRelations = relations(courseClassLecturers, ({ one }) => ({
+  courseClass: one(courseClasses, {
+    fields: [courseClassLecturers.courseClassId],
+    references: [courseClasses.id],
+  }),
+  lecturer: one(lecturers, {
+    fields: [courseClassLecturers.lecturerId],
+    references: [lecturers.id],
+  }),
+}));
+
+export const scheduleRelations = relations(schedules, ({ one, many }) => ({
+  period: one(semesterPeriods, {
+    fields: [schedules.periodId],
+    references: [semesterPeriods.id],
+  }),
+  slots: many(scheduleSlots),
+}));
+
+export const semesterPeriodRelations = relations(semesterPeriods, ({ one, many }) => ({
+  schedule: one(schedules, {
+    fields: [semesterPeriods.id],
+    references: [schedules.periodId],
+  }),
+  breakTimes: many(breakTimes),
+}));
 
 // ── Auth tables (Better Auth) ──
 

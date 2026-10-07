@@ -8,20 +8,21 @@ export interface BreakTime {
   name: string;
   startTime: string;
   endTime: string;
+  periodId: string;
 }
 
 export interface SemesterPeriod {
   id: string;
   year: string;
   semester: number;
+  dayStartTime: string;
+  dayEndTime: string;
+  activeDays: DayOfWeek[];
+  createdAt?: string;
 }
 
 export interface SksSettings {
   durationPerSks: number;
-  autoConflictDetection: boolean;
-  activeDays?: DayOfWeek[];
-  dayStartTime?: string;
-  dayEndTime?: string;
   currentPeriodId?: string | null;
 }
 
@@ -29,6 +30,7 @@ export interface Lecturer {
   id: string;
   name: string;
   color: string;
+  deletedAt?: string | null;
 }
 
 export interface Course {
@@ -36,16 +38,27 @@ export interface Course {
   code: string;
   title: string;
   sks: number;
-  semester: string;
-  assignedLecturerName?: string;
-  classId?: string;
+  /** semesters (1..14) this course is offered in; odd = ganjil, even = genap */
+  semester: number[];
 }
 
 export interface CourseClass {
   id: string;
-  courseCode: string;
+  courseId: string;
   classLetter: string;
-  lecturers: string[];
+}
+
+export interface ClassLecturerAssignment {
+  id: string;
+  courseClassId: string;
+  lecturerId: string;
+  position: number;
+}
+
+export interface Schedule {
+  id: string;
+  periodId: string;
+  name: string;
 }
 
 export type DayOfWeek =
@@ -59,19 +72,11 @@ export type DayOfWeek =
 
 export interface ScheduleSlot {
   id: string;
-  courseId: string;
-  courseCode: string;
-  courseTitle: string;
-  sks: number;
-  lecturerName: string;
-  roomId: string;
-  roomName: string;
-  day: DayOfWeek;
-  timeSlot: string;
+  scheduleId: string;
   classId: string;
-  classLetter: string;
-  hasConflict?: boolean;
-  conflictReason?: string;
+  roomId: string;
+  day: DayOfWeek;
+  startTime: string;
 }
 
 export interface UnscheduledClass {
@@ -81,9 +86,7 @@ export interface UnscheduledClass {
   courseTitle: string;
   classLetter: string;
   sks: number;
-  semester: string;
+  semester: number[];
   lecturers: string[];
   scheduledAt?: string;
 }
-
-

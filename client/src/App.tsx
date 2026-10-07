@@ -12,23 +12,29 @@ import { SchedulePage } from './pages/SchedulePage';
 import { LecturersPage } from './pages/LecturersPage';
 import { CoursesPage } from './pages/CoursesPage';
 import { FinalExamsPage } from './pages/FinalExamsPage';
+import { ReportsPage } from './pages/ReportsPage';
+import { HistoryPage } from './pages/HistoryPage';
 import { useRooms } from './hooks/useRooms';
 import { useLecturers } from './hooks/useLecturers';
 import { useBreakTimes } from './hooks/useBreakTimes';
 import { useSksSettings } from './hooks/useSksSettings';
 import { useDataFetching } from './hooks/useDataFetching';
-import { ScheduleSlot, Course, CourseClass, SemesterPeriod, BreakTime, SksSettings } from './types';
-import { apiDelete } from './api';
+import { ScheduleSlot, Course, CourseClass, ClassLecturerAssignment, SemesterPeriod, BreakTime, SksSettings, Schedule } from './types';
+import type { ColorMode } from './constants';
+import { apiDelete, apiPost, apiPut } from './api';
 import { ClearGridModal } from './components/SchedulePage/ClearGridModal';
 
 export default function App() {
   const { data: session, isPending } = useSession();
   const [pendingAdds, setPendingAdds] = useState<ScheduleSlot[]>([]);
   const [pendingRemoves, setPendingRemoves] = useState<string[]>([]);
+  const [colorMode, setColorMode] = useState<ColorMode>('lecturer');
   const [scheduleSlots, setScheduleSlots] = useState<ScheduleSlot[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [courseClasses, setCourseClasses] = useState<CourseClass[]>([]);
+  const [classLecturerAssignments, setClassLecturerAssignments] = useState<ClassLecturerAssignment[]>([]);
   const [semesterPeriods, setSemesterPeriods] = useState<SemesterPeriod[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
 
   const { rooms, setRooms, addRoom, deleteRoom, deletingRoomId } = useRooms();
   const { lecturers, setLecturers, addLecturer } = useLecturers();
@@ -42,9 +48,13 @@ export default function App() {
     setLecturers,
     setCourses,
     setCourseClasses,
+    setClassLecturerAssignments,
     setScheduleSlots,
     setSemesterPeriods,
+    setSchedules,
   });
+
+  const currentPeriod = semesterPeriods.find((p) => p.id === sksSettings.currentPeriodId) ?? null;
 
   const [showNewRecordModal, setShowNewRecordModal] = useState(false);
   const [initialRecordType, setInitialRecordType] = useState('Room');
@@ -56,8 +66,8 @@ export default function App() {
 
   // ponytail: one pending-action slot; cancel = discard (state never applied, server never called)
   const [pendingAction, setPendingAction] = useState<null | {
-    kind: 'sksSettings' | 'breakTimes' | 'breakAdd' | 'breakDelete';
-    next?: SksSettings | BreakTime[];
+    kind: 'sksSettings' | 'breakTimes' | 'breakAdd' | 'breakDelete' | 'period';
+    next?: SksSettings | BreakTime[] | SemesterPeriod;
     data?: Omit<BreakTime, 'id'>;
     id?: string;
   }>(null);
@@ -75,11 +85,23 @@ export default function App() {
 
   const guardedSetSksSettings = (next: React.SetStateAction<SksSettings>) => {
     const resolved = typeof next === 'function' ? next(sksSettings) : next;
-    const timeFields: (keyof SksSettings)[] = ['durationPerSks', 'dayStartTime', 'dayEndTime', 'activeDays'];
-    if (timeFields.some((f) => JSON.stringify(resolved[f]) !== JSON.stringify(sksSettings[f]))) {
+    if (JSON.stringify(resolved.durationPerSks) !== JSON.stringify(sksSettings.durationPerSks)) {
       if (guard({ kind: 'sksSettings', next: resolved })) return;
     }
     setSksSettings(resolved);
+  };
+
+  const guardedSetCurrentPeriod = (next: React.SetStateAction<SemesterPeriod>) => {
+    if (!currentPeriod) return;
+    const resolved = typeof next === 'function' ? next(currentPeriod) : next;
+    const timesChanged =
+      resolved.dayStartTime !== currentPeriod.dayStartTime ||
+      resolved.dayEndTime !== currentPeriod.dayEndTime ||
+      JSON.stringify(resolved.activeDays) !== JSON.stringify(currentPeriod.activeDays);
+    if (timesChanged) {
+      if (guard({ kind: 'period', next: resolved })) return;
+    }
+    setSemesterPeriods((prev) => prev.map((p) => (p.id === resolved.id ? resolved : p)));
   };
 
   const guardedSetBreakTimes = (next: React.SetStateAction<BreakTime[]>) => {
@@ -100,6 +122,119 @@ export default function App() {
     await deleteBreakTime(id);
   };
 
+  const handleDeleteCurrentPeriod = async () => {
+    if (!currentPeriod) return;
+    try {
+      await apiDelete(`/api/semester-periods/${currentPeriod.id}`);
+      const rest = semesterPeriods.filter((p) => p.id !== currentPeriod.id);
+      setSemesterPeriods(rest);
+      const deletedScheduleIds = new Set(
+        schedules.filter((s) => s.periodId === currentPeriod.id).map((s) => s.id)
+      );
+      setSchedules((prev) => prev.filter((s) => s.periodId !== currentPeriod.id));
+      setScheduleSlots((prev) => prev.filter((sl) => !deletedScheduleIds.has(sl.scheduleId)));
+      setBreakTimes((prev) => prev.filter((b) => b.periodId !== currentPeriod.id));
+      setPendingAdds([]);
+      setPendingRemoves([]);
+      const next = rest[rest.length - 1];
+      await handlePeriodChange(
+        next ? { year: next.year, semester: next.semester as 1 | 2 } : null,
+        rest,
+        schedules,
+        setSchedules
+      );
+      toast.success('Semester period deleted');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete period');
+      throw err;
+    }
+  };
+
+  const handleLoadFromHistory = async (sourcePeriod: SemesterPeriod) => {
+    const currentPeriodId = sksSettings.currentPeriodId;
+    if (!currentPeriodId) throw new Error('No current period');
+
+    let found = schedules.find((s) => s.periodId === currentPeriodId);
+    if (!found) {
+      const res = await fetch(`/api/schedules/for-period/${currentPeriodId}`);
+      if (!res.ok) throw new Error('Failed to resolve current schedule');
+      const created: Schedule = await res.json();
+      setSchedules((prev) => (prev.some((s) => s.id === created.id) ? prev : [...prev, created]));
+      found = created;
+    }
+    const targetSchedule = found;
+
+    const sourceSchedule = schedules.find((s) => s.periodId === sourcePeriod.id);
+
+    // clear the current grid
+    await apiDelete(`/api/schedule-slots/all?scheduleId=${targetSchedule.id}`);
+
+    // apply the source period's time config to the current period
+    await apiPut(`/api/semester-periods/${currentPeriodId}`, {
+      dayStartTime: sourcePeriod.dayStartTime,
+      dayEndTime: sourcePeriod.dayEndTime,
+      activeDays: sourcePeriod.activeDays,
+    });
+
+    // replace the current period's breaks with the source's
+    for (const b of breakTimes.filter((x) => x.periodId === currentPeriodId)) {
+      await apiDelete(`/api/break-times/${b.id}`);
+    }
+    // ponytail: sequential posts — periods have 1-2 breaks, batching not worth it
+    const createdBreaks: BreakTime[] = [];
+    for (const b of breakTimes.filter((x) => x.periodId === sourcePeriod.id)) {
+      createdBreaks.push(
+        await apiPost<BreakTime>('/api/break-times', {
+          name: b.name,
+          startTime: b.startTime,
+          endTime: b.endTime,
+          periodId: currentPeriodId,
+        })
+      );
+    }
+
+    // copy the source slots onto the current schedule (ids regenerated server-side)
+    const sourceSlots = sourceSchedule
+      ? scheduleSlots.filter((sl) => sl.scheduleId === sourceSchedule.id)
+      : [];
+    const { added } = await apiPost<{ added: ScheduleSlot[]; removed: ScheduleSlot[] }>(
+      '/api/schedule-slots/batch',
+      {
+        adds: sourceSlots.map((sl) => ({
+          scheduleId: targetSchedule.id,
+          classId: sl.classId,
+          roomId: sl.roomId,
+          day: sl.day,
+          startTime: sl.startTime,
+        })),
+      }
+    );
+
+    setSemesterPeriods((prev) =>
+      prev.map((p) =>
+        p.id === currentPeriodId
+          ? {
+            ...p,
+            dayStartTime: sourcePeriod.dayStartTime,
+            dayEndTime: sourcePeriod.dayEndTime,
+            activeDays: sourcePeriod.activeDays,
+          }
+          : p
+      )
+    );
+    setBreakTimes((prev) => [
+      ...prev.filter((b) => b.periodId !== currentPeriodId),
+      ...createdBreaks,
+    ]);
+    setScheduleSlots((prev) => [
+      ...prev.filter((sl) => sl.scheduleId !== targetSchedule.id),
+      ...added,
+    ]);
+    setPendingAdds([]);
+    setPendingRemoves([]);
+  };
+
   const handleConfirmSettingsChange = async () => {
     const action = pendingAction;
     setPendingAction(null);
@@ -110,6 +245,16 @@ export default function App() {
           case 'sksSettings':
             setSksSettings(action.next as SksSettings);
             break;
+          case 'period': {
+            const period = action.next as SemesterPeriod;
+            setSemesterPeriods((prev) => prev.map((p) => (p.id === period.id ? period : p)));
+            await apiPut(`/api/semester-periods/${period.id}`, {
+              dayStartTime: period.dayStartTime,
+              dayEndTime: period.dayEndTime,
+              activeDays: period.activeDays,
+            });
+            break;
+          }
           case 'breakTimes':
             setBreakTimes(action.next as BreakTime[]);
             break;
@@ -121,8 +266,13 @@ export default function App() {
             break;
         }
       }
-      await apiDelete('/api/schedule-slots/all');
-      setScheduleSlots([]);
+      const schedule = schedules.find((s) => s.periodId === sksSettings.currentPeriodId);
+      if (schedule) {
+        await apiDelete(`/api/schedule-slots/all?scheduleId=${schedule.id}`);
+      }
+      setScheduleSlots((prev) =>
+        schedule ? prev.filter((sl) => sl.scheduleId !== schedule.id) : []
+      );
       setPendingAdds([]);
       setPendingRemoves([]);
       toast.success('Schedule grid cleared');
@@ -166,7 +316,7 @@ export default function App() {
             <main className="p-8 max-w-7xl mx-auto w-full flex-1 flex flex-col min-h-0 overflow-auto">
               <Routes>
                 <Route
-                  path="/settings"
+                  path="/room-times"
                   element={
                     <SettingsPage
                       rooms={rooms}
@@ -175,6 +325,8 @@ export default function App() {
                       setBreakTimes={guardedSetBreakTimes}
                       sksSettings={sksSettings}
                       setSksSettings={guardedSetSksSettings}
+                      currentPeriod={currentPeriod}
+                      setCurrentPeriod={guardedSetCurrentPeriod}
                       onOpenNewRecordModal={handleOpenNewRecordModal}
                       deleteRoom={deleteRoom}
                       deletingRoomId={deletingRoomId}
@@ -192,12 +344,28 @@ export default function App() {
                       lecturers={lecturers}
                       setLecturers={setLecturers}
                       courses={courses}
-                      setCourses={setCourses}
                       courseClasses={courseClasses}
-                      setCourseClasses={setCourseClasses}
-                      scheduleSlots={scheduleSlots}
-                      setScheduleSlots={setScheduleSlots}
+                      classLecturerAssignments={classLecturerAssignments}
                       onOpenNewRecordModal={handleOpenNewRecordModal}
+                      rooms={rooms}
+                      scheduleSlots={scheduleSlots}
+                      sksSettings={sksSettings}
+                      breakTimes={breakTimes}
+                      semesterPeriods={semesterPeriods}
+                      schedules={schedules}
+                      colorMode={colorMode}
+                    />
+                  }
+                />
+                <Route
+                  path="/reports"
+                  element={
+                    <ReportsPage
+                      lecturers={lecturers}
+                      courses={courses}
+                      courseClasses={courseClasses}
+                      classLecturerAssignments={classLecturerAssignments}
+                      scheduleSlots={scheduleSlots}
                     />
                   }
                 />
@@ -210,25 +378,54 @@ export default function App() {
                       setScheduleSlots={setScheduleSlots}
                       courses={courses}
                       courseClasses={courseClasses}
+                      classLecturerAssignments={classLecturerAssignments}
                       lecturers={lecturers}
                       sksSettings={sksSettings}
-                      setSksSettings={setSksSettings}
                       breakTimes={breakTimes}
                       semesterPeriods={semesterPeriods}
                       setSemesterPeriods={setSemesterPeriods}
+                      schedules={schedules}
+                      onPeriodChange={async (p, periods) => {
+                        await handlePeriodChange(p, periods ?? semesterPeriods, schedules, setSchedules);
+                        // ponytail: server copies breaks on period create but doesn't return them — refetch instead of changing the response shape
+                        setBreakTimes(await fetch('/api/break-times').then((r) => r.json()));
+                      }}
+                      onDeleteCurrentPeriod={handleDeleteCurrentPeriod}
                       pendingAdds={pendingAdds}
                       setPendingAdds={setPendingAdds}
                       pendingRemoves={pendingRemoves}
                       setPendingRemoves={setPendingRemoves}
-                      onPeriodChange={(period) => handlePeriodChange(period, semesterPeriods)}
+                      colorMode={colorMode}
+                      setColorMode={setColorMode}
+                    />
+                  }
+                />
+                <Route
+                  path="/history"
+                  element={
+                    <HistoryPage
+                      rooms={rooms}
+                      lecturers={lecturers}
+                      courses={courses}
+                      courseClasses={courseClasses}
+                      classLecturerAssignments={classLecturerAssignments}
+                      sksSettings={sksSettings}
+                      breakTimes={breakTimes}
+                      semesterPeriods={semesterPeriods}
+                      schedules={schedules}
+                      scheduleSlots={scheduleSlots}
+                      currentPeriodId={sksSettings.currentPeriodId}
+                      hasUnsavedChanges={pendingAdds.length > 0 || pendingRemoves.length > 0}
+                      onLoadFromHistory={handleLoadFromHistory}
+                      colorMode={colorMode}
                     />
                   }
                 />
                 <Route
                   path="/courses"
-                  element={<CoursesPage courses={courses} setCourses={setCourses} courseClasses={courseClasses} setCourseClasses={setCourseClasses} lecturers={lecturers} setLecturers={setLecturers} scheduleSlots={scheduleSlots} setScheduleSlots={setScheduleSlots} setPendingAdds={setPendingAdds} setPendingRemoves={setPendingRemoves} />}
+                  element={<CoursesPage courses={courses} setCourses={setCourses} courseClasses={courseClasses} setCourseClasses={setCourseClasses} lecturers={lecturers} classLecturerAssignments={classLecturerAssignments} setClassLecturerAssignments={setClassLecturerAssignments} scheduleSlots={scheduleSlots} setScheduleSlots={setScheduleSlots} setPendingAdds={setPendingAdds} setPendingRemoves={setPendingRemoves} />}
                 />
-                <Route path="/final-exams" element={<FinalExamsPage lecturers={lecturers} />} />
+                <Route path="/exams-grouping" element={<FinalExamsPage lecturers={lecturers} />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/change-password" element={<ChangePasswordPage />} />
                 <Route path="/login" element={<Navigate to="/schedule" replace />} />
@@ -243,7 +440,7 @@ export default function App() {
             initialRecordType={initialRecordType}
             onAddRoom={addRoom}
             onAddLecturer={addLecturer}
-            onAddBreak={guardedAddBreak}
+            onAddBreak={(data) => guardedAddBreak({ ...data, periodId: sksSettings.currentPeriodId || '' })}
           />
 
           <ClearGridModal

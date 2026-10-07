@@ -1,6 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { UnscheduledClass, Lecturer } from '../../types';
 import { CourseDraftCard } from './CourseDraftCard';
+import { ColorMode, GridMode } from '../../constants';
+
+export interface PeriodRef {
+  year: string;
+  semester: 1 | 2;
+}
+
+function formatPeriodLabel(p: PeriodRef) {
+  return `${p.year} ${p.semester === 1 ? 'Ganjil' : 'Genap'}`;
+}
 
 interface UnscheduledCoursesSidebarProps {
   unscheduledCourses: UnscheduledClass[];
@@ -14,11 +24,20 @@ interface UnscheduledCoursesSidebarProps {
   isClearing: boolean;
   isExporting: boolean;
   selectedCourseId: string | null;
+  currentPeriod: PeriodRef | null;
+  savedPeriods: PeriodRef[];
   onSearchChange: (value: string) => void;
   onSelectCourse: (id: string) => void;
   onSave: () => void;
   onExportPdf: () => void;
   onReset: () => void;
+  onPeriodChange: (period: PeriodRef) => void;
+  onOpenAddPeriod: () => void;
+  onDeleteCurrentPeriod: () => void;
+  colorMode: ColorMode;
+  onToggleColorMode: () => void;
+  gridMode: GridMode;
+  onToggleGridMode: () => void;
 }
 
 export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps> = ({
@@ -33,32 +52,48 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
   isClearing,
   isExporting,
   selectedCourseId,
+  currentPeriod,
+  savedPeriods,
   onSearchChange,
   onSelectCourse,
   onSave,
   onExportPdf,
   onReset,
+  onPeriodChange,
+  onOpenAddPeriod,
+  onDeleteCurrentPeriod,
+  colorMode,
+  onToggleColorMode,
+  gridMode,
+  onToggleGridMode,
 }) => {
-  const [semesterFilter, setSemesterFilter] = useState<'Ganjil' | 'Genap'>('Ganjil');
+  const [showPeriodMenu, setShowPeriodMenu] = useState(false);
+  const periodMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (periodMenuRef.current && !periodMenuRef.current.contains(e.target as Node)) {
+        setShowPeriodMenu(false);
+      }
+    }
+    if (showPeriodMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showPeriodMenu]);
 
   const searching = draftSearch.trim() !== '';
 
-  // ponytail: local filter, move to hook only if parent needs the filtered list too
-  const displayedCourses = useMemo(
-    () =>
-      filteredDraftPool.filter(
-        (item) => item.semester === semesterFilter || item.semester === 'Both'
-      ),
-    [filteredDraftPool, semesterFilter]
-  );
+  // ponytail: in semester color mode, group cards by their first semester number
+  const bySemester = (a: UnscheduledClass, b: UnscheduledClass) =>
+    (a.semester[0] ?? 99) - (b.semester[0] ?? 99) || a.courseCode.localeCompare(b.courseCode);
 
-  const displayedScheduled = useMemo(
-    () =>
-      scheduledMatches.filter(
-        (item) => item.semester === semesterFilter || item.semester === 'Both'
-      ),
-    [scheduledMatches, semesterFilter]
-  );
+  const displayedCourses = useMemo(() => {
+    return colorMode === 'semester' ? [...filteredDraftPool].sort(bySemester) : filteredDraftPool;
+  }, [filteredDraftPool, colorMode]);
+
+  const displayedScheduled = useMemo(() => {
+    return colorMode === 'semester' ? [...scheduledMatches].sort(bySemester) : scheduledMatches;
+  }, [scheduledMatches, colorMode]);
 
   const shownCount = searching ? displayedCourses.length + displayedScheduled.length : displayedCourses.length;
 
@@ -75,21 +110,88 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0 mt-4 mb-2">
-        <div className="flex rounded-md overflow-hidden border mr-auto border-[#c4c6cf]">
-          {(['Ganjil', 'Genap'] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setSemesterFilter(s)}
-              className={`h-8 px-3 py-1 text-[12px] font-semibold transition-colors cursor-pointer ${semesterFilter === s
-                ? 'bg-[#002045] text-white'
-                : 'bg-[#f2f4f6] text-[#505f76] hover:bg-[#e8eaec]'
-                }`}
-            >
-              {s}
-            </button>
-          ))}
+      <div className="relative flex items-center gap-2 shrink-0 mt-4 mb-2">
+        <div ref={periodMenuRef} className="flex-1 min-w-0">
+          <button
+            onClick={() => setShowPeriodMenu((v) => !v)}
+            className="w-full h-8 pl-3 pr-1.5 flex items-center justify-between gap-2 bg-[#f2f4f6] border border-[#c4c6cf] rounded-md text-[12px] font-semibold text-[#002045] hover:bg-[#e8eaec] cursor-pointer"
+          >
+            <span className="truncate">{currentPeriod ? formatPeriodLabel(currentPeriod) : 'No period selected'}</span>
+            <span className="material-symbols-outlined text-[17px] shrink-0">
+              {showPeriodMenu ? 'expand_less' : 'expand_more'}
+            </span>
+          </button>
+          {showPeriodMenu && (
+            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#c4c6cf] rounded-md shadow-lg z-50">
+              <div className="max-h-48 overflow-y-auto py-1">
+                {savedPeriods.map((p, i) => {
+                  const isActive =
+                    currentPeriod?.year === p.year && currentPeriod?.semester === p.semester;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        onPeriodChange(p);
+                        setShowPeriodMenu(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 hover:bg-[#f2f4f6] flex items-center gap-2 text-[13px] cursor-pointer ${isActive ? 'font-semibold text-[#002045]' : 'text-[#43474e]'}`}
+                    >
+                      <span className="material-symbols-outlined text-[16px] w-4">
+                        {isActive ? 'check' : ''}
+                      </span>
+                      <span>{formatPeriodLabel(p)}</span>
+                    </button>
+                  );
+                })}
+                <div className="border-t border-[#c4c6cf] my-1" />
+                <button
+                  onClick={() => {
+                    onOpenAddPeriod();
+                    setShowPeriodMenu(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-[#002045] font-semibold hover:bg-[#f2f4f6] flex items-center gap-2 text-[13px] cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">add</span>
+                  <span>Add new period...</span>
+                </button>
+              </div>
+              {currentPeriod && savedPeriods.length > 1 && (
+                <div className="border-t border-[#c4c6cf] py-1">
+                  <button
+                    onClick={() => {
+                      onDeleteCurrentPeriod();
+                      setShowPeriodMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-[#ba1a1a] font-semibold hover:bg-[#fdecec] flex items-center gap-2 text-[13px] cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                    <span>Delete current period...</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+        <button
+          onClick={onToggleColorMode}
+          aria-label={`Cards colored by ${colorMode}`}
+          title={`Cards colored by ${colorMode === 'semester' ? 'semester — click for lecturer' : 'lecturer — click for semester'}`}
+          className="h-8 w-8 flex items-center justify-center bg-[#f59e0b] text-white rounded-md p-1.5 hover:bg-[#d97706] cursor-pointer shrink-0"
+        >
+          <span className="material-symbols-outlined text-[17px]">
+            {colorMode === 'semester' ? 'toggle_on' : 'toggle_off'}
+          </span>
+        </button>
+        <button
+          onClick={onToggleGridMode}
+          aria-label={`Columns by ${gridMode}`}
+          title={`Columns by ${gridMode === 'room' ? 'room — click for semester' : 'semester — click for room (view only)'}`}
+          className="h-8 w-8 flex items-center justify-center bg-[#4f46e5] text-white rounded-md p-1.5 hover:bg-[#4338ca] cursor-pointer shrink-0"
+        >
+          <span className="material-symbols-outlined text-[17px]">
+            {gridMode === 'room' ? 'grid_view' : 'view_column'}
+          </span>
+        </button>
         <button
           onClick={onReset}
           disabled={isClearing}
@@ -137,6 +239,7 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
             lecturers={lecturers}
             isSelected={selectedCourseId === item.id}
             onSelect={() => onSelectCourse(item.id)}
+            colorMode={colorMode}
           />
         ))}
 
@@ -153,6 +256,7 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
                 isSelected={false}
                 onSelect={() => undefined}
                 scheduledAt={item.scheduledAt}
+                colorMode={colorMode}
               />
             ))}
           </>

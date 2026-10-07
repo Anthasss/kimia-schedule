@@ -1,5 +1,7 @@
 import React, { useState, Dispatch, SetStateAction } from 'react';
-import { Room, BreakTime, SksSettings } from '../types';
+import { toast } from 'sonner';
+import { apiPut } from '../api';
+import { Room, BreakTime, SksSettings, SemesterPeriod } from '../types';
 import { PageHeader } from '../components/Shared/PageHeader';
 import { RoomsTable } from '../components/ManagementPage/RoomsTable';
 import { TimeSettings } from '../components/ManagementPage/TimeSettings';
@@ -14,6 +16,8 @@ interface SettingsPageProps {
   setBreakTimes: Dispatch<SetStateAction<BreakTime[]>>;
   sksSettings: SksSettings;
   setSksSettings: Dispatch<SetStateAction<SksSettings>>;
+  currentPeriod: SemesterPeriod | null;
+  setCurrentPeriod: Dispatch<SetStateAction<SemesterPeriod>>;
   onOpenNewRecordModal: (initialType?: string) => void;
   deleteRoom: (id: string) => void;
   deletingRoomId: string | null;
@@ -30,6 +34,8 @@ export function SettingsPage({
   setBreakTimes,
   sksSettings,
   setSksSettings,
+  currentPeriod,
+  setCurrentPeriod,
   onOpenNewRecordModal,
   deleteRoom,
   deletingRoomId,
@@ -41,13 +47,37 @@ export function SettingsPage({
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [editingBreak, setEditingBreak] = useState<BreakTime | null>(null);
 
+  const periodBreaks = currentPeriod
+    ? breakTimes.filter((b) => b.periodId === currentPeriod.id)
+    : [];
+
+  const handleSave = async () => {
+    await saveSksSettings();
+    if (currentPeriod) {
+      try {
+        await apiPut(`/api/semester-periods/${currentPeriod.id}`, {
+          dayStartTime: currentPeriod.dayStartTime,
+          dayEndTime: currentPeriod.dayEndTime,
+          activeDays: currentPeriod.activeDays,
+        });
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to save period time settings');
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Basic Data Management"
+        title="Room & Times"
         subtitle="Manage institutional resources and academic parameters."
         actions={
-          <div />
+          <span className="text-[14px] font-semibold text-white bg-[#002045] px-3 py-1.5 rounded">
+            {currentPeriod
+              ? `${currentPeriod.year} ${currentPeriod.semester === 1 ? 'Ganjil' : 'Genap'}`
+              : 'No semester selected'}
+          </span>
         }
       />
 
@@ -66,12 +96,14 @@ export function SettingsPage({
           <TimeSettings
             sksSettings={sksSettings}
             setSksSettings={setSksSettings}
-            onSave={saveSksSettings}
+            period={currentPeriod}
+            setPeriod={setCurrentPeriod}
+            onSave={handleSave}
             isSaving={isSavingSettings}
           />
 
           <BreakTimesTable
-            breakTimes={breakTimes}
+            breakTimes={periodBreaks}
             onAddBreak={() => onOpenNewRecordModal('Break Time')}
             onEditBreak={setEditingBreak}
             onDeleteBreak={deleteBreakTime}

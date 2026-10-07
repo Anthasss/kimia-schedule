@@ -1,10 +1,11 @@
 import React from 'react';
-import { Course, CourseClass, Lecturer } from '../../types';
+import { Course, CourseClass, Lecturer, ClassLecturerAssignment } from '../../types';
 import { CourseSidebarCard } from './CourseSidebarCard';
 
 interface CoursesSidebarProps {
   courses: Course[];
   courseClasses: CourseClass[];
+  classLecturerAssignments: ClassLecturerAssignment[];
   lecturers: Lecturer[];
   selectedCourseCode: string | null;
   search: string;
@@ -16,6 +17,7 @@ interface CoursesSidebarProps {
 export const CoursesSidebar: React.FC<CoursesSidebarProps> = ({
   courses,
   courseClasses,
+  classLecturerAssignments,
   lecturers,
   selectedCourseCode,
   search,
@@ -31,13 +33,30 @@ export const CoursesSidebar: React.FC<CoursesSidebarProps> = ({
       }
     }
     for (const cc of courseClasses) {
-      const entry = map.get(cc.courseCode);
+      const entry = map.get(courses.find((c) => c.id === cc.courseId)?.code ?? '');
       if (entry) {
         entry.classes.push(cc);
       }
     }
     return Array.from(map.values()).sort((a, b) => a.course.title.localeCompare(b.course.title));
   }, [courses, courseClasses]);
+
+  const lecturerNameByClassId = React.useMemo(() => {
+    const byClass = new Map<string, ClassLecturerAssignment[]>();
+    for (const a of classLecturerAssignments) {
+      if (!byClass.has(a.courseClassId)) byClass.set(a.courseClassId, []);
+      byClass.get(a.courseClassId)!.push(a);
+    }
+    const nameById = new Map(lecturers.map((l) => [l.id, l.name]));
+    const names = new Map<string, string[]>();
+    for (const [classId, rows] of byClass) {
+      names.set(
+        classId,
+        [...rows].sort((a, b) => a.position - b.position).map((r) => nameById.get(r.lecturerId) ?? '')
+      );
+    }
+    return names;
+  }, [classLecturerAssignments, lecturers]);
 
   const filtered = React.useMemo(() => {
     if (!search) return grouped;
@@ -46,14 +65,14 @@ export const CoursesSidebar: React.FC<CoursesSidebarProps> = ({
       const matchesCode = g.course.code.toLowerCase().includes(q);
       const matchesTitle = g.course.title.toLowerCase().includes(q);
       const matchesLecturer = g.classes.some((cc) =>
-        cc.lecturers.some((name) => name.toLowerCase().includes(q))
+        (lecturerNameByClassId.get(cc.id) ?? []).some((name) => name.toLowerCase().includes(q))
       );
       return matchesCode || matchesTitle || matchesLecturer;
     });
-  }, [grouped, search]);
+  }, [grouped, search, lecturerNameByClassId]);
 
   return (
-    <div className="flex flex-col h-screen w-80 bg-white border-l border-[#c4c6cf] p-5 fixed right-0 top-0 z-40">
+    <div className="fixed right-0 top-16 h-[calc(100vh-4rem)] w-80 bg-white border-l border-[#c4c6cf] p-5 flex flex-col z-40">
       <div className="flex justify-between items-center border-b border-[#c4c6cf] pb-3 shrink-0">
         <h3 className="font-headline-sm text-[17px] text-[#191c1e] font-bold">
           Courses
@@ -78,7 +97,7 @@ export const CoursesSidebar: React.FC<CoursesSidebarProps> = ({
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-2 custom-scrollbar pr-1 mt-2">
         {filtered.map((g) => {
-          const firstLecturerName = g.classes[0]?.lecturers[0];
+          const firstLecturerName = g.classes[0] ? (lecturerNameByClassId.get(g.classes[0].id) ?? [])[0] : undefined;
           const matchedLecturer = lecturers.find((l) => l.name === firstLecturerName);
           const lecturerColor = matchedLecturer?.color || '#6366f1';
           return (

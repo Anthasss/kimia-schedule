@@ -25,6 +25,7 @@ export const AddClassModal: React.FC<AddClassModalProps> = ({
   onAdd,
   onClose,
 }) => {
+  const activeLecturers = lecturers.filter((l) => !l.deletedAt);
   const nextLetter = getNextLetter(existingLetters);
   const [classLetter, setClassLetter] = useState<string>(nextLetter);
   const [selectedLecturers, setSelectedLecturers] = useState<string[]>([]);
@@ -76,7 +77,7 @@ export const AddClassModal: React.FC<AddClassModalProps> = ({
           <div>
             <label className="block text-[#43474e] font-semibold mb-1">Lecturers</label>
             <div className="max-h-[200px] overflow-y-auto space-y-1 custom-scrollbar border border-[#c4c6cf] rounded p-2">
-              {lecturers.map((l) => (
+              {activeLecturers.map((l) => (
                 <label
                   key={l.id}
                   className="flex items-center gap-2 p-1.5 rounded hover:bg-[#f2f4f6] cursor-pointer"

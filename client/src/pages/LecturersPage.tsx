@@ -1,134 +1,97 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { apiDelete } from '../api';
-import { Lecturer, Course, CourseClass, ScheduleSlot } from '../types';
-import { PageHeader } from '../components/Shared/PageHeader';
-import { LecturersTable } from '../components/LecturersPage/LecturersTable';
+import {
+  Lecturer,
+  Course,
+  CourseClass,
+  ClassLecturerAssignment,
+  Room,
+  ScheduleSlot,
+  SksSettings,
+  BreakTime,
+  SemesterPeriod,
+  Schedule,
+  DayOfWeek,
+} from '../types';
 import { EditLecturerModal } from '../components/LecturersPage/EditLecturerModal';
 import { DeleteLecturerModal } from '../components/LecturersPage/DeleteLecturerModal';
-import { exportLecturerClassesToExcel } from '../utils/exportLecturerClassesToExcel';
+import { LecturersSidebar } from '../components/LecturersPage/LecturersSidebar';
+import { ScheduleLayout } from '../components/SchedulePage/ScheduleLayout';
+import { ScheduleDayGrid } from '../components/SchedulePage/ScheduleDayGrid';
+import { computeCreditBurden } from '../utils/creditBurden';
+import { buildClassById } from '../utils/classData';
+import { computeTimeSlots } from '../utils/scheduleTimeSlots';
+import { exportScheduleToPdf } from '../utils/exportToPdf';
+import { ColorMode } from '../constants';
 
 interface LecturersPageProps {
   lecturers: Lecturer[];
   setLecturers: React.Dispatch<React.SetStateAction<Lecturer[]>>;
   courses: Course[];
-  setCourses: React.Dispatch<React.SetStateAction<Course[]>>;
   courseClasses: CourseClass[];
-  setCourseClasses: React.Dispatch<React.SetStateAction<CourseClass[]>>;
-  scheduleSlots: ScheduleSlot[];
-  setScheduleSlots: React.Dispatch<React.SetStateAction<ScheduleSlot[]>>;
+  classLecturerAssignments: ClassLecturerAssignment[];
   onOpenNewRecordModal: (initialType?: string) => void;
+  rooms: Room[];
+  scheduleSlots: ScheduleSlot[];
+  sksSettings: SksSettings;
+  breakTimes: BreakTime[];
+  semesterPeriods: SemesterPeriod[];
+  schedules: Schedule[];
+  colorMode?: ColorMode;
 }
 
 export function LecturersPage({
   lecturers,
   setLecturers,
   courses,
-  setCourses,
   courseClasses,
-  setCourseClasses,
-  scheduleSlots,
-  setScheduleSlots,
+  classLecturerAssignments,
   onOpenNewRecordModal,
+  rooms,
+  scheduleSlots,
+  sksSettings,
+  breakTimes,
+  semesterPeriods,
+  schedules,
+  colorMode = 'lecturer',
 }: LecturersPageProps) {
   const [search, setSearch] = useState('');
   const [editingLecturer, setEditingLecturer] = useState<Lecturer | null>(null);
   const [deleteLecturerTarget, setDeleteLecturerTarget] = useState<Lecturer | null>(null);
-  const [deletingLecturerId, setDeletingLecturerId] = useState<string | null>(null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isExporting, setIsExporting] = useState(false);
+  const [selectedLecturerIds, setSelectedLecturerIds] = useState<Set<string>>(new Set());
 
-  const creditBurden = useMemo(() => {
-    const sksByCode = new Map(courses.map((c) => [c.code, c.sks]));
-    const burden: Record<string, number> = {};
-    for (const cc of courseClasses) {
-      const sks = sksByCode.get(cc.courseCode);
-      if (!sks || cc.lecturers.length === 0) continue;
-      for (const name of cc.lecturers) {
-        const l = lecturers.find((l) => l.name === name);
-        if (l) burden[l.id] = (burden[l.id] || 0) + sks / cc.lecturers.length;
-      }
-    }
-    return burden;
-  }, [lecturers, courses, courseClasses]);
+  const activeLecturers = useMemo(() => lecturers.filter((l) => !l.deletedAt), [lecturers]);
 
-  const filteredLecturers = lecturers.filter((l) =>
-    l.name.toLowerCase().includes(search.toLowerCase())
+  const creditBurden = useMemo(
+    () => computeCreditBurden(courses, courseClasses, classLecturerAssignments),
+    [courses, courseClasses, classLecturerAssignments]
   );
 
-  const toggleSelection = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  const filteredLecturers = useMemo(
+    () => activeLecturers.filter((l) => l.name.toLowerCase().includes(search.toLowerCase())),
+    [activeLecturers, search]
+  );
 
-  const toggleSelectAll = () => {
-    setSelectedIds((prev) => {
+  const handleToggleLecturer = useCallback((id: string) => {
+    setSelectedLecturerIds((prev) => {
       const next = new Set(prev);
-      const allSelected = filteredLecturers.every((l) => next.has(l.id));
-      for (const l of filteredLecturers) {
-        if (allSelected) next.delete(l.id);
-        else next.add(l.id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
       }
       return next;
     });
-  };
+  }, []);
 
-  const handleExportToExcel = async () => {
-    const selected = lecturers.filter((l) => selectedIds.has(l.id));
-    if (selected.length === 0) return;
-    setIsExporting(true);
-    try {
-      await exportLecturerClassesToExcel(selected, courses, courseClasses, scheduleSlots);
-      toast.success('Classes exported to Excel');
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to export to Excel');
-    } finally {
-      setIsExporting(false);
-    }
-  };
+  const handleClearSelection = useCallback(() => {
+    setSelectedLecturerIds(new Set());
+  }, []);
 
-  const removeLecturerFromState = (lecturerName: string) => {
-    setCourseClasses((prev) =>
-      prev.map((cc) => ({
-        ...cc,
-        lecturers: cc.lecturers.filter((name) => name !== lecturerName),
-      }))
-    );
-    setCourses((prev) =>
-      prev.map((c) =>
-        c.assignedLecturerName === lecturerName ? { ...c, assignedLecturerName: undefined } : c
-      )
-    );
-    setScheduleSlots((prev) => prev.filter((s) => s.lecturerName !== lecturerName));
-  };
-
-  const handleDeleteLecturer = async (lecturer: Lecturer) => {
-    const isReferenced =
-      courses.some((c) => c.assignedLecturerName === lecturer.name) ||
-      scheduleSlots.some((s) => s.lecturerName === lecturer.name);
-
-    if (!isReferenced) {
-      setDeletingLecturerId(lecturer.id);
-      try {
-        await apiDelete(`/api/lecturers/${lecturer.id}`);
-        setLecturers(lecturers.filter((l) => l.id !== lecturer.id));
-        removeLecturerFromState(lecturer.name);
-        toast.success('Lecturer deleted');
-      } catch (err) {
-        console.error(err);
-        toast.error('Failed to delete lecturer');
-      } finally {
-        setDeletingLecturerId(null);
-      }
-    } else {
-      setDeleteLecturerTarget(lecturer);
-    }
+  const handleDeleteLecturer = (lecturer: Lecturer) => {
+    setDeleteLecturerTarget(lecturer);
   };
 
   const confirmDeleteLecturer = async () => {
@@ -136,72 +99,152 @@ export function LecturersPage({
     setIsConfirmingDelete(true);
     try {
       await apiDelete(`/api/lecturers/${deleteLecturerTarget.id}`);
-      setLecturers(lecturers.filter((l) => l.id !== deleteLecturerTarget.id));
-      removeLecturerFromState(deleteLecturerTarget.name);
+      setLecturers((prev) =>
+        prev.map((l) => (l.id === deleteLecturerTarget.id ? { ...l, deletedAt: new Date().toISOString() } : l))
+      );
+      setSelectedLecturerIds((prev) => {
+        const next = new Set(prev);
+        next.delete(deleteLecturerTarget.id);
+        return next;
+      });
       setDeleteLecturerTarget(null);
-      toast.success('Lecturer deleted');
+      toast.success('Lecturer deactivated');
     } catch (err) {
       console.error(err);
-      toast.error('Failed to delete lecturer');
+      toast.error('Failed to deactivate lecturer');
     } finally {
       setIsConfirmingDelete(false);
     }
   };
 
-  return (
-    <div className="flex flex-col flex-1 min-h-0 gap-6">
-      <PageHeader
-        title="Lecturers"
-        subtitle="Manage faculty members and their assigned credits."
-        actions={
-          <>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[16px] text-[#43474e]">
-                search
-              </span>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search lecturer name..."
-                className="bg-white border border-[#c4c6cf] rounded-md py-2 pl-8 pr-3 text-[13px] text-[#191c1e] w-64 focus:ring-1 focus:ring-[#002045] outline-none"
-              />
-            </div>
-            <button
-              onClick={handleExportToExcel}
-              disabled={selectedIds.size === 0 || isExporting}
-              className="bg-white border border-[#c4c6cf] text-[#191c1e] px-4 py-2 rounded-lg font-semibold text-[12px] flex items-center gap-2 hover:bg-[#f2f4f6] active:scale-95 transition-all shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Export checked lecturers' classes to Excel"
-            >
-              {isExporting ? (
-                <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
-              ) : (
-                <span className="material-symbols-outlined text-[18px]">download</span>
-              )}
-              <span>{isExporting ? 'Exporting...' : 'Export Classes to Excel'}</span>
-            </button>
-            <button
-              onClick={() => onOpenNewRecordModal('Lecturer')}
-              className="bg-[#002045] text-white px-4 py-2 rounded-lg font-semibold text-[12px] flex items-center gap-2 hover:bg-opacity-90 active:scale-95 transition-all shadow-sm cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              <span>Add Lecturer</span>
-            </button>
-          </>
-        }
-      />
+  // ----- Schedule grid data -----
+  const currentPeriod = useMemo(
+    () => semesterPeriods.find((p) => p.id === sksSettings.currentPeriodId) ?? null,
+    [semesterPeriods, sksSettings.currentPeriodId]
+  );
 
-      <LecturersTable
-        lecturers={filteredLecturers}
-        onEditLecturer={setEditingLecturer}
-        onDeleteLecturer={handleDeleteLecturer}
-        onUpdateLecturer={(updated) => setLecturers(lecturers.map((l) => (l.id === updated.id ? updated : l)))}
-        deletingLecturerId={deletingLecturerId}
-        creditBurden={creditBurden}
-        selectedIds={selectedIds}
-        onToggleSelection={toggleSelection}
-        onToggleSelectAll={toggleSelectAll}
-      />
+  const currentSchedule = useMemo(
+    () => schedules.find((s) => s.periodId === sksSettings.currentPeriodId) ?? null,
+    [schedules, sksSettings.currentPeriodId]
+  );
+
+  const visibleSlots = useMemo(
+    () => (currentSchedule ? scheduleSlots.filter((s) => s.scheduleId === currentSchedule.id) : []),
+    [scheduleSlots, currentSchedule]
+  );
+
+  const periodBreaks = useMemo(
+    () => (currentPeriod ? breakTimes.filter((b) => b.periodId === currentPeriod.id) : []),
+    [breakTimes, currentPeriod]
+  );
+
+  const classById = useMemo(
+    () => buildClassById(courseClasses, courses, classLecturerAssignments, lecturers),
+    [courseClasses, courses, classLecturerAssignments, lecturers]
+  );
+
+  const { days, gridRows, slotRowLabels } = useMemo(
+    () => computeTimeSlots(sksSettings, currentPeriod, periodBreaks),
+    [sksSettings, currentPeriod, periodBreaks]
+  );
+
+  // Filter slots: only show slots belonging to at least one selected lecturer
+  const filteredSlots = useMemo(() => {
+    if (selectedLecturerIds.size === 0) return [];
+    return visibleSlots.filter((slot) => {
+      const classData = classById.get(slot.classId);
+      if (!classData) return false;
+      return classData.lecturers.some((l) => selectedLecturerIds.has(l.id));
+    });
+  }, [visibleSlots, classById, selectedLecturerIds]);
+
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPdf = useCallback(async () => {
+    if (selectedLecturerIds.size === 0) {
+      toast.error('Select at least one lecturer to export');
+      return;
+    }
+    if (filteredSlots.length === 0) {
+      toast.error('No scheduled classes for selected lecturer(s)');
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const selectedLecturerNames = lecturers
+        .filter((l) => selectedLecturerIds.has(l.id))
+        .map((l) => l.name.toLowerCase().replace(/[^a-z0-9]/g, '-'))
+        .join('-');
+      const filename = `jadwal-dosen-${selectedLecturerNames.slice(0, 30)}.pdf`;
+      await exportScheduleToPdf(currentSchedule?.id, currentPeriod, {
+        overrideSlots: filteredSlots,
+        filename,
+        colorMode,
+      });
+      toast.success('PDF exported successfully');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to export PDF');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [selectedLecturerIds, filteredSlots, lecturers, currentSchedule, currentPeriod, colorMode]);
+
+  const hasSelection = selectedLecturerIds.size > 0;
+
+  return (
+    <ScheduleLayout
+      sidebar={
+        <LecturersSidebar
+          lecturers={filteredLecturers}
+          selectedIds={selectedLecturerIds}
+          creditBurden={creditBurden}
+          onToggleLecturer={handleToggleLecturer}
+          onEditLecturer={setEditingLecturer}
+          onDeleteLecturer={handleDeleteLecturer}
+          onUpdateLecturer={(updated) =>
+            setLecturers(lecturers.map((l) => (l.id === updated.id ? updated : l)))
+          }
+          onOpenAddLecturer={() => onOpenNewRecordModal('Lecturer')}
+          onClearSelection={handleClearSelection}
+          isExporting={isExporting}
+          onExportPdf={handleExportPdf}
+          search={search}
+          onSearchChange={setSearch}
+        />
+      }
+    >
+      {!hasSelection ? (
+        <div className="flex flex-col items-center justify-center h-full text-center px-8 py-24">
+          <span className="material-symbols-outlined text-[64px] text-[#c4c6cf] mb-4">person</span>
+          <h2 className="text-[18px] font-bold text-[#191c1e] mb-2">No Lecturer Selected</h2>
+          <p className="text-[14px] text-[#74777f] max-w-xs">
+            Select one or more lecturers from the sidebar to view their scheduled classes on the grid.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-6 pr-1">
+          {days.map((day: DayOfWeek) => (
+            <ScheduleDayGrid
+              key={day}
+              day={day}
+              gridRooms={rooms}
+              gridRows={gridRows}
+              slotRowLabels={slotRowLabels}
+              scheduleSlots={filteredSlots}
+              lecturers={lecturers}
+              classById={classById}
+              activeDraftItem={null}
+              unscheduledCourses={[]}
+              onPlaceDraft={() => undefined}
+              onRemoveSlot={() => undefined}
+              onSelectEmpty={() => undefined}
+              readOnly
+              colorMode={colorMode}
+            />
+          ))}
+        </div>
+      )}
 
       {editingLecturer && (
         <EditLecturerModal
@@ -217,13 +260,11 @@ export function LecturersPage({
       {deleteLecturerTarget && (
         <DeleteLecturerModal
           lecturer={deleteLecturerTarget}
-          courses={courses}
-          scheduleSlots={scheduleSlots}
           isConfirming={isConfirmingDelete}
           onConfirm={confirmDeleteLecturer}
           onCancel={() => setDeleteLecturerTarget(null)}
         />
       )}
-    </div>
+    </ScheduleLayout>
   );
 }
