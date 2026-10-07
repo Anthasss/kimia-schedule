@@ -179,6 +179,7 @@ export function LecturersPage({
       await exportScheduleToPdf(currentSchedule?.id, currentPeriod, {
         overrideSlots: filteredSlots,
         filename,
+        colorMode,
       });
       toast.success('PDF exported successfully');
     } catch (err) {
@@ -187,7 +188,7 @@ export function LecturersPage({
     } finally {
       setIsExporting(false);
     }
-  }, [selectedLecturerIds, filteredSlots, lecturers, currentSchedule, currentPeriod]);
+  }, [selectedLecturerIds, filteredSlots, lecturers, currentSchedule, currentPeriod, colorMode]);
 
   const hasSelection = selectedLecturerIds.size > 0;
 

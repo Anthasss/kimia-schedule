@@ -83,24 +83,17 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
 
   const searching = draftSearch.trim() !== '';
 
-  // ponytail: pool follows the active period's term — odd semesters in Ganjil, even in Genap
-  const activeParity = currentPeriod ? currentPeriod.semester % 2 : null;
-  const matchesPeriod = (item: UnscheduledClass) =>
-    activeParity === null || item.semester.some((s) => s % 2 === activeParity);
-
   // ponytail: in semester color mode, group cards by their first semester number
   const bySemester = (a: UnscheduledClass, b: UnscheduledClass) =>
     (a.semester[0] ?? 99) - (b.semester[0] ?? 99) || a.courseCode.localeCompare(b.courseCode);
 
   const displayedCourses = useMemo(() => {
-    const list = filteredDraftPool.filter(matchesPeriod);
-    return colorMode === 'semester' ? [...list].sort(bySemester) : list;
-  }, [filteredDraftPool, activeParity, colorMode]);
+    return colorMode === 'semester' ? [...filteredDraftPool].sort(bySemester) : filteredDraftPool;
+  }, [filteredDraftPool, colorMode]);
 
   const displayedScheduled = useMemo(() => {
-    const list = scheduledMatches.filter(matchesPeriod);
-    return colorMode === 'semester' ? [...list].sort(bySemester) : list;
-  }, [scheduledMatches, activeParity, colorMode]);
+    return colorMode === 'semester' ? [...scheduledMatches].sort(bySemester) : scheduledMatches;
+  }, [scheduledMatches, colorMode]);
 
   const shownCount = searching ? displayedCourses.length + displayedScheduled.length : displayedCourses.length;
 
@@ -117,52 +110,53 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0 mt-4 mb-2">
-        <div ref={periodMenuRef} className="relative flex-1 min-w-0">
+      <div className="relative flex items-center gap-2 shrink-0 mt-4 mb-2">
+        <div ref={periodMenuRef} className="flex-1 min-w-0">
           <button
             onClick={() => setShowPeriodMenu((v) => !v)}
-            className="w-full h-8 px-3 flex items-center justify-between bg-[#f2f4f6] border border-[#c4c6cf] rounded-md text-[13px] font-semibold text-[#002045] hover:bg-[#e8eaec] cursor-pointer"
+            className="w-full h-8 pl-3 pr-1.5 flex items-center justify-between gap-2 bg-[#f2f4f6] border border-[#c4c6cf] rounded-md text-[12px] font-semibold text-[#002045] hover:bg-[#e8eaec] cursor-pointer"
           >
-            <span>{currentPeriod ? formatPeriodLabel(currentPeriod) : 'No period selected'}</span>
-            <span className="material-symbols-outlined text-[17px]">
+            <span className="truncate">{currentPeriod ? formatPeriodLabel(currentPeriod) : 'No period selected'}</span>
+            <span className="material-symbols-outlined text-[17px] shrink-0">
               {showPeriodMenu ? 'expand_less' : 'expand_more'}
             </span>
           </button>
           {showPeriodMenu && (
-            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#c4c6cf] rounded-md shadow-lg z-50 py-1 max-h-56 overflow-y-auto">
-              {savedPeriods.map((p, i) => {
-                const isActive =
-                  currentPeriod?.year === p.year && currentPeriod?.semester === p.semester;
-                return (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      onPeriodChange(p);
-                      setShowPeriodMenu(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 hover:bg-[#f2f4f6] flex items-center gap-2 text-[13px] cursor-pointer ${isActive ? 'font-semibold text-[#002045]' : 'text-[#43474e]'}`}
-                  >
-                    <span className="material-symbols-outlined text-[16px] w-4">
-                      {isActive ? 'check' : ''}
-                    </span>
-                    <span>{formatPeriodLabel(p)}</span>
-                  </button>
-                );
-              })}
-              <div className="border-t border-[#c4c6cf] my-1" />
-              <button
-                onClick={() => {
-                  onOpenAddPeriod();
-                  setShowPeriodMenu(false);
-                }}
-                className="w-full text-left px-3 py-2 text-[#002045] font-semibold hover:bg-[#f2f4f6] flex items-center gap-2 text-[13px] cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[16px]">add</span>
-                <span>Add new period...</span>
-              </button>
+            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-[#c4c6cf] rounded-md shadow-lg z-50">
+              <div className="max-h-48 overflow-y-auto py-1">
+                {savedPeriods.map((p, i) => {
+                  const isActive =
+                    currentPeriod?.year === p.year && currentPeriod?.semester === p.semester;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        onPeriodChange(p);
+                        setShowPeriodMenu(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 hover:bg-[#f2f4f6] flex items-center gap-2 text-[13px] cursor-pointer ${isActive ? 'font-semibold text-[#002045]' : 'text-[#43474e]'}`}
+                    >
+                      <span className="material-symbols-outlined text-[16px] w-4">
+                        {isActive ? 'check' : ''}
+                      </span>
+                      <span>{formatPeriodLabel(p)}</span>
+                    </button>
+                  );
+                })}
+                <div className="border-t border-[#c4c6cf] my-1" />
+                <button
+                  onClick={() => {
+                    onOpenAddPeriod();
+                    setShowPeriodMenu(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-[#002045] font-semibold hover:bg-[#f2f4f6] flex items-center gap-2 text-[13px] cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">add</span>
+                  <span>Add new period...</span>
+                </button>
+              </div>
               {currentPeriod && savedPeriods.length > 1 && (
-                <>
-                  <div className="border-t border-[#c4c6cf] my-1" />
+                <div className="border-t border-[#c4c6cf] py-1">
                   <button
                     onClick={() => {
                       onDeleteCurrentPeriod();
@@ -173,7 +167,7 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
                     <span className="material-symbols-outlined text-[16px]">delete</span>
                     <span>Delete current period...</span>
                   </button>
-                </>
+                </div>
               )}
             </div>
           )}

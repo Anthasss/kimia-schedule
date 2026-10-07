@@ -190,7 +190,7 @@ export function HistoryPage({
     }
     setIsExporting(true);
     try {
-      await exportScheduleToPdf(selectedSchedule.id, selectedPeriod);
+      await exportScheduleToPdf(selectedSchedule.id, selectedPeriod, { colorMode });
     } catch (err) {
       console.error(err);
       toast.error('Failed to export PDF');

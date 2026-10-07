@@ -17,7 +17,9 @@ function buildUnscheduledClass(data: ClassData): UnscheduledClass {
 
 export function useUnscheduledCourses(
   classById: Map<string, ClassData>,
-  scheduleSlots: ScheduleSlot[]
+  scheduleSlots: ScheduleSlot[],
+  // ponytail: pool follows the active period's term — odd semesters in Ganjil, even in Genap; null = no period
+  parity: number | null
 ) {
   const [draftSearch, setDraftSearch] = useState('');
   const [selectedExpandedDraft, setSelectedExpandedDraft] = useState<string | null>(null);
@@ -37,16 +39,18 @@ export function useUnscheduledCourses(
     const result: UnscheduledClass[] = [];
     for (const data of classById.values()) {
       if (scheduledClassIds.has(data.class.id)) continue;
+      if (parity !== null && !data.course.semester.some((s) => s % 2 === parity)) continue;
       result.push(buildUnscheduledClass(data));
     }
     result.sort((a, b) => a.courseTitle.localeCompare(b.courseTitle));
     return result;
-  }, [classById, scheduledClassIds]);
+  }, [classById, scheduledClassIds, parity]);
 
   const scheduledPool = useMemo<UnscheduledClass[]>(() => {
     const result: UnscheduledClass[] = [];
     for (const data of classById.values()) {
       if (!scheduledClassIds.has(data.class.id)) continue;
+      if (parity !== null && !data.course.semester.some((s) => s % 2 === parity)) continue;
       const slot = slotByClassId.get(data.class.id);
       result.push({
         ...buildUnscheduledClass(data),
@@ -54,7 +58,7 @@ export function useUnscheduledCourses(
       });
     }
     return result;
-  }, [classById, scheduledClassIds, slotByClassId]);
+  }, [classById, scheduledClassIds, slotByClassId, parity]);
 
   const matchesSearch = (item: UnscheduledClass, query: string) =>
     item.courseCode.toLowerCase().includes(query) ||
@@ -77,10 +81,13 @@ export function useUnscheduledCourses(
     [unscheduledCourses, selectedExpandedDraft]
   );
 
+  // re-pick when nothing is selected or the selection fell out of the period-filtered pool
   useEffect(() => {
-    if (unscheduledCourses.length > 0 && !selectedExpandedDraft) {
-      setSelectedExpandedDraft(unscheduledCourses[0].id);
-    }
+    if (unscheduledCourses.length === 0) return;
+    const stillValid =
+      selectedExpandedDraft !== null &&
+      unscheduledCourses.some((c) => c.id === selectedExpandedDraft);
+    if (!stillValid) setSelectedExpandedDraft(unscheduledCourses[0].id);
   }, [unscheduledCourses, selectedExpandedDraft]);
 
   return {

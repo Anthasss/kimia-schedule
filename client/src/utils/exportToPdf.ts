@@ -3,6 +3,8 @@ import { computeTimeSlots } from './scheduleTimeSlots';
 import type { Room, ScheduleSlot, SksSettings, BreakTime, Lecturer, DayOfWeek, CourseClass, SemesterPeriod, ClassLecturerAssignment } from '../types';
 import { getWeeklyTurnsForSlots, cleanLecturerName } from './rotationSolver';
 import { buildClassById, ClassData } from './classData';
+import { clusterSlots, assignLanes, slotStartIndex, slotSks, SlotEntry } from './gridLanes';
+import { ColorMode, semesterColor } from '../constants';
 
 const DAY_NAMES_ID: Record<DayOfWeek, string> = {
   Monday: 'Senin',
@@ -19,37 +21,131 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
 }
 
-function luminance(r: number, g: number, b: number): number {
-  return 0.299 * r + 0.587 * g + 0.114 * b;
-}
-
-function slotStartIndex(slot: ScheduleSlot, labels: string[]): number {
-  return labels.findIndex((label) => label.startsWith(slot.startTime));
-}
-
-function isSpanningSlot(day: DayOfWeek, ts: string, roomId: string, slotsByDay: Record<string, ScheduleSlot[]>, labels: string[], classById: Map<string, ClassData>): boolean {
-  return (slotsByDay[day] || []).some(s => {
-    if (s.roomId !== roomId || s.day !== day) return false;
-    const start = slotStartIndex(s, labels);
-    if (start === -1) return false;
-    const sks = classById.get(s.classId)?.course.sks ?? 0;
-    return start < labels.indexOf(ts) && labels.indexOf(ts) < start + sks;
-  });
-}
-
-type GridRow = { type: string; label?: string; name?: string; startTime?: string; endTime?: string };
-
 // ponytail: fixed layout constants, tune if measure fails
-const M = 10, PW = 210, PH = 297, BM = 15, TW = 30;
+const M = 10, PW = 210, PH = 297, BM = 15, TW = 20;
+// card metrics in mm (solid accent bg, no bar — text spans the card)
+const PAD = 1, GAP = 1, BADGE_H = 3.2;
 
 function pageBreak(pdf: jsPDF, y: number, need: number): number {
   if (y + need > PH - BM) { pdf.addPage(); return M; }
   return y;
 }
 
+// white chip w/ colored text + hairline, so it stays visible on any accent.
+// font shrinks to fit the lane (down to 3pt); skip only below that (no "…")
+function drawBadge(
+  pdf: jsPDF,
+  xRight: number,
+  y: number,
+  text: string,
+  color: [number, number, number],
+  minX: number,
+  bh: number
+): void {
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(5);
+  const avail = xRight - minX;
+  const tw = pdf.getTextWidth(text);
+  if (avail <= 2 || tw <= 0) return;
+  const fs = Math.min(5, Math.max(3, (5 * (avail - 1.6)) / tw));
+  pdf.setFontSize(fs);
+  const bw = pdf.getTextWidth(text) + 1.6;
+  if (bw > avail) return;
+  pdf.setFillColor(255, 255, 255);
+  pdf.setDrawColor(color[0], color[1], color[2]);
+  pdf.setLineWidth(0.15);
+  pdf.rect(xRight - bw, y, bw, bh, 'FD');
+  pdf.setTextColor(color[0], color[1], color[2]);
+  pdf.text(text, xRight - bw + 0.8, y + bh - 1.1);
+}
+
+// solid accent background; text flips to white on dark accents (YIQ)
+function drawCard(
+  pdf: jsPDF,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  data: ClassData | undefined,
+  accent: string,
+  turnsText: string,
+  roomName?: string
+) {
+  if (w <= 3 || h <= 3) return;
+  const [ar, ag, ab] = hexToRgb(accent);
+  pdf.setFillColor(ar, ag, ab);
+  pdf.rect(x, y, w, h, 'F');
+  pdf.setDrawColor(25, 28, 30);
+  pdf.setLineWidth(0.2);
+  pdf.rect(x, y, w, h, 'S');
+
+  const dark = (299 * ar + 587 * ag + 114 * ab) / 1000 < 128;
+  const titleC: [number, number, number] = dark ? [255, 255, 255] : [25, 28, 30];
+  const bodyC: [number, number, number] = dark ? [232, 235, 241] : [55, 65, 81];
+  const subC: [number, number, number] = dark ? [205, 212, 225] : [80, 95, 118];
+
+  const tx = x + 1;
+  const textW = w - 2;
+  if (textW <= 4) return;
+
+  // badges stack vertically, each on its own row with the full cell width
+  // (side-by-side forced "…" when the combined label exceeded the lane)
+  const badges: [string, [number, number, number]][] = [];
+  if (data && data.course.semester.length > 0) {
+    badges.push([`Sem ${data.course.semester.join(', ')}`, hexToRgb(semesterColor(data.course.semester))]);
+  }
+  if (roomName) badges.push([roomName, [0, 32, 69]]);
+  const bh = badges.length > 1 ? 2.8 : BADGE_H; // fit 2 rows in a 1-SKS (12mm) card
+  const bGap = 0.5;
+  const badgeTop = y + h - PAD - (badges.length ? badges.length * bh + (badges.length - 1) * bGap : 0);
+  const contentBottom = badgeTop - 1;
+  badges.forEach((b, i) =>
+    drawBadge(pdf, x + w - PAD, badgeTop + i * (bh + bGap), b[0], b[1], x + PAD, bh)
+  );
+
+  // title + inline (letter) like the card
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(7);
+  pdf.setTextColor(titleC[0], titleC[1], titleC[2]);
+  const titleLines: string[] = pdf.splitTextToSize(data?.course.title ?? '', textW);
+  let cursor = y + PAD + 2.6;
+  for (let li = 0; li < titleLines.length && cursor <= contentBottom; li++) {
+    pdf.text(titleLines[li], tx, cursor);
+    if (li === titleLines.length - 1 && data) {
+      const titleW = pdf.getTextWidth(titleLines[li]); // still bold 7 — measure before switching
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(6);
+      pdf.setTextColor(subC[0], subC[1], subC[2]);
+      const letter = `(${data.class.classLetter ?? ''})`;
+      const lw = pdf.getTextWidth(letter);
+      if (titleW + 1 + lw <= textW) {
+        pdf.text(letter, tx + titleW + 1, cursor);
+      } else {
+        cursor += 2.6;
+        if (cursor <= contentBottom) pdf.text(letter, tx, cursor);
+      }
+    }
+    cursor += 2.6;
+  }
+  cursor += 1;
+
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(6);
+  pdf.setTextColor(bodyC[0], bodyC[1], bodyC[2]);
+  for (const line of pdf.splitTextToSize(turnsText, textW) as string[]) {
+    if (cursor > contentBottom) break;
+    pdf.text(line, tx, cursor);
+    cursor += 2.4;
+  }
+}
+
 export interface ExportPdfOptions {
   overrideSlots?: ScheduleSlot[];
   filename?: string;
+  columns?: { id: string; name: string }[];
+  columnOf?: (slot: ScheduleSlot) => string | null;
+  roomNameOf?: (slot: ScheduleSlot) => string | undefined;
+  colorMode?: ColorMode;
 }
 
 export async function exportScheduleToPdf(
@@ -67,8 +163,6 @@ export async function exportScheduleToPdf(
     fetch('/api/course-class-lecturers').then(r => r.json()),
   ]) as [Room[], ScheduleSlot[], SksSettings, BreakTime[], Lecturer[], CourseClass[], ClassLecturerAssignment[]];
 
-  if (!rooms.length) return;
-
   const filteredSlots = options?.overrideSlots
     ? options.overrideSlots
     : scheduleId
@@ -76,15 +170,26 @@ export async function exportScheduleToPdf(
     : scheduleSlots;
   if (!filteredSlots.length) return;
 
+  // columns default to rooms; semester mode passes its own (same set the grid shows)
+  const cols = options?.columns ?? rooms.map((r) => ({ id: r.id, name: r.name }));
+  const colKey = options?.columnOf ?? ((s: ScheduleSlot) => s.roomId);
+  const colorMode = options?.colorMode ?? 'lecturer';
+  if (!cols.length) return;
+
   const periodBreaks = period ? breakTimes.filter((b) => b.periodId === period.id) : breakTimes;
   const classById = buildClassById(courseClasses, await fetch('/api/courses').then(r => r.json()), assignments, lecturers);
 
   const pdf = new jsPDF('p', 'mm', 'a4');
   const { days, gridRows, slotRowLabels } = computeTimeSlots(sksSettings, period, periodBreaks);
-  const turnsByClassId = getWeeklyTurnsForSlots(filteredSlots, slotRowLabels, classById, 'M');
 
   // ponytail: one day per page — rows stretch to fill the usable height
   const RH = Math.floor((PH - M - BM - 8 - 8 - 3) / gridRows.length);
+
+  // slot index → y offset of its row inside the body (gridRows includes break rows)
+  const slotYOffset: number[] = [];
+  gridRows.forEach((row, gi) => {
+    if (row.type === 'slot') slotYOffset.push(gi * RH);
+  });
 
   const slotsByDay: Record<string, ScheduleSlot[]> = {};
   for (const slot of filteredSlots) {
@@ -92,7 +197,7 @@ export async function exportScheduleToPdf(
     slotsByDay[slot.day].push(slot);
   }
 
-  const RW = (PW - 2 * M - TW) / rooms.length;
+  const RW = (PW - 2 * M - TW) / cols.length;
   let y = M;
 
   for (const day of days) {
@@ -106,7 +211,7 @@ export async function exportScheduleToPdf(
     y += 8;
 
     // col header row background
-    const gridW = TW + rooms.length * RW;
+    const gridW = TW + cols.length * RW;
     pdf.setFillColor(242, 244, 246);
     pdf.rect(M, y, gridW, 8, 'F');
     // outer border + top + bottom of header
@@ -118,7 +223,7 @@ export async function exportScheduleToPdf(
     pdf.line(M + gridW, y, M + gridW, y + 8); // right
     // vertical dividers in header
     pdf.line(M + TW, y, M + TW, y + 8);
-    for (let ci = 1; ci < rooms.length; ci++) {
+    for (let ci = 1; ci < cols.length; ci++) {
       const xv = M + TW + ci * RW;
       pdf.line(xv, y, xv, y + 8);
     }
@@ -127,16 +232,17 @@ export async function exportScheduleToPdf(
     pdf.setFontSize(8);
     pdf.setFont('helvetica', 'bold');
     pdf.text('Jam', M + 1, y + 5);
-    for (let ci = 0; ci < rooms.length; ci++) {
+    for (let ci = 0; ci < cols.length; ci++) {
       const x = M + TW + ci * RW;
-      pdf.text(rooms[ci].name, x + 1, y + 5);
+      pdf.text(cols[ci].name, x + 1, y + 5);
     }
     y += 8;
+    const bodyY = y;
 
     // ── Pass 1: draw the full grey grid background (all rows) ──────────────────
-    // This must complete before any slot fills so that spanning slots are never
+    // This must complete before any card fills so that spanning cards are never
     // clipped by a later row's white cell background.
-    let yp = y;
+    let yp = bodyY;
     for (let ri = 0; ri < gridRows.length; ri++) {
       const row = gridRows[ri];
 
@@ -153,7 +259,7 @@ export async function exportScheduleToPdf(
         pdf.rect(M, yp, TW, RH, 'F');
         // room cells (white)
         pdf.setFillColor(255, 255, 255);
-        for (let ci = 0; ci < rooms.length; ci++) {
+        for (let ci = 0; ci < cols.length; ci++) {
           pdf.rect(M + TW + ci * RW, yp, RW, RH, 'F');
         }
         // horizontal row divider (bottom of row)
@@ -162,7 +268,7 @@ export async function exportScheduleToPdf(
         pdf.line(M, yp + RH, M + gridW, yp + RH);
         // vertical column dividers
         pdf.line(M + TW, yp, M + TW, yp + RH);
-        for (let ci = 1; ci < rooms.length; ci++) {
+        for (let ci = 1; ci < cols.length; ci++) {
           pdf.line(M + TW + ci * RW, yp, M + TW + ci * RW, yp + RH);
         }
         // outer left / right borders
@@ -173,11 +279,9 @@ export async function exportScheduleToPdf(
       yp += RH;
     }
 
-    // ── Pass 2: draw time labels + break labels + course slots on top ──────────
-    yp = y;
-    for (let ri = 0; ri < gridRows.length; ri++) {
-      const row = gridRows[ri];
-
+    // ── Pass 2: time labels + break labels ────────────────────────────────────
+    yp = bodyY;
+    for (const row of gridRows) {
       if (row.type === 'break') {
         pdf.setTextColor(146, 64, 14);
         pdf.setFontSize(8);
@@ -186,68 +290,53 @@ export async function exportScheduleToPdf(
         yp += RH;
         continue;
       }
-
-      const rawTs = row.label!;
-      const displayTs = rawTs.replace(/ SKS \d+$/, '');
-
-      // time label text
+      const displayTs = row.label.replace(/ SKS \d+$/, '');
       pdf.setFontSize(7);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(25, 28, 30);
       pdf.text(displayTs, M + 1, yp + RH / 2 + 1.5);
-
-      // course slots that start at this row (may span multiple rows)
-      for (let ci = 0; ci < rooms.length; ci++) {
-        const room = rooms[ci];
-        const x = M + TW + ci * RW;
-
-        if (isSpanningSlot(day, rawTs, room.id, slotsByDay, slotRowLabels, classById)) continue;
-
-        const slot = (slotsByDay[day] || []).find(s => s.roomId === room.id && slotStartIndex(s, slotRowLabels) === slotRowLabels.indexOf(rawTs));
-        if (!slot) continue;
-
-        const data = classById.get(slot.classId);
-        const sks = data?.course.sks ?? 0;
-        const h = sks * RH;
-        const primary = data?.lecturers[0];
-        const [r, g, b] = hexToRgb(primary?.color || '#6366f1');
-        pdf.setFillColor(r, g, b);
-        pdf.rect(x, yp, RW, h, 'F');
-
-        const tc = luminance(r, g, b) < 128 ? [255, 255, 255] : [25, 28, 30];
-        pdf.setTextColor(tc[0], tc[1], tc[2]);
-        const pad = 1;
-
-        pdf.setFontSize(8);
-        const titleLines = pdf.splitTextToSize(data?.course.title ?? '', RW - pad * 2);
-        let cursor = yp + pad + 2.2;
-        for (const line of titleLines) {
-          pdf.text(line, x + pad, cursor);
-          cursor += 2.9;
-        }
-        cursor += 1.5;
-
-        pdf.setFontSize(7);
-        const turnsText = turnsByClassId.get(slot.classId) || cleanLecturerName(primary?.name || '');
-        const lecturerLines = pdf.splitTextToSize(turnsText, RW - pad * 2);
-        for (const line of lecturerLines) {
-          pdf.text(line, x + pad, cursor);
-          cursor += 2.5;
-        }
-
-        const letterFull = `(${data?.class.classLetter ?? ''})`;
-        let letter = letterFull;
-        while (letter.length > 1 && pdf.getTextWidth(letter) > RW - pad * 2) letter = letter.slice(0, -1);
-        if (letter.length !== letterFull.length) letter += '…';
-        pdf.text(letter, x + pad, yp + h - pad - 3.5);
-        pdf.text(`${sks} SKS`, x + pad, yp + h - pad - 0.5);
-      }
-
       yp += RH;
     }
 
-    y = yp;
-    y += 3;
+    // ── Pass 3: course cards — clustered and lane-split exactly like the grid ──
+    const daySlots = slotsByDay[day] ?? [];
+    const turnsByClassId = getWeeklyTurnsForSlots(daySlots, slotRowLabels, classById);
+    for (let ci = 0; ci < cols.length; ci++) {
+      const entries: SlotEntry[] = daySlots
+        .filter((s) => colKey(s) === cols[ci].id)
+        .map((s) => ({ slot: s, start: slotStartIndex(s, slotRowLabels), sks: slotSks(s, classById) }))
+        .filter((e) => e.start !== -1);
+      for (const cluster of clusterSlots(entries)) {
+        const lanes = assignLanes(cluster.members);
+        const laneCount = Math.max(...lanes) + 1;
+        cluster.members.forEach((entry, i) => {
+          const data = classById.get(entry.slot.classId);
+          const laneW = RW / laneCount;
+          const cellX = M + TW + ci * RW + lanes[i] * laneW;
+          const cellW = laneW - (lanes[i] < laneCount - 1 ? GAP : 0);
+          const cellY = bodyY + slotYOffset[entry.start];
+          const cellH = entry.sks * RH;
+          const accent = colorMode === 'semester'
+            ? semesterColor(data?.course.semester ?? [])
+            : data?.lecturers[0]?.color || '#6366f1';
+          const turnsText = turnsByClassId.get(entry.slot.classId)
+            || (data?.lecturers ?? []).map((l) => cleanLecturerName(l.name)).join('\n');
+          drawCard(
+            pdf,
+            cellX,
+            cellY,
+            cellW,
+            cellH,
+            data,
+            accent,
+            turnsText,
+            options?.roomNameOf?.(entry.slot)
+          );
+        });
+      }
+    }
+
+    y = bodyY + gridRows.length * RH + 3;
   }
 
   pdf.save(
