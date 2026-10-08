@@ -277,6 +277,7 @@ export function SchedulePage({
   });
 
   const handleSelectEmpty = (day: DayOfWeek, timeSlot: string, roomId: string) => {
+    if (filteredDraftPool.length === 0) return;
     setAssignDay(day);
     setAssignTimeSlot(timeSlot);
     setAssignRoomId(roomId);
