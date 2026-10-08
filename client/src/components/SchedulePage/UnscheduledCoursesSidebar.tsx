@@ -232,16 +232,27 @@ export const UnscheduledCoursesSidebar: React.FC<UnscheduledCoursesSidebarProps>
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 space-y-3 custom-scrollbar pr-1 mt-4">
-        {displayedCourses.map((item) => (
-          <CourseDraftCard
-            key={item.id}
-            course={item}
-            lecturers={lecturers}
-            isSelected={selectedCourseId === item.id}
-            onSelect={() => onSelectCourse(item.id)}
-            colorMode={colorMode}
-          />
-        ))}
+        {displayedCourses.map((item, i) => {
+          const sem = colorMode === 'semester' ? item.semester[0] ?? 99 : null;
+          const prevSem = i > 0 ? displayedCourses[i - 1].semester[0] ?? 99 : null;
+          const showHeading = sem !== null && (i === 0 || sem !== prevSem);
+          return (
+            <React.Fragment key={item.id}>
+              {showHeading && (
+                <div className="text-[11px] font-bold uppercase tracking-wide text-[#74777f] pt-1 pb-1 border-b border-[#c4c6cf]">
+                  {sem === 99 ? 'Unassigned' : `Semester ${sem}`}
+                </div>
+              )}
+              <CourseDraftCard
+                course={item}
+                lecturers={lecturers}
+                isSelected={selectedCourseId === item.id}
+                onSelect={() => onSelectCourse(item.id)}
+                colorMode={colorMode}
+              />
+            </React.Fragment>
+          );
+        })}
 
         {searching && displayedScheduled.length > 0 && (
           <>
