@@ -47,7 +47,8 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
   colorMode = 'lecturer',
 }) => {
   // ponytail: columnOf present = semester view mode — pure viewing, no place/remove
-  const viewOnly = readOnly || columnOf !== undefined;
+  const semesterView = columnOf !== undefined;
+  const viewOnly = readOnly || semesterView;
   const columnKey = useCallback(
     (s: ScheduleSlot) => (columnOf ? columnOf(s) : s.roomId),
     [columnOf]
@@ -74,18 +75,32 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
     return map;
   }, [daySlots, gridRooms, columnKey, slotRowLabels, classById]);
 
-  // column grows with its widest cluster so cards keep CARD_MIN_WIDTH — grid scrolls instead of squashing
-  const columnMinWidths = useMemo(
-    () =>
-      gridRooms.map((room) => {
-        const maxLanes = Math.max(
-          1,
-          ...(clustersByColumn.get(room.id) ?? []).map((c) => Math.max(...assignLanes(c.members)) + 1)
-        );
-        return maxLanes * (CARD_MIN_WIDTH + 4) + 16; // +4 lane gap, +16 cell px-2 padding
-      }),
-    [gridRooms, clustersByColumn]
-  );
+  // semester view: width identical every day — lane demand measured per day, max across the week
+  const columnMinWidths = useMemo(() => {
+    const byDay = new Map<DayOfWeek, ScheduleSlot[]>();
+    for (const s of scheduleSlots) {
+      const list = byDay.get(s.day);
+      if (list) list.push(s);
+      else byDay.set(s.day, [s]);
+    }
+    return gridRooms.map((room) => {
+      let maxLanes = 1;
+      for (const slots of byDay.values()) {
+        const entries: SlotEntry[] = slots
+          .filter((s) => columnKey(s) === room.id)
+          .map((s) => ({
+            slot: s,
+            start: slotStartIndex(s, slotRowLabels),
+            sks: slotSks(s, classById),
+          }))
+          .filter((e) => e.start !== -1);
+        if (entries.length === 0) continue;
+        const clusters = clusterSlots(entries);
+        maxLanes = Math.max(maxLanes, ...clusters.map((c) => Math.max(...assignLanes(c.members)) + 1));
+      }
+      return maxLanes * (CARD_MIN_WIDTH + 4) + 16; // +4 lane gap, +16 cell px-2 padding
+    });
+  }, [scheduleSlots, gridRooms, columnKey, slotRowLabels, classById]);
 
   // equal columns: every column gets the widest column's minimum
   const sharedColumnMin = Math.max(1, ...columnMinWidths);
@@ -216,13 +231,13 @@ export const ScheduleDayGrid: React.FC<ScheduleDayGridProps> = ({
 
       <div
         className="bg-white border border-[#c4c6cf] rounded-xl overflow-hidden shadow-2xs"
-        style={{ minWidth: 80 + gridRooms.length * sharedColumnMin + 2 }}
+        style={semesterView ? { minWidth: 80 + gridRooms.length * sharedColumnMin + 2 } : undefined}
       >
         <div
           className="schedule-grid"
           style={{
             display: 'grid',
-            gridTemplateColumns: ['80px', ...gridRooms.map(() => `minmax(${sharedColumnMin}px, 1fr)`)].join(' '),
+            gridTemplateColumns: ['80px', ...gridRooms.map(() => (semesterView ? `minmax(${sharedColumnMin}px, 1fr)` : 'minmax(0, 1fr)'))].join(' '),
             gridAutoRows: 'minmax(140px, auto)',
           }}
         >

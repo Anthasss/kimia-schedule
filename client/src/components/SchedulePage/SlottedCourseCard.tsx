@@ -3,7 +3,7 @@ import { ScheduleSlot, Lecturer } from '../../types';
 import { ClassData } from '../../utils/classData';
 import { cleanLecturerName } from '../../utils/rotationSolver';
 import { useFitScale } from '../../hooks/useFitScale';
-import { ColorMode, semesterColor, CARD_MIN_WIDTH } from '../../constants';
+import { ColorMode, semesterColor } from '../../constants';
 
 interface SlottedCourseCardProps {
   slot: ScheduleSlot;
@@ -44,7 +44,6 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
       ref={boxRef}
       className="rounded border transition-all text-left relative group h-full overflow-hidden text-[#191c1e] hover:border-[#002045]"
       style={{
-        minWidth: CARD_MIN_WIDTH,
         borderLeftWidth: '3px',
         borderLeftColor: accentColor,
         backgroundColor: `${accentColor}0D`,
