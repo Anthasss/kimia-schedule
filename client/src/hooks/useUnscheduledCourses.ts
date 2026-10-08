@@ -81,14 +81,17 @@ export function useUnscheduledCourses(
     [unscheduledCourses, selectedExpandedDraft]
   );
 
-  // re-pick when nothing is selected or the selection fell out of the period-filtered pool
+  // re-pick only from what the sidebar currently shows; empty sidebar = select nothing
   useEffect(() => {
-    if (unscheduledCourses.length === 0) return;
+    if (filteredDraftPool.length === 0) {
+      setSelectedExpandedDraft(null);
+      return;
+    }
     const stillValid =
       selectedExpandedDraft !== null &&
-      unscheduledCourses.some((c) => c.id === selectedExpandedDraft);
-    if (!stillValid) setSelectedExpandedDraft(unscheduledCourses[0].id);
-  }, [unscheduledCourses, selectedExpandedDraft]);
+      filteredDraftPool.some((c) => c.id === selectedExpandedDraft);
+    if (!stillValid) setSelectedExpandedDraft(filteredDraftPool[0].id);
+  }, [filteredDraftPool, selectedExpandedDraft]);
 
   return {
     draftSearch,
