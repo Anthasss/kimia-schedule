@@ -12,12 +12,11 @@ This repository contains the full codebase for **Kimia Schedule Maker**, an acad
   - [2. Courses Page (`/courses`)](#2-courses-page-courses)
   - [3. Lecturers Page (`/lecturers`)](#3-lecturers-page-lecturers)
   - [4. Room & Times Page (`/room-times`)](#4-room--times-page-room-times)
-  - [5. Reports Page (`/reports`)](#5-reports-page-reports)
-  - [6. Final Exams Page (`/exams-grouping`)](#6-final-exams-page-exams-grouping)
-  - [7. History Page (`/history`)](#7-history-page-history)
-  - [8. User Management Page (`/admin`)](#8-user-management-page-admin)
-  - [9. Change Password Page (`/change-password`)](#9-change-password-page-change-password)
-  - [10. Login Page (`/login`)](#10-login-page-login)
+  - [5. Final Exams Page (`/exams-grouping`)](#5-final-exams-page-exams-grouping)
+  - [6. History Page (`/history`)](#6-history-page-history)
+  - [7. User Management Page (`/admin`)](#7-user-management-page-admin)
+  - [8. Change Password Page (`/change-password`)](#8-change-password-page-change-password)
+  - [9. Login Page (`/login`)](#9-login-page-login)
 - [Shared & Global Components](#shared--global-components)
 
 ---
@@ -87,16 +86,6 @@ This repository contains the full codebase for **Kimia Schedule Maker**, an acad
   - [TimeSettings.tsx](file:///home/anthasss/Code/Work/kimia-schedule-maker/client/src/components/ManagementPage/TimeSettings.tsx): Configuration panel form for defining daily start/end times, active days of the week, SKS unit duration (minutes), and saving system-wide time parameters.
   - [BreakTimesTable.tsx](file:///home/anthasss/Code/Work/kimia-schedule-maker/client/src/components/ManagementPage/BreakTimesTable.tsx): Data table listing registered campus break periods with start/end time ranges and active days.
   - [EditBreakModal.tsx](file:///home/anthasss/Code/Work/kimia-schedule-maker/client/src/components/ManagementPage/EditBreakModal.tsx): Modal dialog to add or edit break period titles and time ranges.
-
----
-
-### 5. Reports Page (`/reports`)
-- **Page File**: [ReportsPage.tsx](file:///home/anthasss/Code/Work/kimia-schedule-maker/client/src/pages/ReportsPage.tsx)
-- **What this page does**:
-  Provides analytics and reporting features. Displays lecturer teaching credit burden calculations (SKS workload balance), class lists, and selection controls for generating and downloading structured Excel workbooks.
-
-- **Components on this page**:
-  - Embedded data tables, filter search inputs, lecturer selection checkboxes, credit burden summaries, and export handlers ([exportLecturerClassesToExcel](file:///home/anthasss/Code/Work/kimia-schedule-maker/client/src/utils/exportLecturerClassesToExcel.ts), [exportCreditBurdenToExcel](file:///home/anthasss/Code/Work/kimia-schedule-maker/client/src/utils/exportCreditBurdenToExcel.ts)).
 
 ---
 
