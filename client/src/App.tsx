@@ -357,7 +357,7 @@ export default function App() {
                     />
                   }
                 />
-                <Route
+                {/* <Route
                   path="/reports"
                   element={
                     <ReportsPage
@@ -368,7 +368,7 @@ export default function App() {
                       scheduleSlots={scheduleSlots}
                     />
                   }
-                />
+                /> */}
                 <Route
                   path="/schedule"
                   element={
