@@ -22,14 +22,14 @@ export const DeleteLecturerModal: React.FC<DeleteLecturerModalProps> = ({
       />
       <div className="relative bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
         <h2 className="font-bold text-[16px] text-[#191c1e] mb-2">
-          Deactivate Lecturer
+          Delete Lecturer
         </h2>
         <p className="text-[13px] text-[#43474e] leading-relaxed">
-          Are you sure you want to deactivate <strong>{lecturer.name}</strong>?
+          Are you sure you want to delete <strong>{lecturer.name}</strong>?
         </p>
         <p className="text-[12px] text-[#74777f] mt-2 leading-relaxed">
-          The lecturer will be hidden from new assignments. Existing schedule
-          slots and class assignments will be kept for historical reference.
+          This permanently removes the lecturer and their class assignments.
+          Their name will no longer appear on schedule cards.
         </p>
         <div className="flex justify-end gap-2 mt-5">
           <button
@@ -47,7 +47,7 @@ export const DeleteLecturerModal: React.FC<DeleteLecturerModalProps> = ({
             {isConfirming && (
               <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
             )}
-            {isConfirming ? 'Deactivating...' : 'Deactivate'}
+            {isConfirming ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       </div>

@@ -30,7 +30,7 @@ export interface Lecturer {
   id: string;
   name: string;
   color: string;
-  deletedAt?: string | null;
+  includeInExams?: boolean;
 }
 
 export interface Course {

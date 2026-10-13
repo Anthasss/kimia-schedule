@@ -71,7 +71,7 @@ This repository contains the full codebase for **Kimia Schedule Maker**, an acad
   - [LecturersSidebar.tsx](file:///home/anthasss/Code/Work/kimia-schedule-maker/client/src/components/LecturersPage/LecturersSidebar.tsx): Sidebar panel listing all active faculty members with search bar, multi-selection checkboxes, SKS load counters, edit/delete buttons, and an "Add Lecturer" button.
   - [LecturersTable.tsx](file:///home/anthasss/Code/Work/kimia-schedule-maker/client/src/components/LecturersPage/LecturersTable.tsx): Table view displaying detailed class assignments for the selected lecturer, including course title, class section, SKS credits, assigned room, and time slot details.
   - [EditLecturerModal.tsx](file:///home/anthasss/Code/Work/kimia-schedule-maker/client/src/components/LecturersPage/EditLecturerModal.tsx): Modal form to edit lecturer details such as name, NIP/code, maximum allowed SKS load, and contact details.
-  - [DeleteLecturerModal.tsx](file:///home/anthasss/Code/Work/kimia-schedule-maker/client/src/components/LecturersPage/DeleteLecturerModal.tsx): Confirmation dialog prior to soft-deleting or removing a lecturer from active records.
+  - [DeleteLecturerModal.tsx](file:///home/anthasss/Code/Work/kimia-schedule-maker/client/src/components/LecturersPage/DeleteLecturerModal.tsx): Confirmation dialog prior to permanently deleting a lecturer and their class assignments.
 
 ---
 

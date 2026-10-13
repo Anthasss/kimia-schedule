@@ -30,25 +30,49 @@ function createGetOneHandler(table: any) {
   };
 }
 
+// Postgres unique violation (23505) — drizzle wraps it, code may sit on the cause
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function uniqueViolation(err: any): boolean {
+  return err?.code === "23505" || err?.cause?.code === "23505";
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createInsertHandler(table: any) {
   return async (req: Request, res: Response) => {
     const id = crypto.randomUUID();
-    const result = await db.insert(table).values({ id, ...req.body }).returning();
-    res.status(201).json(result[0]);
+    try {
+      const result = await db.insert(table).values({ id, ...req.body }).returning();
+      res.status(201).json(result[0]);
+    } catch (err) {
+      console.error(err);
+      if (uniqueViolation(err)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return res.status(409).json({ error: (err as any)?.cause?.detail ?? (err as any)?.detail ?? "Already exists" });
+      }
+      return res.status(500).json({ error: "Internal server error" });
+    }
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createUpdateHandler(table: any) {
   return async (req: Request, res: Response) => {
-    const result = await db
-      .update(table)
-      .set(req.body)
-      .where(eq(table.id, req.params.id))
-      .returning();
-    if (!result[0]) return res.status(404).json({ error: "Not found" });
-    res.json(result[0]);
+    try {
+      const result = await db
+        .update(table)
+        .set(req.body)
+        .where(eq(table.id, req.params.id))
+        .returning();
+      if (!result[0]) return res.status(404).json({ error: "Not found" });
+      res.json(result[0]);
+    } catch (err) {
+      console.error(err);
+      if (uniqueViolation(err)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return res.status(409).json({ error: (err as any)?.cause?.detail ?? (err as any)?.detail ?? "Already exists" });
+      }
+      return res.status(500).json({ error: "Internal server error" });
+    }
   };
 }
 
@@ -150,15 +174,7 @@ export const updateScheduleSlot = createUpdateHandler(scheduleSlots);
 // DELETE
 export const deleteRoom = createDeleteHandler(rooms);
 export const deleteBreakTime = createDeleteHandler(breakTimes);
-export const deleteLecturer = async (req: Request, res: Response) => {
-  const result = await db
-    .update(lecturers)
-    .set({ deletedAt: new Date() })
-    .where(eq(lecturers.id, req.params.id))
-    .returning();
-  if (!result[0]) return res.status(404).json({ error: "Not found" });
-  res.json({ success: true });
-};
+export const deleteLecturer = createDeleteHandler(lecturers);
 export const deleteCourse = createDeleteHandler(courses);
 export const deleteScheduleSlot = createDeleteHandler(scheduleSlots);
 

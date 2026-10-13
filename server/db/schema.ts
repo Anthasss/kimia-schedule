@@ -50,7 +50,7 @@ export const lecturers = pgTable('lecturers', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   color: text('color').notNull().default('#6366f1'),
-  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  includeInExams: boolean('include_in_exams').notNull().default(true),
 }, (table) => [
   unique('lecturers_name_unique').on(table.name),
 ]);
