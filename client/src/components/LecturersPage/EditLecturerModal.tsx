@@ -13,6 +13,7 @@ interface EditLecturerModalProps {
 export const EditLecturerModal: React.FC<EditLecturerModalProps> = ({ lecturer, onClose, onSave }) => {
   const [name, setName] = useState(lecturer.name);
   const [color, setColor] = useState(lecturer.color || LECTURER_COLORS[1]);
+  const [includeInExams, setIncludeInExams] = useState(lecturer.includeInExams ?? true);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
@@ -21,6 +22,7 @@ export const EditLecturerModal: React.FC<EditLecturerModalProps> = ({ lecturer, 
       const updated = await apiPut<Lecturer>(`/api/lecturers/${lecturer.id}`, {
         name,
         color,
+        includeInExams,
       });
       onSave(updated);
       toast.success('Lecturer updated');
@@ -63,6 +65,17 @@ export const EditLecturerModal: React.FC<EditLecturerModalProps> = ({ lecturer, 
                 />
               ))}
             </div>
+          </div>
+          <div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeInExams}
+                onChange={(e) => setIncludeInExams(e.target.checked)}
+                className="accent-[#002045] cursor-pointer"
+              />
+              <span className="text-[#43474e] font-semibold">Include in exams grouping</span>
+            </label>
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-2">

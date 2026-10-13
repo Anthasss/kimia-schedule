@@ -100,7 +100,11 @@ export function LecturersPage({
     try {
       await apiDelete(`/api/lecturers/${deleteLecturerTarget.id}`);
       setLecturers((prev) =>
-        prev.map((l) => (l.id === deleteLecturerTarget.id ? { ...l, deletedAt: new Date().toISOString() } : l))
+        prev.map((l) =>
+          l.id === deleteLecturerTarget.id
+            ? { ...l, deletedAt: new Date().toISOString(), includeInExams: false }
+            : l
+        )
       );
       setSelectedLecturerIds((prev) => {
         const next = new Set(prev);

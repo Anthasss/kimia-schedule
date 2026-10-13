@@ -153,7 +153,7 @@ export const deleteBreakTime = createDeleteHandler(breakTimes);
 export const deleteLecturer = async (req: Request, res: Response) => {
   const result = await db
     .update(lecturers)
-    .set({ deletedAt: new Date() })
+    .set({ deletedAt: new Date(), includeInExams: false })
     .where(eq(lecturers.id, req.params.id))
     .returning();
   if (!result[0]) return res.status(404).json({ error: "Not found" });

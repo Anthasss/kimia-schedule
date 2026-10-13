@@ -30,6 +30,7 @@ export interface Lecturer {
   id: string;
   name: string;
   color: string;
+  includeInExams?: boolean;
   deletedAt?: string | null;
 }
 

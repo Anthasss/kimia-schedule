@@ -39,6 +39,7 @@ export const LecturersSidebar: React.FC<LecturersSidebarProps> = ({
 }) => {
   const [colorPickerId, setColorPickerId] = useState<string | null>(null);
   const [updatingColorId, setUpdatingColorId] = useState<string | null>(null);
+  const [updatingExamsId, setUpdatingExamsId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('default');
   const [isSortOpen, setIsSortOpen] = useState<boolean>(false);
   const sortMenuRef = useRef<HTMLDivElement>(null);
@@ -92,6 +93,20 @@ export const LecturersSidebar: React.FC<LecturersSidebarProps> = ({
       toast.error('Failed to update color');
     } finally {
       setUpdatingColorId(null);
+    }
+  };
+
+  const handleToggleExams = async (lecturer: Lecturer) => {
+    const next = !(lecturer.includeInExams ?? true);
+    setUpdatingExamsId(lecturer.id);
+    try {
+      const updated = await apiPut<Lecturer>(`/api/lecturers/${lecturer.id}`, { includeInExams: next });
+      onUpdateLecturer(updated);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update exams grouping');
+    } finally {
+      setUpdatingExamsId(null);
     }
   };
 
@@ -320,17 +335,30 @@ export const LecturersSidebar: React.FC<LecturersSidebarProps> = ({
                 </div>
               </div>
 
-              {/* Bottom row: credit burden */}
+              {/* Bottom row: exams grouping checkbox + credit burden */}
               <div
                 className={`px-3 pb-2 pt-1 border-t flex items-center justify-between ${isSelected ? 'border-white/15' : 'border-[#d8dade]'
                   }`}
               >
-                <span
-                  className={`text-[11px] ${isSelected ? 'text-white/60' : 'text-[#505f76]'
-                    }`}
+                <label
+                  className="flex items-center gap-1.5 cursor-pointer min-w-0"
+                  title="Include in exams grouping"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  Credit Burden
-                </span>
+                  <input
+                    type="checkbox"
+                    checked={lect.includeInExams ?? true}
+                    onChange={() => handleToggleExams(lect)}
+                    disabled={updatingExamsId === lect.id}
+                    className="accent-[#002045] cursor-pointer shrink-0 disabled:cursor-wait"
+                  />
+                  <span
+                    className={`text-[11px] truncate ${isSelected ? 'text-white/60' : 'text-[#505f76]'
+                      }`}
+                  >
+                    Exams
+                  </span>
+                </label>
                 <span
                   className={`text-[12px] font-bold ${isSelected ? 'text-white' : 'text-[#191c1e]'
                     }`}
