@@ -119,7 +119,7 @@ tables.
 
 ## ADR-006: Lecturers are soft-deleted
 
-**Status:** Accepted
+**Status:** Superseded by ADR-009
 
 **Context:**
 Hard-deleting a lecturer (with ON DELETE CASCADE on assignments) destroys the
@@ -180,3 +180,26 @@ course/class requires hand-written cleanup of slots and back-patches.
 - `createCourseWithClasses` no longer back-patches the course after inserting classes.
 - The client's three-pass save saga collapses to course PUT + class PUT + join
   replacement.
+
+## ADR-009: Lecturers are hard-deleted
+
+**Status:** Accepted
+
+**Context:**
+ADR-006's soft delete had rotted into the worst of both worlds: deactivated
+lecturers kept their row forever, the `UNIQUE(name)` constraint meant a
+deactivated lecturer blocked that name from ever being re-added, no restore
+action existed, and the ADR-promised `WHERE deleted_at IS NULL` server filter
+was never implemented (filtering was scattered across five client files).
+
+**Decision:**
+- Drop `lecturers.deleted_at` (migration purges already-deleted rows first).
+- `DELETE /api/lecturers/:id` is a hard delete; join rows go via the existing
+  `ccl_lecturer_fk` ON DELETE CASCADE.
+
+**Consequences:**
+- A name is free again as soon as the lecturer is deleted.
+- Historical schedule cards, PDF/Excel exports lose that lecturer's name
+  (cards render blank, no placeholder) — history is not a snapshot anyway:
+  it already resolves through current assignment rows.
+- All `!deletedAt` client filters are gone; one delete handler, no special case.

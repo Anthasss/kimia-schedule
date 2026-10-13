@@ -62,16 +62,14 @@ export function LecturersPage({
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [selectedLecturerIds, setSelectedLecturerIds] = useState<Set<string>>(new Set());
 
-  const activeLecturers = useMemo(() => lecturers.filter((l) => !l.deletedAt), [lecturers]);
-
   const creditBurden = useMemo(
     () => computeCreditBurden(courses, courseClasses, classLecturerAssignments),
     [courses, courseClasses, classLecturerAssignments]
   );
 
   const filteredLecturers = useMemo(
-    () => activeLecturers.filter((l) => l.name.toLowerCase().includes(search.toLowerCase())),
-    [activeLecturers, search]
+    () => lecturers.filter((l) => l.name.toLowerCase().includes(search.toLowerCase())),
+    [lecturers, search]
   );
 
   const handleToggleLecturer = useCallback((id: string) => {
@@ -99,23 +97,17 @@ export function LecturersPage({
     setIsConfirmingDelete(true);
     try {
       await apiDelete(`/api/lecturers/${deleteLecturerTarget.id}`);
-      setLecturers((prev) =>
-        prev.map((l) =>
-          l.id === deleteLecturerTarget.id
-            ? { ...l, deletedAt: new Date().toISOString(), includeInExams: false }
-            : l
-        )
-      );
+      setLecturers((prev) => prev.filter((l) => l.id !== deleteLecturerTarget.id));
       setSelectedLecturerIds((prev) => {
         const next = new Set(prev);
         next.delete(deleteLecturerTarget.id);
         return next;
       });
       setDeleteLecturerTarget(null);
-      toast.success('Lecturer deactivated');
+      toast.success('Lecturer deleted');
     } catch (err) {
       console.error(err);
-      toast.error('Failed to deactivate lecturer');
+      toast.error('Failed to delete lecturer');
     } finally {
       setIsConfirmingDelete(false);
     }

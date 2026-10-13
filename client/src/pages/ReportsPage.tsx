@@ -33,7 +33,7 @@ export function ReportsPage({
   const [isExportingClasses, setIsExportingClasses] = useState(false);
   const [isExportingBurden, setIsExportingBurden] = useState(false);
 
-  const activeLecturers = useMemo(() => lecturers.filter((l) => !l.deletedAt), [lecturers]);
+  const activeLecturers = lecturers;
   const creditBurden = useMemo(
     () => computeCreditBurden(courses, courseClasses, classLecturerAssignments),
     [courses, courseClasses, classLecturerAssignments]

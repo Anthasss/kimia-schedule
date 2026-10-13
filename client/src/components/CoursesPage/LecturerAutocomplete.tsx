@@ -34,13 +34,11 @@ export const LecturerAutocomplete: React.FC<LecturerAutocompleteProps> = ({
     setQuery(value || '');
   }, [value]);
 
-  const activeLecturers = useMemo(() => {
-    return lecturers.filter((l) => !l.deletedAt);
-  }, [lecturers]);
+  const activeLecturers = lecturers;
 
   const selectedLecturer = useMemo(() => {
-    return activeLecturers.find((l) => l.name === value) || lecturers.find((l) => l.name === value);
-  }, [activeLecturers, lecturers, value]);
+    return lecturers.find((l) => l.name === value);
+  }, [lecturers, value]);
 
   const filteredLecturers = useMemo(() => {
     const trimmed = query.trim().toLowerCase();

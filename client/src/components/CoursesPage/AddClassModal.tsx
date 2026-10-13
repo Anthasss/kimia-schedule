@@ -25,7 +25,7 @@ export const AddClassModal: React.FC<AddClassModalProps> = ({
   onAdd,
   onClose,
 }) => {
-  const activeLecturers = lecturers.filter((l) => !l.deletedAt);
+  const activeLecturers = lecturers;
   const nextLetter = getNextLetter(existingLetters);
   const [classLetter, setClassLetter] = useState<string>(nextLetter);
   const [selectedLecturers, setSelectedLecturers] = useState<string[]>([]);

@@ -24,7 +24,7 @@ export function FinalExamsPage({ lecturers }: FinalExamsPageProps) {
     try {
       const result = generateExamGroups(
         parseInt(studentCount, 10),
-        lecturers.filter((l) => l.includeInExams && !l.deletedAt).map((l) => l.name),
+        lecturers.filter((l) => l.includeInExams).map((l) => l.name),
         {
         instructorsPerGroup: parseInt(instructorsPerGroup, 10),
         examinersPerGroup: parseInt(examinersPerGroup, 10),

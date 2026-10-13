@@ -31,7 +31,6 @@ export interface Lecturer {
   name: string;
   color: string;
   includeInExams?: boolean;
-  deletedAt?: string | null;
 }
 
 export interface Course {

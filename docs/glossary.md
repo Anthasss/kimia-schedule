@@ -20,9 +20,8 @@ An assignment linking a lecturer to a course class. Stored in the
 the primary — used for default display). A class can have up to 3 lecturers.
 
 ## Lecturer
-A teaching staff member. Identified by `name` and a display `color`. May be
-soft-deleted (ADR-006): a deactivated lecturer keeps their row for historical
-reference but is hidden from the active list.
+A teaching staff member. Identified by `name` (unique) and a display `color`.
+Hard-deleted (ADR-009) — deletion removes the row and its class assignments.
 
 ## SemesterPeriod
 A distinct teaching period, e.g., "2025/2026 Ganjil". Identified by `year` (text,
