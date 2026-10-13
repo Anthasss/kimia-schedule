@@ -13,16 +13,21 @@ export function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await authClient.signIn.email({ email, password });
+    try {
+      const { error } = await authClient.signIn.email({ email, password });
 
-    if (error) {
-      toast.error(error.message || "Invalid email or password");
+      if (error) {
+        toast.error(error.message || "Invalid email or password");
+        return;
+      }
+
+      toast.success("Logged in successfully");
+      navigate("/schedule");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Login failed. Please try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    toast.success("Logged in successfully");
-    navigate("/schedule");
   };
 
   return (
