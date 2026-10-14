@@ -21,8 +21,10 @@ export const CourseDraftCard: React.FC<CourseDraftCardProps> = ({
 }) => {
   const primaryLecturer = course.lecturers[0];
   const lecturer = lecturers.find((l) => l.name === primaryLecturer);
-  const accentColor =
-    colorMode === 'semester'
+  const missingLecturer = course.lecturers.filter(Boolean).length === 0;
+  const accentColor = missingLecturer
+    ? '#ba1a1a'
+    : colorMode === 'semester'
       ? semesterColor(course.semester)
       : lecturer?.color || '#6366f1';
 
@@ -62,8 +64,8 @@ export const CourseDraftCard: React.FC<CourseDraftCardProps> = ({
         <h4 className="font-semibold text-[14px] text-[#191c1e] mt-1.5 leading-tight">
           {course.courseTitle} ({course.classLetter})
         </h4>
-        <p className="text-[12px] text-[#43474e] mt-0.5">
-          {course.lecturers.join(', ') || 'Unassigned'}
+        <p className={`text-[12px] mt-0.5 ${missingLecturer ? 'text-[#ba1a1a] font-bold' : 'text-[#43474e]'}`}>
+          {course.lecturers.filter(Boolean).join(', ') || 'Unassigned — no lecturer'}
         </p>
         {scheduled && (
           <span className="inline-block mt-1.5 text-[11px] font-semibold px-2 py-0.5 bg-[#002045]/10 text-[#002045] rounded">
