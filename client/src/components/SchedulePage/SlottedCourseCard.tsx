@@ -26,11 +26,13 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
 }) => {
   const data = classById.get(slot.classId);
   const primary = data?.lecturers[0];
-  const accentColor =
-    colorMode === 'semester'
+  const classLecturerNames = data?.lecturers.map((l) => l.name) ?? [];
+  const missingLecturer = classLecturerNames.filter(Boolean).length === 0;
+  const accentColor = missingLecturer
+    ? '#ba1a1a'
+    : colorMode === 'semester'
       ? semesterColor(data?.course.semester ?? [])
       : primary?.color || '#6366f1';
-  const classLecturerNames = data?.lecturers.map((l) => l.name) ?? [];
 
   const boxRef = useRef<HTMLDivElement>(null);
   useFitScale(boxRef);
@@ -66,7 +68,9 @@ export const SlottedCourseCard: React.FC<SlottedCourseCardProps> = ({
             </button>
           )}
         </div>
-        <p className="text-[12px] text-[#374151] mt-1 whitespace-pre-line">{turns || classLecturerNames.map(cleanLecturerName).join('\n')}</p>
+        <p className={`text-[12px] mt-1 whitespace-pre-line ${missingLecturer ? 'text-[#ba1a1a] font-bold' : 'text-[#374151]'}`}>
+          {turns || classLecturerNames.map(cleanLecturerName).join('\n') || 'Unassigned — no lecturer'}
+        </p>
       </div>
       {hasBadge && (
         <div className="absolute bottom-1 right-1 flex gap-1 items-center">
